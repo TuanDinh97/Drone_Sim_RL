@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61,<80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quadsim"
+version = "0.1.0"
+description = "Quadrotor Sim-to-Real RL research platform built on Isaac Lab"
+requires-python = ">=3.10"
+dependencies = ["torch>=2.7", "numpy<2", "h5py", "pyyaml"]
+
+[project.optional-dependencies]
+dev = ["pytest", "matplotlib"]
+
+[tool.setuptools.packages.find]
+include = ["quadsim*"]

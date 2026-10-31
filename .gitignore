@@ -1,0 +1,46 @@
+# Third-party sources (cloned, never committed)
+third_party/
+
+# Runtime outputs
+logs/
+outputs/
+datasets/
+wandb/
+runs/
+*.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Large / binary artifacts (exported policies are published via releases, not git)
+*.pt
+*.pth
+*.onnx
+*.hdf5
+*.h5
+*.zarr/
+*.npz
+*.mp4
+
+# Allow small curated result artifacts used by docs/report
+!docs/results/**/*.npz
+!docs/results/**/*.json
+
+# LaTeX build files
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.bbl
+report/*.blg
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+.env.local

@@ -1,0 +1,48 @@
+{
+  "preset": "crazyflie",
+  "T1_inertial": {
+    "mass_rel_err": 0.0,
+    "inertia_rel_err": 0.0,
+    "pass": true
+  },
+  "T2_hover": {
+    "max_abs_dz_m": 0.0,
+    "pass": true
+  },
+  "T3_thrust_step": {
+    "rms_err_mps2": 0.0020021979804664886,
+    "peak_mps2": 7.797201643613539,
+    "rel": 0.0002567841736023886,
+    "pass": true
+  },
+  "T4_yaw": {
+    "yaw_acc_meas": 46.00068262231493,
+    "yaw_acc_pred": 46.00422475646037,
+    "rel_err": 7.699584471176912e-05,
+    "pass": true
+  },
+  "T5_open_loop": {
+    "duration_s": 1.5,
+    "travel_m": 2.5731091499328613,
+    "pos_err_final_semi_implicit_m": 0.0020743925124406815,
+    "pos_err_final_rk4_m": 0.008899196982383728,
+    "att_err_max_semi_implicit_deg": 0.06600911170244217,
+    "att_err_max_rk4_deg": 0.44665831327438354,
+    "pass": true
+  },
+  "T6_closed_loop": {
+    "pos_err_final_m": 0.009244902990758419,
+    "vel_final_isaac": [
+      1.0976064205169678,
+      -2.4355088612537656e-07,
+      0.6703406572341919
+    ],
+    "vel_cmd": [
+      1.5,
+      0.0,
+      0.6000000238418579
+    ],
+    "pass": true
+  },
+  "all_pass": true
+}

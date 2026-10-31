@@ -1,0 +1,14 @@
+{
+  "device": "cuda:0",
+  "num_bodies": 64,
+  "boot_seconds": 2.8369479179382324,
+  "physics_steps": 200,
+  "wall_seconds": 0.15801382064819336,
+  "steps_per_second": 1265.7120698656222,
+  "z_err_vs_analytic_m": 0.0061321258544921875,
+  "z_err_vs_symplectic_euler_m": 9.5367431640625e-07,
+  "torch": "2.7.0+cu128",
+  "gpu": "NVIDIA GeForce RTX 5060",
+  "max_gpu_mem_alloc_MB": 0.0283203125,
+  "passed": true
+}

@@ -1,0 +1,118 @@
+"""Evaluate RL policies and classical baselines on a task under identical conditions.
+
+Runs complete episodes (no truncated first episodes), collects per-episode metrics from the env and
+reports mean / std / 95 % CI. Several controllers can be compared in one call; each uses the same seed,
+so they face the same sequence of initial states and randomizations.
+
+Examples:
+    python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers cascade \
+        --checkpoint logs/rsl_rl/quadsim_hover/<run> --episodes 1000
+    python scripts/rl/evaluate.py --headless --task Quadsim-Track-v0 --controllers cascade geometric policy ...
+    # robustness: evaluate under stronger perturbations than training
+    python scripts/rl/evaluate.py ... env.wind.enabled=True env.randomization.mass_scale="(0.8,1.25)"
+"""
+
+import argparse
+import json
+import math
+import os
+import time
+
+from isaaclab.app import AppLauncher
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--task", required=True)
+parser.add_argument("--controllers", nargs="+", default=["policy"], help="policy | cascade | geometric | potential_field")
+parser.add_argument("--checkpoint", default=None, help="run dir or .pt (needed for 'policy')")
+parser.add_argument("--episodes", type=int, default=500)
+parser.add_argument("--num_envs", type=int, default=500)
+parser.add_argument("--seed", type=int, default=1234)
+parser.add_argument("--tag", default="")
+parser.add_argument("--out_dir", default="logs/eval")
+AppLauncher.add_app_launcher_args(parser)
+args, overrides = parser.parse_known_args()
+app = AppLauncher(args).app
+
+import gymnasium as gym  # noqa: E402
+import numpy as np  # noqa: E402
+import torch  # noqa: E402
+
+import quadsim.tasks  # noqa: E402,F401
+from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
+from quadsim.rl.overrides import apply_overrides  # noqa: E402
+from quadsim.rl.policy_io import agent_cfg_for, latest_checkpoint, load_policy  # noqa: E402
+from quadsim.tasks.baselines import BASELINES  # noqa: E402
+
+
+def summarize(records):
+    keys = [k for k in records[0] if k != "env_id"]
+    out = {}
+    for k in keys:
+        v = torch.cat([r[k] for r in records]).numpy().astype(np.float64)
+        v = v[np.isfinite(v)]
+        if len(v) == 0:
+            out[k] = {"mean": float("nan"), "n": 0}
+            continue
+        out[k] = {"mean": float(v.mean()), "std": float(v.std()), "ci95": float(1.96 * v.std() / math.sqrt(len(v))),
+                  "median": float(np.median(v)), "n": int(len(v))}
+    return out
+
+
+def run_controller(name, env):
+    u = env.unwrapped
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    u.seed(args.seed)
+    obs, _ = env.reset()
+    if name == "policy":
+        ckpt = args.checkpoint if args.checkpoint.endswith(".pt") else latest_checkpoint(args.checkpoint)
+        pol = load_policy(ckpt, env, task=args.task)
+        obs, _ = env.reset()  # runner construction resets the env through the wrapper
+        act = lambda o: pol(o)  # noqa: E731
+    else:
+        ctrl = BASELINES[name](u)
+        act = lambda o: ctrl()  # noqa: E731
+    u.seed(args.seed)
+    obs, _ = env.reset()
+    u.episode_metric_buffer.clear()
+    u.collect_episode_metrics = True
+    done_count = 0
+    t0 = time.time()
+    max_steps = int(math.ceil(args.episodes / u.num_envs) + 2) * int(u.max_episode_length)
+    steps = 0
+    while done_count < args.episodes and steps < max_steps:
+        with torch.no_grad():
+            obs, rew, term, trunc, _ = env.step(act(obs))
+        done_count = sum(len(r["env_id"]) for r in u.episode_metric_buffer)
+        steps += 1
+    u.collect_episode_metrics = False
+    recs = list(u.episode_metric_buffer)
+    res = summarize(recs)
+    res["_meta"] = {"episodes": done_count, "wall_s": time.time() - t0, "steps": steps}
+    return res
+
+
+def main():
+    env_cfg = parse_env_cfg(args.task, device=args.device, num_envs=args.num_envs)
+    apply_overrides(env_cfg, agent_cfg_for(args.task), overrides)
+    env_cfg.seed = args.seed
+    env = gym.make(args.task, cfg=env_cfg)
+    results = {"task": args.task, "checkpoint": args.checkpoint, "seed": args.seed, "overrides": overrides,
+               "episodes_requested": args.episodes, "controllers": {}}
+    for c in args.controllers:
+        print(f"[eval] {c} ...", flush=True)
+        results["controllers"][c] = run_controller(c, env)
+        brief = {k: round(v["mean"], 4) for k, v in results["controllers"][c].items() if k != "_meta"}
+        print(f"[eval] {c}: {brief}", flush=True)
+    os.makedirs(args.out_dir, exist_ok=True)
+    tag = f"_{args.tag}" if args.tag else ""
+    out = os.path.join(args.out_dir, f"{args.task}{tag}.json")
+    with open(out, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"[eval] wrote {out}")
+    env.close()
+
+
+if __name__ == "__main__":
+    main()
+    app.close()

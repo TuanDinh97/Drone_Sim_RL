@@ -1,0 +1,19 @@
+{
+  "torch": {
+    "episodes": 512,
+    "success": 0.998046875,
+    "crash": 0.0,
+    "final_pos_err": 0.012921685352921486,
+    "max_obs_err": 0.0,
+    "max_act_err": 0.0
+  },
+  "onnx_deploy_pipeline": {
+    "episodes": 512,
+    "success": 0.998046875,
+    "crash": 0.0,
+    "final_pos_err": 0.012921378016471863,
+    "max_obs_err": 9.5367431640625e-07,
+    "max_act_err": 1.0132789611816406e-06
+  },
+  "pass": true
+}

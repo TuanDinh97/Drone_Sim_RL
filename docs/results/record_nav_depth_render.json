@@ -1,0 +1,23 @@
+{
+  "file": "datasets/nav_depth_pf_test.h5",
+  "size_MB": 5.420348167419434,
+  "samples": 400,
+  "envs": 4,
+  "wall_s": 11.420584917068481,
+  "checks": {
+    "shapes": true,
+    "time_monotonic": true,
+    "dt_consistent": true,
+    "last_pos_equal": true,
+    "last_action_equal": true,
+    "has_config": true,
+    "image_shape": [
+      400,
+      4,
+      1,
+      48,
+      64
+    ]
+  },
+  "pass": true
+}

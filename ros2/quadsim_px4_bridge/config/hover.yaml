@@ -1,0 +1,9 @@
+quadsim_policy:
+  ros__parameters:
+    policy_dir: "/path/to/run/exported"   # contains policy.onnx + contract.json (scripts/rl/export.py)
+    task: "hover"                          # hover | nav (nav needs a range ring source)
+    goal_enu: [0.0, 0.0, 1.5]              # target position, ENU, relative to the EKF origin
+    goal_yaw_enu: 0.0
+    thrust_scale: 1.0                      # calibrate: px4 hover thrust / sim hover fraction (docs/SIM2REAL.md)
+    max_odom_age_s: 0.05                   # watchdog -> stop publishing (PX4 falls back to its failsafe)
+    geofence_radius_m: 3.0

@@ -86,7 +86,7 @@ class VisionCfg:
     width: int = 64
     height: int = 48
     hfov_deg: float = 87.0  # RealSense D435 depth HFOV
-    offset_pos: tuple[float, float, float] = (0.12, 0.0, 0.02)  # body frame
+    offset_pos: tuple[float, float, float] = (0.15, 0.0, -0.06)  # body frame; X500: front, below the plate, rotors out of view
     pitch_deg: float = 0.0  # positive pitches the camera up
     depth_noise: DepthNoiseCfg = field(default_factory=DepthNoiseCfg)
     rgb_noise: RgbNoiseCfg = field(default_factory=RgbNoiseCfg)

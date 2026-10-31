@@ -131,6 +131,8 @@ class QuadrotorEnv(DirectRLEnv):
 
         # ---------------- bookkeeping ----------------
         self.episode_sums: dict[str, torch.Tensor] = {}
+        self.collect_episode_metrics = False  # evaluation scripts switch this on
+        self.episode_metric_buffer: list[dict] = []
         self.crashed = torch.zeros(n, dtype=torch.bool, device=dev)
         self.set_debug_vis(self.cfg.debug_vis)
 
@@ -412,21 +414,29 @@ class QuadrotorEnv(DirectRLEnv):
     def _reset_idx(self, env_ids: torch.Tensor | None):
         if env_ids is None or len(env_ids) == self.num_envs:
             env_ids = self.robot._ALL_INDICES
-        # episode logging
+        # episode logging (per-env metrics -> means for TensorBoard, raw values for evaluation)
         log = {}
         for k, v in self.episode_sums.items():
             log[f"Episode_Reward/{k}"] = (v[env_ids].mean() / self.max_episode_length_s).item()
             v[env_ids] = 0.0
-        log["Episode_Termination/crash"] = self.reset_terminated[env_ids].float().mean().item()
-        log["Episode_Termination/time_out"] = self.reset_time_outs[env_ids].float().mean().item()
-        log.update(self._task_episode_log(env_ids))
+        played = self.episode_length_buf[env_ids] > 0
+        metrics = {
+            "crash": self.reset_terminated[env_ids].float(),
+            "time_out": self.reset_time_outs[env_ids].float(),
+            "episode_length_s": self.episode_length_buf[env_ids].float() * self.step_dt,
+        }
+        metrics.update(self._task_episode_metrics(env_ids))
+        for k, v in metrics.items():
+            vals = v[played & torch.isfinite(v)]
+            if len(vals) > 0:
+                log[f"Metrics/{k}"] = vals.mean().item()
+        if self.collect_episode_metrics and played.any():
+            ids = env_ids[played]
+            self.episode_metric_buffer.append({"env_id": ids.cpu(), **{k: v[played].cpu() for k, v in metrics.items()}})
         self.extras["log"] = log
 
         self.robot.reset(env_ids)
         super()._reset_idx(env_ids)
-        if len(env_ids) == self.num_envs:
-            # desynchronize resets
-            self.episode_length_buf[:] = torch.randint_like(self.episode_length_buf, high=int(self.max_episode_length))
 
         self._randomize_episode(env_ids)
         pos, quat, lin_vel, ang_vel = self._sample_initial_state(env_ids)
@@ -486,8 +496,42 @@ class QuadrotorEnv(DirectRLEnv):
     def _reset_task(self, env_ids):
         pass
 
-    def _task_episode_log(self, env_ids) -> dict:
+    def _task_episode_metrics(self, env_ids) -> dict[str, torch.Tensor]:
+        """Per-env task metrics of the finishing episodes (NaN = undefined for that env)."""
         return {}
+
+    # ---------------------------------------------------------------- debug visualization
+    def debug_points(self) -> tuple[torch.Tensor, torch.Tensor] | None:
+        """Task hook: (points (N, M, 3) env-local, marker ids (M,)): 0 = primary target, 1 = secondary."""
+        return None
+
+    def _set_debug_vis_impl(self, debug_vis: bool):
+        from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
+
+        if debug_vis:
+            if not hasattr(self, "_markers"):
+                cfg = VisualizationMarkersCfg(
+                    prim_path="/Visuals/quadsim_targets",
+                    markers={
+                        "target": sim_utils.SphereCfg(
+                            radius=0.08, visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.9, 0.2))),
+                        "secondary": sim_utils.SphereCfg(
+                            radius=0.035, visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.55, 0.0))),
+                    },
+                )
+                self._markers = VisualizationMarkers(cfg)
+            self._markers.set_visibility(True)
+        elif hasattr(self, "_markers"):
+            self._markers.set_visibility(False)
+
+    def _debug_vis_callback(self, event):
+        out = self.debug_points()
+        if out is None or not hasattr(self, "_markers"):
+            return
+        pts, ids = out
+        pts = pts + self.scene.env_origins[:, None, :]
+        n, m = pts.shape[:2]
+        self._markers.visualize(translations=pts.reshape(-1, 3), marker_indices=ids.repeat(n))
 
     # ---------------------------------------------------------------- helpers for tasks
     def local_pos(self) -> torch.Tensor:

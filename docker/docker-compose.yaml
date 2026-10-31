@@ -1,0 +1,90 @@
+# quadsim containers. Usage (from the repository root):
+#   docker compose -f docker/docker-compose.yaml build
+#   docker compose -f docker/docker-compose.yaml run --rm test
+#   docker compose -f docker/docker-compose.yaml run --rm train "python scripts/rl/train.py --task Quadsim-Hover-v0 --headless"
+#   xhost +local: && docker compose -f docker/docker-compose.yaml run --rm gui "python scripts/tools/view.py --task Quadsim-Track-v0 --controller geometric"
+# Persistent: ./logs (checkpoints, TensorBoard), ./datasets, ./outputs; Isaac Sim caches in named volumes.
+
+x-gpu: &gpu
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: all
+          capabilities: [gpu]
+
+x-volumes: &volumes
+  - ../logs:/workspace/quadsim/logs
+  - ../datasets:/workspace/quadsim/datasets
+  - ../outputs:/workspace/quadsim/outputs
+  - ../docs:/workspace/quadsim/docs
+  - ../scripts:/workspace/quadsim/scripts
+  - ../tests:/workspace/quadsim/tests
+  - ../source/quadsim/quadsim:/workspace/quadsim/source/quadsim/quadsim
+  - isaac-cache-kit:/isaac-sim/kit/cache
+  - isaac-cache-ov:/root/.cache/ov
+  - isaac-cache-gl:/root/.cache/nvidia/GLCache
+  - isaac-cache-compute:/root/.nv/ComputeCache
+  - isaac-carb-logs:/isaac-sim/kit/logs/Kit/Isaac-Sim
+
+services:
+  base: &base
+    image: quadsim:2.3.2
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      network: host
+      args:  # forwarded so pip can reach PyPI behind a local proxy (empty if unset)
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - NO_PROXY=${NO_PROXY:-}
+    environment:
+      - OMNI_KIT_ACCEPT_EULA=YES
+      - ACCEPT_EULA=Y
+      - PRIVACY_CONSENT=Y
+    volumes: *volumes
+    deploy: *gpu
+    network_mode: host
+    ipc: host
+    shm_size: 8gb
+    working_dir: /workspace/quadsim
+
+  test:
+    <<: *base
+    command: ["python -m pytest tests/core -q && python scripts/validation/m1_isaac_smoke_test.py --headless"]
+
+  train:
+    <<: *base
+    command: ["python scripts/rl/train.py --task Quadsim-Hover-v0 --headless"]
+
+  tensorboard:
+    <<: *base
+    deploy: {}
+    command: ["python -m tensorboard.main --logdir logs/rsl_rl --host 0.0.0.0 --port 6006"]
+
+  gui:
+    <<: *base
+    environment:
+      - OMNI_KIT_ACCEPT_EULA=YES
+      - ACCEPT_EULA=Y
+      - PRIVACY_CONSENT=Y
+      - DISPLAY=${DISPLAY:-:0}
+    volumes:
+      - ../logs:/workspace/quadsim/logs
+      - ../datasets:/workspace/quadsim/datasets
+      - ../outputs:/workspace/quadsim/outputs
+      - ../scripts:/workspace/quadsim/scripts
+      - ../source/quadsim/quadsim:/workspace/quadsim/source/quadsim/quadsim
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - isaac-cache-kit:/isaac-sim/kit/cache
+      - isaac-cache-ov:/root/.cache/ov
+      - isaac-cache-gl:/root/.cache/nvidia/GLCache
+      - isaac-cache-compute:/root/.nv/ComputeCache
+    command: ["python scripts/tools/view.py --task Quadsim-Track-v0 --controller geometric"]
+
+volumes:
+  isaac-cache-kit:
+  isaac-cache-ov:
+  isaac-cache-gl:
+  isaac-cache-compute:
+  isaac-carb-logs:

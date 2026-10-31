@@ -1,0 +1,6 @@
+# Extra runtime deps of quadsim on top of the Isaac Lab 2.3.2 image (versions match env/constraints.txt)
+onnxruntime==1.20.1
+h5py
+pyyaml
+matplotlib
+pytest==8.3.5

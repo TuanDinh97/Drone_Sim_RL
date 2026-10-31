@@ -1,0 +1,173 @@
+"""Framework-free (NumPy) deployment interface: frame conversions, observation builder, action decoder.
+
+Simulation conventions: world z-up (ENU-like), body FLU, quaternion wxyz ``q_WB``.
+PX4 conventions:        world NED, body FRD, quaternion wxyz ``q_NED_FRD`` (VehicleOdometry.q).
+
+This module reproduces, outside Isaac Lab, exactly the observation the policy saw in simulation
+(see ``QuadrotorEnv._state_obs`` and the tasks' ``_task_obs``) and decodes normalized actions into
+PX4 offboard set-points. It is unit-tested against the simulator's own observations
+(tests/core/test_deploy_interface.py and scripts/validation/m6_deploy_consistency.py).
+"""
+
+from __future__ import annotations
+
+import math
+
+import numpy as np
+
+# ----------------------------------------------------------------------------- quaternions (wxyz)
+
+
+def q_mul(a, b):
+    aw, ax, ay, az = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
+    bw, bx, by, bz = b[..., 0], b[..., 1], b[..., 2], b[..., 3]
+    return np.stack([aw * bw - ax * bx - ay * by - az * bz, aw * bx + ax * bw + ay * bz - az * by,
+                     aw * by - ax * bz + ay * bw + az * bx, aw * bz + ax * by - ay * bx + az * bw], -1)
+
+
+def q_conj(q):
+    return np.concatenate([q[..., :1], -q[..., 1:]], -1)
+
+
+def q_rotate(q, v):
+    w, u = q[..., :1], q[..., 1:]
+    t = 2.0 * np.cross(u, v)
+    return v + w * t + np.cross(u, t)
+
+
+def q_to_rot(q):
+    q = q / np.linalg.norm(q, axis=-1, keepdims=True)
+    w, x, y, z = q[..., 0], q[..., 1], q[..., 2], q[..., 3]
+    return np.stack([
+        1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y),
+        2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x),
+        2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)], -1).reshape(q.shape[:-1] + (3, 3))
+
+
+def yaw_of(q):
+    w, x, y, z = q[..., 0], q[..., 1], q[..., 2], q[..., 3]
+    return np.arctan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
+
+
+# ----------------------------------------------------------------------------- frames
+_S = 1.0 / math.sqrt(2.0)
+Q_NED_ENU = np.array([0.0, _S, _S, 0.0])  # rotates ENU vectors into NED
+Q_FLU_FRD = np.array([0.0, 1.0, 0.0, 0.0])  # rotates FRD vectors into FLU (180 deg about x)
+
+
+def enu_to_ned(v):
+    v = np.asarray(v, dtype=np.float64)
+    return np.stack([v[..., 1], v[..., 0], -v[..., 2]], -1)
+
+
+ned_to_enu = enu_to_ned  # the map is an involution
+
+
+def flu_to_frd(v):
+    v = np.asarray(v, dtype=np.float64)
+    return np.stack([v[..., 0], -v[..., 1], -v[..., 2]], -1)
+
+
+frd_to_flu = flu_to_frd
+
+
+def q_enu_flu_to_ned_frd(q):
+    """q_WB (ENU, FLU) -> q (NED, FRD) as published by PX4 VehicleOdometry."""
+    return q_mul(q_mul(np.broadcast_to(Q_NED_ENU, q.shape), q), np.broadcast_to(Q_FLU_FRD, q.shape))
+
+
+def q_ned_frd_to_enu_flu(q):
+    return q_mul(q_mul(np.broadcast_to(q_conj(Q_NED_ENU), q.shape), q), np.broadcast_to(q_conj(Q_FLU_FRD), q.shape))
+
+
+def px4_odometry_to_sim(pos_ned, q_ned_frd, vel_ned, ang_vel_frd):
+    """PX4 VehicleOdometry (NED/FRD, velocity in NED) -> simulation conventions (ENU/FLU)."""
+    return (ned_to_enu(pos_ned), q_ned_frd_to_enu_flu(np.asarray(q_ned_frd, dtype=np.float64)),
+            ned_to_enu(vel_ned), frd_to_flu(ang_vel_frd))
+
+
+# ----------------------------------------------------------------------------- observation
+class ObservationBuilder:
+    """Builds the policy observation from onboard estimates, following ``contract.json``."""
+
+    def __init__(self, contract: dict):
+        self.c = contract
+        self.a_dim = contract["action"]["dim"]
+        self.has_last_action = any(x[0] == "last_action" for x in contract["observation"]["layout"])
+        self.last_action = np.asarray(contract["action"]["hover_action"], dtype=np.float32)
+
+    def state_obs(self, pos_w, q_wb, vel_w, gyro_b):
+        r = q_to_rot(q_wb)
+        vel_b = q_rotate(q_conj(q_wb), vel_w)
+        parts = [vel_b, r[..., :, :2].reshape(r.shape[:-2] + (6,)), gyro_b]
+        if self.has_last_action:
+            parts.append(np.broadcast_to(self.last_action, np.shape(vel_b)[:-1] + (self.a_dim,)))
+        return np.concatenate(parts, -1)
+
+    # ---- task parts
+    @staticmethod
+    def hover_task(pos_w, q_wb, target_pos, target_yaw):
+        rel_b = q_rotate(q_conj(q_wb), target_pos - pos_w)
+        e = np.arctan2(np.sin(target_yaw - yaw_of(q_wb)), np.cos(target_yaw - yaw_of(q_wb)))
+        return np.concatenate([rel_b, np.sin(e)[..., None], np.cos(e)[..., None]], -1)
+
+    @staticmethod
+    def nav_task(pos_w, q_wb, goal, range_ring=None, range_max=8.0):
+        rel_b = q_rotate(q_conj(q_wb), goal - pos_w)
+        d = np.linalg.norm(rel_b, axis=-1, keepdims=True)
+        parts = [rel_b / np.maximum(d, 1e-6), np.minimum(d, 10.0) / 10.0]
+        if range_ring is not None:
+            parts.append(np.asarray(range_ring) / range_max)
+        return np.concatenate(parts, -1)
+
+    def build(self, state_parts, task_part):
+        return np.concatenate([state_parts, task_part], -1).astype(np.float32)
+
+    def update_last_action(self, action):
+        self.last_action = np.asarray(action, dtype=np.float32)
+
+
+# ----------------------------------------------------------------------------- actions
+class ActionDecoder:
+    """Normalized action -> physical set-points (simulation frames) and PX4 offboard messages."""
+
+    def __init__(self, contract: dict):
+        a = contract["action"]
+        self.mode = a["control_mode"]
+        self.lo, self.hi = a["collective_range"]
+        self.t_max = a["max_total_thrust_N"]
+        self.max_rate = np.asarray(a["max_body_rate_rad_s"])
+        self.max_vel = np.asarray(a["max_velocity_m_s"])
+        self.max_yaw_rate = a["max_yaw_rate_rad_s"]
+
+    def decode(self, action, q_wb=None) -> dict:
+        a = np.clip(np.asarray(action, dtype=np.float64), -1, 1)
+        if self.mode == "ctbr":
+            thrust = (self.lo + (a[..., 0] + 1) * 0.5 * (self.hi - self.lo)) * self.t_max
+            return {"collective_N": thrust, "body_rates_flu": a[..., 1:4] * self.max_rate}
+        if self.mode == "velocity":
+            v_h = a[..., :3] * self.max_vel
+            yaw = yaw_of(q_wb)
+            c, s = np.cos(yaw), np.sin(yaw)
+            v_w = np.stack([c * v_h[..., 0] - s * v_h[..., 1], s * v_h[..., 0] + c * v_h[..., 1], v_h[..., 2]], -1)
+            return {"velocity_world": v_w, "yaw_rate": a[..., 3] * self.max_yaw_rate}
+        raise NotImplementedError(self.mode)
+
+    def to_px4(self, action, q_wb=None, thrust_scale: float = 1.0) -> dict:
+        """PX4 offboard set-point fields.
+
+        CTBR -> ``VehicleRatesSetpoint``: roll/pitch/yaw rates in FRD and ``thrust_body = [0, 0, -T_n]``
+        with ``T_n = thrust_scale * collective / T_max`` (PX4 normalized thrust). ``thrust_scale`` absorbs
+        the real ESC/motor/propeller thrust curve; calibrate it as
+        ``px4_estimated_hover_thrust / (m g / T_max_sim)`` (see docs/SIM2REAL.md).
+        Velocity -> ``TrajectorySetpoint``: velocity NED, yawspeed (NED: positive clockwise from above).
+        """
+        d = self.decode(action, q_wb)
+        if self.mode == "ctbr":
+            t_n = np.clip(thrust_scale * d["collective_N"] / self.t_max, 0.0, 1.0)
+            rates = flu_to_frd(d["body_rates_flu"])
+            return {"msg": "VehicleRatesSetpoint", "roll": rates[..., 0], "pitch": rates[..., 1],
+                    "yaw": rates[..., 2], "thrust_body": np.stack([0 * t_n, 0 * t_n, -t_n], -1)}
+        v = enu_to_ned(d["velocity_world"])
+        return {"msg": "TrajectorySetpoint", "velocity": v, "yawspeed": -d["yaw_rate"],
+                "position": np.full(3, np.nan), "acceleration": np.full(3, np.nan)}

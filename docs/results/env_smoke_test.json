@@ -1,0 +1,74 @@
+{
+  "Quadsim-Nav-Depth-Render-v0": {
+    "obs_shapes": {
+      "policy": [
+        32,
+        20
+      ],
+      "critic": [
+        32,
+        86
+      ],
+      "image": [
+        32,
+        1,
+        48,
+        64
+      ]
+    },
+    "finite": true,
+    "resets": 5,
+    "mean_reward": -0.000435098196958279,
+    "env_steps_per_s": 867.7571118237303,
+    "obs_space": "(20,)",
+    "pass": true
+  },
+  "Quadsim-Nav-RGB-v0": {
+    "obs_shapes": {
+      "policy": [
+        32,
+        20
+      ],
+      "critic": [
+        32,
+        86
+      ],
+      "image": [
+        32,
+        3,
+        48,
+        64
+      ]
+    },
+    "finite": true,
+    "resets": 7,
+    "mean_reward": -0.00019615024688391714,
+    "env_steps_per_s": 1143.7074404447428,
+    "obs_space": "(20,)",
+    "pass": true
+  },
+  "Quadsim-Nav-RGBD-v0": {
+    "obs_shapes": {
+      "policy": [
+        32,
+        20
+      ],
+      "critic": [
+        32,
+        86
+      ],
+      "image": [
+        32,
+        4,
+        48,
+        64
+      ]
+    },
+    "finite": true,
+    "resets": 5,
+    "mean_reward": 2.5882405789161568e-05,
+    "env_steps_per_s": 1124.1418704121052,
+    "obs_space": "(20,)",
+    "pass": true
+  }
+}

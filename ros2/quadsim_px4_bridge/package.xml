@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>quadsim_px4_bridge</name>
+  <version>0.1.0</version>
+  <description>Runs a quadsim-exported ONNX policy as a PX4 offboard controller (ROS 2 / uXRCE-DDS).</description>
+  <maintainer email="dinhngoctuan2131997@gmail.com">Tuan</maintainer>
+  <license>BSD-3-Clause</license>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>px4_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

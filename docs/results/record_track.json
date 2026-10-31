@@ -1,0 +1,16 @@
+{
+  "file": "datasets/track_geometric_test.h5",
+  "size_MB": 0.368377685546875,
+  "samples": 500,
+  "envs": 4,
+  "wall_s": 7.907045602798462,
+  "checks": {
+    "shapes": true,
+    "time_monotonic": true,
+    "dt_consistent": true,
+    "last_pos_equal": true,
+    "last_action_equal": true,
+    "has_config": true
+  },
+  "pass": true
+}

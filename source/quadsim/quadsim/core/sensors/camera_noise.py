@@ -21,19 +21,21 @@ class DepthNoiseCfg:
 
 def apply_depth_noise(depth: torch.Tensor, cfg: DepthNoiseCfg, scale: torch.Tensor | None = None) -> torch.Tensor:
     """depth (N, H, W) or (N, 1, H, W) metric -> noisy metric depth with invalid pixels set."""
-    d = depth.clone()
-    d = torch.nan_to_num(d, nan=cfg.max_range, posinf=cfg.max_range)
+    d = torch.nan_to_num(depth.clone(), nan=1e6, posinf=1e6)
+    no_return = d >= cfg.max_range  # beyond range / sky: reads as max range (free space), never noised
+    too_close = d < cfg.min_range
     if cfg.enabled:
         s = 1.0 if scale is None else scale.view(-1, *([1] * (d.dim() - 1)))
-        std = cfg.base_std + cfg.stereo_coeff * d * d
+        std = cfg.base_std + cfg.stereo_coeff * d.clamp(max=cfg.max_range) ** 2
         d = d + s * torch.randn_like(d) * std
         if cfg.quantization > 0:
             d = torch.round(d / cfg.quantization) * cfg.quantization
-        drop = torch.rand_like(d) < cfg.dropout_prob
-        d = torch.where(drop, torch.full_like(d, cfg.invalid_value), d)
-    too_close = d < cfg.min_range
-    d = torch.where(too_close & (d != cfg.invalid_value), torch.full_like(d, cfg.invalid_value), d)
-    return d.clamp(max=cfg.max_range)
+        d = d.clamp(min=cfg.min_range)  # noise must not turn valid returns into "too close"
+    d = torch.where(no_return, torch.full_like(d, cfg.max_range), d.clamp(max=cfg.max_range))
+    invalid = too_close
+    if cfg.enabled:
+        invalid = invalid | (torch.rand_like(d) < cfg.dropout_prob)
+    return torch.where(invalid, torch.full_like(d, cfg.invalid_value), d)
 
 
 def normalize_depth(depth: torch.Tensor, max_range: float) -> torch.Tensor:

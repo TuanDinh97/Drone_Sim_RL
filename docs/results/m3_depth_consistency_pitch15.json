@@ -1,0 +1,22 @@
+{
+  "num_pixels_compared": 254392,
+  "median_abs_err_m": 0.008963823318481445,
+  "mean_abs_err_m": 0.07307276874780655,
+  "p90_abs_err_m": 0.02336971759796142,
+  "p99_abs_err_m": 2.304314444065093,
+  "frac_err_below_2cm": 0.8583957042674298,
+  "hit_miss_agreement": 0.9953767657279968,
+  "self_occluded_pixel_frac": 0.056317366659641266,
+  "cam_offset_m": [
+    0.15,
+    0.0,
+    -0.06
+  ],
+  "image": [
+    96,
+    72
+  ],
+  "hfov_deg": 87.0,
+  "cam_pitch_deg": 15.0,
+  "pass": true
+}

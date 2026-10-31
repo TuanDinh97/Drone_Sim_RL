@@ -36,11 +36,74 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
 
   Artifacts: `docs/results/m2_dynamics_{x500,crazyflie}.json`, `docs/figures/m2_dynamics_*.pdf`.
 
-## Milestone 3 — Sensors, visualization, recording ⬜
-## Milestone 4 — State-based RL ⬜
-## Milestone 5 — Vision / multimodal RL ⬜
-## Milestone 6 — Domain randomization & Sim-to-Real interfaces ⬜
-## Milestone 7 — Docker, benchmarks, docs, report ⬜
+## Milestone 3 — Sensors, visualization, recording ✅ except GUI/video 🟡 (2026-11-01)
+- Sensor models (`quadsim.core.sensors`): IMU (white noise density, turn-on bias, Gauss–Markov bias drift,
+  scale/misalignment, sample-and-hold rate, latency), barometer (ISA), magnetometer, GPS, odometry/state-estimate
+  model (noise, VIO-like drift, delay; profiles perfect/mocap/vio/gps_ins), depth-camera noise (stereo σ∝z²,
+  dropouts, quantization, range limits), RGB photometric augmentation, analytic ray casting (ground, cylinders,
+  yaw-boxes) for range finders / LiDAR rings / synthetic depth, wind and push disturbances.
+- Unit tests `tests/core/test_sensors.py` (13): ✅ IMU noise std at 200 Hz within 5 % of σ_c·√f, turn-on bias,
+  exact latency (3 steps), free-fall specific force = 0, ISA (100 m → 100129 Pa), exact ray geometry,
+  depth-noise statistics, wind turbulence σ. **Bug found by the recording plot and fixed:** no-return pixels were
+  receiving σ∝z² noise (regression test added).
+- Rendered depth (RTX TiledCamera) vs analytic ray-cast depth, `scripts/validation/m3_depth_consistency.py`
+  (64 random poses, 96×72, HFOV 87°, noise off), ✅:
+  | camera pitch | median abs err | p90 | hit/miss agreement | self-occluded px |
+  |---|---|---|---|---|
+  | 0° (default mount (0.15, 0, −0.06) m) | 7.2 mm | 2.4 cm | 99.6 % | 0 % |
+  | +15° | 9.0 mm | 2.3 cm | 99.5 % | 5.6 % (front rotors) |
+  Finding: the first camera mount (0.12, 0, 0.02) saw the X500 rotor discs (3 % of pixels); default moved.
+- Tasks registered (all pass the smoke test, finite obs, consistent spaces; `docs/results/env_smoke_test.json`):
+  Hover, Hover-Motor, Track, Waypoint, Nav-Range, Nav-Depth (ray-cast), Nav-Depth-Render, Nav-RGB, Nav-RGBD.
+- Synchronized HDF5 recorder (`quadsim.data.recorder`) + `scripts/data/record.py`: round-trip verified
+  (shapes, monotonic time, dt, last-sample equality, embedded config) for tracking (state) and rendered-depth nav
+  (images as uint16 mm). Plotting: `scripts/data/plot_recording.py` → `docs/figures/m3_recording_*.png`.
+- Visualization: procedural target/reference markers, chase camera, `scripts/tools/view.py` (GUI / MP4).
+  🟡 Not yet verified: GUI window launch and headless MP4 (first attempt failed during `sim.reset()` while a
+  training job shared the GPU; to be re-tested).
+- Known transient: the very first launch with `--enable_cameras` crashed once in `libslang.so` while compiling
+  shaders (empty shader cache); every later launch succeeded.
+
+## Milestone 4 — State-based RL 🟡 (hover ✅, tracking/waypoint training)
+- PPO (rsl_rl 3.1.2), asymmetric actor-critic: actor sees only deployable obs (noisy, delayed odometry + gyro +
+  last action + task), critic additionally sees true state, rotor speeds, wind, disturbance, DR parameters.
+  Control interface CTBR (collective thrust + body rates → onboard PX4-like rate PID at 200 Hz), policy 50 Hz.
+  Training-time randomization: mass ±10 %, inertia ±15 %, CoM ±1 cm, k_f ±10 %/rotor, k_m ±15 %, motor τ ×[0.7,1.6],
+  ω_max ×[0.92,1], drag ×[0.5,1.5], payload −5…+10 % weight, sensor-noise scale ×[0.5,1.5], action delay 0–2
+  physics steps, odometry delay 0–2 steps.
+- Hover: 4096 envs, 600 iterations (79 M steps), ~190 k steps/s alone on the RTX 5060, 3.9 GB VRAM.
+  Evaluation (deterministic policy, 1000 episodes, same seeds for both controllers, `scripts/rl/evaluate.py`):
+
+  | condition | controller | success¹ | crash | final pos. err | final yaw err |
+  |---|---|---|---|---|---|
+  | nominal (training dist.) | **PPO** | **99.9 ± 0.2 %** | 0.1 % | **1.38 ± 0.26 cm** | 4.4° |
+  | nominal | cascade PID | 88.7 ± 2.0 % | 0.5 % | 6.1 ± 0.7 cm | 1.5° |
+  | + wind 0–3 m/s, turbulence, gusts, pushes ≤0.3 mg (unseen) | **PPO** | **97.3 ± 1.0 %** | 0.1 % | 2.9 cm | 4.6° |
+  | same | cascade PID | 78.6 ± 2.5 % | 0.7 % | 8.3 cm | 1.8° |
+
+  ¹ success = |e_p| < 10 cm and |v| < 0.2 m/s at the end of the 8 s episode starting from up to 57° tilt, 1.5 m/s,
+  3 rad/s and 1.5 m offset. ± = 95 % CI. Results: `docs/results/eval_hover_*.json`.
+  Limitation: the PPO policy's final yaw error (4.4°) is worse than the baseline's (weak yaw reward).
+
+## Milestone 6 — Sim-to-Real interfaces 🟡
+- Export (`scripts/rl/export.py`): TorchScript + ONNX with normalizer and clamp; ONNX vs PyTorch max |Δ| = 3.6e-7 ✅.
+  Machine-readable interface contract (`contract.json`, example `docs/results/contract_hover.json`).
+- `quadsim.deploy.interface` (NumPy only): ENU/FLU ↔ NED/FRD, PX4 odometry → sim conventions, observation
+  builder, action decoder → PX4 `VehicleRatesSetpoint` / `TrajectorySetpoint`. 7 unit tests ✅ (incl. frame
+  consistency of a physical body vector through both quaternion conventions).
+- Deployment pipeline in the loop (`scripts/validation/m6_deploy_consistency.py`, hover, 512 episodes) ✅:
+  ONNX policy fed by the NumPy builder flies the simulator; max obs error 9.5e-7, max action error 1.0e-6,
+  success 99.8 % (identical to PyTorch).
+- ROS 2 package `ros2/quadsim_px4_bridge` (offboard node, launch, config): 🟡 written and syntax-checked only;
+  **not executed against PX4 SITL or hardware**.
+
+## Milestone 7 — Docker ✅ (partial)
+- `docker/Dockerfile` on the official `nvcr.io/nvidia/isaac-lab:2.3.2`; compose services test/train/gui/tensorboard.
+- NGC refuses direct connections from this network (HTTP 403); the Docker daemon ignores the shell proxy.
+  `scripts/tools/pull_image_via_proxy.py` pulls via the registry API through the user's proxy with sha256
+  verification and `docker load`s the image (8.41 GB compressed).
+- `docker compose run --rm test` ✅: 46 unit tests pass and the Isaac Sim GPU smoke test passes inside the container.
 
 ## Open issues
-- None blocking.
+- GUI viewer / MP4 recording not yet verified (see M3).
+- Files created by the container in bind mounts are owned by root.

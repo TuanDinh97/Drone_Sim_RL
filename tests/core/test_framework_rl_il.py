@@ -413,3 +413,22 @@ def test_observation_builder_requires_extra_terms():
         b.build(np.zeros(16), np.zeros(4))
     assert b.build(np.zeros(16), np.zeros(4), extra={"baro": np.ones(1)}).shape == (21,)
 
+
+def test_reevaluate_rebuilds_commands_from_old_result_files(tmp_path):
+    root = os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "validation", "reevaluate.py")
+    spec = importlib.util.spec_from_file_location("reevaluate_under_test", root)
+    re_ = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(re_)  # no argument parsing at import
+    f = tmp_path / "Quadsim-Example-Land-v0_land_v2_s42.json"
+    f.write_text(json.dumps({"task": "Quadsim-Example-Land-v0", "checkpoint": "logs/rsl_rl/x", "seed": 1234,
+                             "episodes_requested": 1000, "overrides": ["env.a=1"],
+                             "controllers": {"policy": {}, "cascade": {}}}))
+    cmd, _ = re_.command(str(f))
+    s = " ".join(cmd)
+    assert "--tag land_v2_s42" in s and "--controllers policy cascade" in s and "--num_envs 500" in s
+    assert "--plugins examples/custom_task.py" in s and s.endswith("env.a=1")
+    g = tmp_path / "Quadsim-LangNav-RGB-v0_vla.json"
+    g.write_text(json.dumps({"task": "Quadsim-LangNav-RGB-v0", "checkpoint": "examples/vla_color_servo.py:make_adapter",
+                             "episodes_requested": 300, "num_envs": 64, "controllers": {"policy": {}}}))
+    s = " ".join(re_.command(str(g))[0])
+    assert "--algo vla" in s and "--enable_cameras" in s and "--num_envs 64" in s

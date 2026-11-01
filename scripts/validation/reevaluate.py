@@ -23,7 +23,6 @@ ap.add_argument("--backup", required=True, help="directory receiving the origina
 ap.add_argument("--jobs", type=int, default=2)
 ap.add_argument("--timeout", type=float, default=2400.0)
 ap.add_argument("--report", default="logs/validation/reevaluate.json")
-args = ap.parse_args()
 PY = sys.executable
 ENV = {**os.environ, "OMNI_KIT_ACCEPT_EULA": "YES",
        "PYTHONPATH": os.path.abspath("source/quadsim") + os.pathsep + os.environ.get("PYTHONPATH", "")}
@@ -85,7 +84,8 @@ def _means(d):
             for c, m in d.get("controllers", {}).items()}
 
 
-def main():
+def main(argv=None):
+    args = ap.parse_args(argv)
     jobs = []
     for f in args.files:
         cmd, old = command(f)

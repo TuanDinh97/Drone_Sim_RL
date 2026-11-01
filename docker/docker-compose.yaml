@@ -20,6 +20,7 @@ x-volumes: &volumes
   - ../docs:/workspace/quadsim/docs
   - ../scripts:/workspace/quadsim/scripts
   - ../tests:/workspace/quadsim/tests
+  - ../examples:/workspace/quadsim/examples
   - ../source/quadsim/quadsim:/workspace/quadsim/source/quadsim/quadsim
   - isaac-cache-kit:/isaac-sim/kit/cache
   - isaac-cache-ov:/root/.cache/ov

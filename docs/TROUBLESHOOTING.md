@@ -32,7 +32,7 @@ Problems met while building and validating quadsim, with their fixes.
 | rsl_rl ignores the critic group | rsl_rl 3.1.2's wrapper only calls `_get_observations()`: return `policy`, `critic` (and `image`) from it |
 | SAC learns but the policy is poor (skrl, early runs) | task rewards are dt-scaled (~0.02 per step) and the entropy bonus dominates; quadsim's SAC scales rewards to per-second units and uses an asymmetric critic, large batches and 4 updates per step |
 | Behaviour cloning copies its previous action and never stops | causal confusion through the `last_action` observation: train with `--drop last_action` |
-| Language-conditioned BC fails on unseen phrasings | out-of-vocabulary words are ignored by the bag-of-words encoder; only colour/keyword words generalize (held-out phrasing ~60 %) - use a pretrained text encoder (`quadsim.il.language.PretrainedTextEncoder`) or more varied instructions |
+| Language-conditioned BC fails on unseen phrasings | out-of-vocabulary words are ignored by the bag-of-words encoder; only colour/keyword words generalize (held-out phrasing ~60 %) - use a frozen pretrained text encoder (`train_bc.py --text_encoder stabilityai/sd-turbo:text_encoder`: 99.8 %) |
 | Expert demonstrations contain collisions | check the scenario sampler: rejection sampling with infeasible constraints can silently return invalid layouts (fixed in LangNav with a guaranteed-spacing sampler) |
 | Multi-agent groups desynchronize | rsl_rl randomizes `episode_length_buf` at the start of training; `SwarmEnv` re-synchronizes the clock of every group each step |
 
@@ -40,6 +40,7 @@ Problems met while building and validating quadsim, with their fixes.
 
 | Symptom | Cause / fix |
 |---|---|
+| A queue script fails with a syntax error on a line that looks correct | it was edited while running: bash reads scripts incrementally; never edit a running script |
 | `pkill -f pattern` kills your own shell | the pattern also matches the shell's command line; use a character class (`pgrep -f "[r]un_name foo"`) or kill by PID |
 | Results vanish with a git worktree | training writes `./logs` relative to the cwd: symlink `logs`, `datasets`, `outputs` to the main checkout |
 | A worktree run imports the main checkout's code | the editable install points at the main checkout: prefix `PYTHONPATH=$PWD/source/quadsim` |

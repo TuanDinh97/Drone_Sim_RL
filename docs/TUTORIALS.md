@@ -108,8 +108,10 @@ python scripts/il/train_bc.py --data datasets/il/langnav_sym_expert.h5 datasets/
     --name ln_dagger1 --drop last_action
 ```
 
-Lesson learned (`docs/PROGRESS.md`): drop the `last_action` block from BC inputs (`--drop last_action`), otherwise
-the cloned policy copies its previous action and fails to stop (15.8 % vs 81 % success).
+Lessons learned (`docs/PROGRESS.md`): drop the `last_action` block from BC inputs (`--drop last_action`), otherwise
+the cloned policy copies its previous action and fails to stop (15.8 % vs 81 % success); for instructions phrased
+differently from the training data use a frozen pretrained text encoder
+(`--text_encoder stabilityai/sd-turbo:text_encoder`, local cache only): unseen phrasings 60 % → 99.8 %.
 RL distillation: `--expert policy --checkpoint <run>` (hover: BC reaches the PPO teacher's 99.9 %).
 
 ## 10. Language and vision: VLA-style data and policies

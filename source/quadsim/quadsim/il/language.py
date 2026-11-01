@@ -78,10 +78,12 @@ class PretrainedTextEncoder(nn.Module):
     (``subfolder="text_encoder"`` for diffusers repositories). The model must already be in the local Hugging Face
     cache unless ``local_files_only=False`` is passed explicitly."""
 
-    def __init__(self, name: str, subfolder: str | None = None, local_files_only: bool = True, device="cpu"):
+    def __init__(self, name: str, subfolder: str | None = None, local_files_only: bool = True, device="cpu",
+                 pool: str = "auto"):
         super().__init__()
         from transformers import AutoModel, AutoTokenizer
 
+        self.pool = pool
         kw = {"local_files_only": local_files_only}
         sub = {"subfolder": subfolder} if subfolder else {}
         tok_sub = {"subfolder": subfolder.replace("text_encoder", "tokenizer")} if subfolder else {}
@@ -96,8 +98,12 @@ class PretrainedTextEncoder(nn.Module):
         new = [t for t in dict.fromkeys(texts) if t not in self.cache]
         if new:
             b = self.tok(new, padding=True, return_tensors="pt").to(self.device)
-            h = self.model(**b).last_hidden_state
-            m = b["attention_mask"][..., None].float()
-            for t, e in zip(new, (h * m).sum(1) / m.sum(1)):
+            out = self.model(**b)
+            if self.pool in ("auto", "pooler") and getattr(out, "pooler_output", None) is not None:
+                emb = out.pooler_output  # e.g. CLIP: end-of-text token
+            else:
+                m = b["attention_mask"][..., None].float()
+                emb = (out.last_hidden_state * m).sum(1) / m.sum(1)
+            for t, e in zip(new, emb):
                 self.cache[t] = e.float().cpu()
         return torch.stack([self.cache[t] for t in texts])

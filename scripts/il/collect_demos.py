@@ -15,6 +15,7 @@ import argparse
 import json
 import math
 import os
+import sys
 import time
 
 from isaaclab.app import AppLauncher
@@ -118,5 +119,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BaseException:  # a failed simulator script must not hang in Kit's shutdown (and keep GPU memory)
+        import traceback
+
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
     app.close()

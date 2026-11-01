@@ -129,7 +129,7 @@ def load_any_policy(checkpoint: str, env, task: str | None = None, algo: str | N
     """Policy from any registered algorithm's checkpoint (run directory -> latest ``model_*.pt``)."""
     from .policy_io import latest_checkpoint
 
-    ckpt = checkpoint if checkpoint.endswith(".pt") else latest_checkpoint(checkpoint)
+    ckpt = latest_checkpoint(checkpoint) if os.path.isdir(checkpoint) else checkpoint
     algo = algo or algorithm_of_checkpoint(ckpt)
     return ALGORITHMS.get(algo)().load_policy(ckpt, env, task=task)
 

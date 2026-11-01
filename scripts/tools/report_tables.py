@@ -380,7 +380,8 @@ def framework():
         for tag, lab in (("expert", "scripted expert (privileged)"), ("langnav_sym_bc", "BC (with last action)"),
                          ("langnav_sym_bc_nolang", "BC, instruction removed"),
                          ("langnav_sym_bc_nolast", "BC, no last action"), ("langnav_sym_bc_v2", "+ unknown words ignored"),
-                         ("langnav_sym_dagger1", "+ DAgger round 1"), ("langnav_sym_dagger2", "+ DAgger round 2")):
+                         ("langnav_sym_dagger1", "+ DAgger round 1"), ("langnav_sym_dagger2", "+ DAgger round 2"),
+                         ("langnav_sym_dagger2_clip", "same data, frozen CLIP text encoder")):
             r = sym.get(tag, {})
             a, h = r.get("Quadsim-LangNav-v0"), r.get("Quadsim-LangNav-Heldout-v0")
             if a or h:
@@ -388,7 +389,9 @@ def framework():
                              _m(a, "wrong_landmark", True)])
         rgb = il.get("langnav_rgb", {})
         for tag, lab in (("expert", "scripted expert (privileged)"), ("langnav_rgb_bc", "BC, FiLM-CNN + instruction"),
-                         ("langnav_rgb_dagger1", "+ DAgger round 1"), ("vla_color_servo", "VLA adapter: colour servo")):
+                         ("langnav_rgb_dagger1", "+ DAgger round 1"),
+                         ("langnav_rgb_dagger1_clip", "same data, frozen CLIP text encoder"),
+                         ("vla_color_servo", "VLA adapter: colour servo")):
             r = rgb.get(tag, {})
             a, h = r.get("Quadsim-LangNav-RGB-v0"), r.get("Quadsim-LangNav-RGB-Heldout-v0")
             if a or h:

@@ -87,14 +87,14 @@ il = {"hover_distillation": {
     "bc_no_last_action": ev("logs/eval/il/Quadsim-Hover-v0_hover_bc_nolast.json")}}
 sym = {}
 for tag in ("expert", "langnav_sym_bc", "langnav_sym_bc_nolang", "langnav_sym_bc_nolast", "langnav_sym_bc_v2",
-            "langnav_sym_dagger1", "langnav_sym_dagger2"):
+            "langnav_sym_dagger1", "langnav_sym_dagger2", "langnav_sym_dagger2_clip"):
     for task in ("Quadsim-LangNav-v0", "Quadsim-LangNav-Heldout-v0"):
         p = f"logs/eval/il/{task}_{tag}.json"
         if os.path.exists(p):
             sym.setdefault(tag, {})[task] = ev(p)
 il["langnav_symbolic"] = sym
 rgb = {}
-for tag in ("expert", "langnav_rgb_bc", "langnav_rgb_dagger1", "vla_color_servo"):
+for tag in ("expert", "langnav_rgb_bc", "langnav_rgb_dagger1", "langnav_rgb_dagger1_clip", "vla_color_servo"):
     for task in ("Quadsim-LangNav-RGB-v0", "Quadsim-LangNav-RGB-Heldout-v0"):
         p = f"logs/eval/il/{task}_{tag}.json"
         if os.path.exists(p):

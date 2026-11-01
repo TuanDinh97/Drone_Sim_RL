@@ -71,6 +71,8 @@ CHECKS = {
                                                  ["env.dynamics.preset=quad_250"],
                                                  plugins=["examples/custom_vehicle.py"]),
     "sensor_gnss": lambda: train_check("sensor_gnss", "Quadsim-Example-Hover-GNSS-v0", "examples/custom_sensor.py"),
+    "sensor_lidar_nav": lambda: eval_check("sensor_lidar_nav", "Quadsim-Example-Nav-Lidar-v0", "potential_field",
+                                           ["env.curriculum=False"], plugins=["examples/custom_sensor.py"]),
     "task_landing": lambda: train_check("task_landing", "Quadsim-Example-Land-v0", "examples/custom_task.py"),
     "task_landing_baseline": lambda: eval_check("task_landing_baseline", "Quadsim-Example-Land-v0", "cascade",
                                                 plugins=["examples/custom_task.py"]),

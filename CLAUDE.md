@@ -61,6 +61,8 @@ Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at 
 - Evaluating controllers in one process vs fresh processes gives slightly different (CI-equivalent) numbers; the
   benchmark runner always uses fresh processes.
 - LeRobot needs NumPy 2 / pyarrow >= 21: only inside `third_party/lerobot-venv` (never in `quadsim`).
+- Never edit a shell script while it is running (queues!): bash reads scripts incrementally and fails mid-file with
+  a bogus syntax error. Copy it, or wait until it exits.
 
 ## Layout
 - `source/quadsim/quadsim/registry.py` – extension registries + plugin loader.

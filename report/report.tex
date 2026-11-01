@@ -603,11 +603,11 @@ native installation with \texttt{scripts/setup\_env.sh}; container \texttt{docke
 official image \path{nvcr.io/nvidia/isaac-lab:2.3.2}.
 \item Every training run stores the exact environment and agent configuration (YAML), command line, git commit and
 diff summary next to its checkpoints; evaluation JSONs store seeds and overrides.
-\item Framework checks: \texttt{scripts/validation/regression\_evals.sh} + \texttt{compare\_evals.py} (bit-exact
-reference metrics after core changes), \texttt{scripts/validation/examples\_check.py} (every extension example in the
-simulator), \texttt{scripts/benchmark/run.py} (suites), \texttt{scripts/tools/collect\_framework\_results.py}
-(curated results in \texttt{docs/results/framework}); LeRobot exports are verified by
-\texttt{scripts/il/export\_lerobot.py} in the optional \texttt{third\_party/lerobot-venv}.
+\item Framework checks: \path{scripts/validation/regression_evals.sh} + \path{compare_evals.py} (bit-exact
+reference metrics after core changes), \path{scripts/validation/examples_check.py} (every extension example in the
+simulator), \path{scripts/benchmark/run.py} (suites), \path{scripts/tools/collect_framework_results.py}
+(curated results in \path{docs/results/framework}); LeRobot exports are verified by
+\path{scripts/il/export_lerobot.py} in the optional \path{third_party/lerobot-venv}.
 \item Validation: \texttt{pytest tests/core} (unit tests), \texttt{scripts/validation/m\{1,2,3,6\}\_*.py} (milestone
 acceptance tests), \texttt{scripts/rl/evaluate.py} (policy evaluation); tables in this report are generated from
 \texttt{docs/results/*.json} by \texttt{scripts/tools/report\_tables.py}.

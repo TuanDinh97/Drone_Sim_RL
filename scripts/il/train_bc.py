@@ -30,12 +30,15 @@ ap.add_argument("--batch_size", type=int, default=1024)
 ap.add_argument("--lr", type=float, default=1e-3)
 ap.add_argument("--hidden", type=int, nargs="+", default=[256, 256])
 ap.add_argument("--seed", type=int, default=0)
+ap.add_argument("--text_encoder", default="", help="frozen pretrained text encoder 'hf_repo[:subfolder]' (local cache "
+                "only), e.g. stabilityai/sd-turbo:text_encoder (CLIP ViT-H/14 text tower); default: bag of words")
 ap.add_argument("--device", default="cuda:0")
 args = ap.parse_args()
 
 
 class _Concat:
     def __init__(self, parts):
+        self.instructions = [p.instructions[i] for p in parts for i in p.episode.tolist()]  # per transition
         self.obs = torch.cat([p.obs for p in parts])
         self.action = torch.cat([p.action for p in parts])
         imgs = [p.image for p in parts]
@@ -54,13 +57,25 @@ def main():
     if any(n == "tokens" for n, _ in tr.obs_layout):
         vocab = Tokenizer.from_dict(json.loads(tr.attrs["tokenizer"])).vocab_size
     img_shape = tuple(tr.image.shape[1:]) if (args.images and tr.image is not None) else None
+    emb_dim, cache = 0, {}
+    if args.text_encoder:
+        from quadsim.il.language import PretrainedTextEncoder
+
+        name, _, sub = args.text_encoder.partition(":")
+        enc = PretrainedTextEncoder(name, sub or None)
+        texts = sorted(set(tr.instructions) | set(va.instructions))
+        cache = dict(zip(texts, enc.embed(texts)))
+        emb_dim = enc.out_dim
+        for d in (tr, va):
+            d.text_emb = torch.stack([cache[t] for t in d.instructions]) if len(d) else torch.zeros(0, emb_dim)
+        print(f"[bc] text encoder {args.text_encoder}: {len(texts)} instructions -> {emb_dim}-d embeddings")
     pol = BCPolicy(tr.obs_layout, tr.action.shape[1], vocab, img_shape, tuple(args.hidden), use_images=args.images,
-                   drop_blocks=args.drop)
+                   drop_blocks=args.drop, text_emb_dim=emb_dim, text_encoder=args.text_encoder)
     out = os.path.join("logs", "il", args.name)
     os.makedirs(out, exist_ok=True)
     t0 = time.time()
     hist = train_bc(pol, tr, va, args.epochs, args.batch_size, args.lr, args.device)
-    pol.save(os.path.join(out, "model.pt"), {"data": args.data, "args": vars(args)})
+    pol.save(os.path.join(out, "model.pt"), {"data": args.data, "args": vars(args), "text_cache": cache})
     rep = {"data": args.data, "train_transitions": len(tr), "val_transitions": len(va), "images": args.images,
            "drop": args.drop, "parameters": sum(p.numel() for p in pol.parameters()), "wall_s": time.time() - t0,
            "final_train_mse": hist["train"][-1], "final_val_mse": hist["val"][-1] if hist["val"] else None,

@@ -41,3 +41,21 @@ gym.register(id="Quadsim-Example-Hover-GNSS-v0", entry_point="quadsim.tasks.hove
              disable_env_checker=True,
              kwargs={"env_cfg_entry_point": HoverGnssEnvCfg,
                      "rsl_rl_cfg_entry_point": "quadsim.tasks.agents:HoverPPORunnerCfg"})
+
+
+# a 3-D LiDAR (16 x 4 rays, 10 Hz, 20 ms latency, 2 cm noise) on the obstacle-navigation task
+from quadsim.tasks.navigation.nav_env import NavEnv, NavEnvCfg  # noqa: E402
+
+
+@configclass
+class NavLidarEnvCfg(NavEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.terms.observations["lidar"] = ObsTermCfg(
+            func=mdp.lidar_scan, params={"num_h": 16, "num_v": 4, "v_fov_deg": (-15.0, 15.0), "max_range": 10.0},
+            noise_std=0.002, period_steps=5, delay_steps=1, clip=(0.0, 1.0))
+
+
+gym.register(id="Quadsim-Example-Nav-Lidar-v0", entry_point=NavEnv, disable_env_checker=True,
+             kwargs={"env_cfg_entry_point": NavLidarEnvCfg,
+                     "rsl_rl_cfg_entry_point": "quadsim.tasks.agents:NavRangePPORunnerCfg"})

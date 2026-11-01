@@ -36,7 +36,7 @@ touching the simulation core, and evaluate them reproducibly against classical b
 | Hexarotor from the generic frame generator, PPO vs cascade | **99.8 %** (1.2 cm) vs 96.5 % | `docs/results/framework/vehicles_interfaces.json` |
 | Safe RL: waypoint racing with speed ≤ 2 m/s, budget 0.1 s/episode | PPO-Lagrangian **0.082 s** over-speed, 87.7 % success; unconstrained PPO 5.31 s, 99.4 % | `docs/results/framework/safe_rl.json` |
 | RL → BC distillation (hover) | BC student 99.9 %, 1.4 cm (teacher 99.9 %, 1.4 cm) | `docs/results/framework/imitation.json` |
-| Language-conditioned navigation (map + instruction), BC → DAgger | 81 % → **100 %** (expert 100 %); held-out phrasings 60 %; without the instruction 12 % | same |
+| Language-conditioned navigation (map + instruction), BC → DAgger | 81 % → **100 %** (expert 100 %); unseen phrasings 60 % with a bag-of-words encoder, **99.8 %** with a frozen pretrained CLIP text tower; without the instruction 12 % | same |
 | Behaviour cloning with the last action as input | 15.8 % (copycat failure) vs 81 % without it | same |
 | LeRobot v3.0 export (lerobot 0.4.4 loader) | 200 episodes / 26 722 frames, exact state/action/task match | `datasets/lerobot/*/quadsim_export.json` |
 | Extension examples (vehicle YAML / plugin, GNSS sensor, landing task, reward + curriculum, acceleration interface, ARS algorithm, VLA adapter) | executed in the simulator | `logs/validation/examples_check.json` |
@@ -212,7 +212,7 @@ Policy observations contain only deployable quantities; privileged information i
 See `docs/PROGRESS.md` (open issues) and the report's limitations section. Most important: no hardware flights (PX4
 SITL only); real-vehicle parameters not identified (presets other than X500/Crazyflie are engineering approximations);
 most new-task results are single-seed; RGB policies lack texture/lighting randomization and the language encoder is a
-small bag-of-words model (held-out phrasings ~60 %); no pretrained VLA was run (the adapter interface and LeRobot
+bag-of-words model unless a pretrained text encoder is used (unseen phrasings 60 % vs 99.8 % with CLIP); no pretrained VLA was run (the adapter interface and LeRobot
 export are validated, the models are not); TD3 did not learn hover with the SAC recipe; autonomous exploration and
 adaptive-control tasks are not implemented (observation histories are available as terms).
 

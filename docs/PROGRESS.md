@@ -518,6 +518,24 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
   | BC without last action | 81.0 % (0 % wrong pillar) | 34.4 % |
   | + out-of-vocabulary words ignored by the encoder | 81.0 % | 65.3 % |
   | + DAgger round 1 / 2 (1000 learner episodes each, expert labels) | **100 % / 100 %** | 54.5 % / 59.7 % |
+  | same data as DAgger 2, instruction from a frozen pretrained CLIP text tower (ViT-H/14, local HF cache of `stabilityai/sd-turbo`, 1024-d, end-of-text pooling) instead of the bag of words | **100 %** | **99.8 %** |
+- The pretrained text encoder removes the phrasing-generalization gap (59.7 % → 99.8 %) with identical data and
+  policy; it is loaded with `local_files_only` (no download) and computes embeddings for unseen instructions at
+  evaluation time (`--text_encoder hf_repo:subfolder` in `scripts/il/train_bc.py`).
+- Vision-language variant (`Quadsim-LangNav-RGB-v0`: 64×48 RTX-rendered RGB + instruction tokens + proprioception,
+  **no landmark map** — the colour must be grounded in pixels; 2048 expert episodes / 297 675 frames, 212 s;
+  FiLM-conditioned CNN; 300 evaluation episodes each, 64 envs):
+  | policy | train phrasing | held-out phrasing |
+  |---|---|---|
+  | privileged scripted expert | 100 % | — |
+  | BC (FiLM CNN + bag of words, no last action) | 82.3 % (0 % wrong pillar, 17.7 % collisions) | 90.0 % (0 % wrong) |
+  | + DAgger round 1 (1024 learner episodes, 175 k frames) | **100 %** | **100 %** |
+  The RGB policies never chose the wrong pillar; all BC failures were collisions while approaching (compounding error),
+  which one DAgger round removed. (Unlike the map-based variant, the bag-of-words encoder generalized to the held-out
+  phrasings here; with 300 episodes the 82 vs 90 % difference between phrasings is not interpretable as a language
+  effect, since the wrong-pillar rate is 0 in both.)
+- LeRobot export of the RGB dataset (300 episodes, 42 199 frames with images): images bit-identical after reloading
+  with `LeRobotDataset`, state/action error 0, tasks preserved → `pass`.
 - Defects found while building the expert (its success rose from 72 % — generic cascade, first sampler — to 100 %
   with a dedicated expert and the fixes): (i) LangNav landmark rejection sampling silently returned overlapping
   pillars when the constraints were infeasible (`argmax` of an all-false mask) → guaranteed-spacing bearing sampler

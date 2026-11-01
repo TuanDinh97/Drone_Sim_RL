@@ -59,7 +59,7 @@ delayed policy command → **action interface** on the onboard flight controller
 | `ALGORITHMS` | `train.py --algo`, `evaluate.py --algo` | `Algorithm`: `default_cfg`, `train`, `load_policy` | `ppo` (rsl_rl), `sac`, `td3`, `bc`, `vla` (+ `ars` example) |
 | `BASELINES` | `evaluate.py --controllers` | `ctrl(env)() -> actions` | `cascade`, `geometric`, `potential_field`, `swarm_potential`, `langnav_expert` |
 | `BENCHMARKS` | `scripts/benchmark/run.py --suite` | `Suite(task, conditions, metrics, ...)` | `hover`, `track`, `waypoint`, `nav_range`, `race`, `swarm`, `langnav` |
-| Gymnasium registry | `--task` | Isaac Lab DirectRLEnv + cfg entry points | 30+ `Quadsim-*` tasks |
+| Gymnasium registry | `--task` | Isaac Lab DirectRLEnv + cfg entry points | 26 built-in `Quadsim-*` tasks (+ 4 in `examples/`) |
 
 Configuration-level extension (no registry needed), `cfg.terms` (`quadsim.tasks.base.terms`), with the Isaac Lab
 term convention `func(env, **params)`:
@@ -116,7 +116,9 @@ The rate-loop gain and thrust-map gain can be randomized per episode (`randomiza
 Built in: IMU (noise density, turn-on bias, bias random walk, scale/misalignment, rate, latency), barometer,
 state estimate (white + bias + Gauss-Markov errors, latency; EKF2-calibrated profile in `apply_sim2real_v1`),
 depth camera (analytic GPU ray casting or RTX TiledCamera), RGB / RGB-D (TiledCamera with augmentation), 2-D range
-ring. Any further sensor is an `ObsTermCfg` (`examples/custom_sensor.py`: 5 Hz GNSS with 100 ms latency).
+ring. Any further sensor is an `ObsTermCfg` (`examples/custom_sensor.py`: 5 Hz GNSS with 100 ms latency;
+`mdp.lidar_scan`: 3-D LiDAR ray-casting the task's obstacle primitives; `history=H` stacks the last H samples, e.g.
+action / gyro histories for implicit system identification).
 
 ### Domain randomization
 
@@ -163,7 +165,10 @@ is logged as `Safety/lambda`. (This is the reward-penalty form without a separat
   skrl integration, which has no asymmetric critic.)
 * **BC / DAgger** (`quadsim.il.bc`): state / image / language inputs split by the dataset's observation layout;
   FiLM-conditioned CNN for language-conditioned vision; DAgger by alternating `collect_demos.py --executor` and
-  `train_bc.py` on the aggregated files.
+  `train_bc.py` on the aggregated files. Instructions are encoded either by a small bag-of-words model trained with
+  the policy or by a **frozen pretrained text tower** (`train_bc.py --text_encoder hf_repo:subfolder`, loaded from
+  the local Hugging Face cache only; e.g. the CLIP ViT-H/14 text encoder of `stabilityai/sd-turbo`), whose
+  embeddings are cached in the checkpoint and computed on the fly for unseen instructions at evaluation time.
 * **VLA adapters** (`quadsim.il.vla`): any external model wrapped as `(images, instructions, proprio) -> actions`
   is evaluated with `evaluate.py --algo vla --checkpoint module:factory`.
 * **New algorithms**: subclass `Algorithm` and register it (`examples/custom_algorithm.py`: Augmented Random Search

@@ -7,6 +7,7 @@ Output: <run>/exported/{policy.onnx, policy.pt, contract.json}
 import argparse
 import json
 import os
+import sys
 
 from isaaclab.app import AppLauncher
 
@@ -33,7 +34,7 @@ from quadsim.rl.policy_io import latest_checkpoint  # noqa: E402
 def main():
     cfg = parse_env_cfg(args.task, device=args.device, num_envs=args.num_envs)
     env = gym.make(args.task, cfg=cfg)
-    ckpt = args.checkpoint if args.checkpoint.endswith(".pt") else latest_checkpoint(args.checkpoint)
+    ckpt = latest_checkpoint(args.checkpoint) if os.path.isdir(args.checkpoint) else args.checkpoint
     pol = load_any_policy(ckpt, env, task=args.task, algo=args.algo)
     obs, _ = env.reset()
     for _ in range(50):  # real observations as export examples
@@ -50,5 +51,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BaseException:  # a failed simulator script must not hang in Kit's shutdown (and keep GPU memory)
+        import traceback
+
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
     app.close()

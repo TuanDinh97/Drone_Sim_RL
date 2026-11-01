@@ -16,6 +16,7 @@ import argparse
 import json
 import math
 import os
+import sys
 import time
 
 from isaaclab.app import AppLauncher
@@ -69,7 +70,7 @@ def run_controller(name, env):
     u.seed(args.seed)
     obs, _ = env.reset()
     if name == "policy":
-        ckpt = args.checkpoint if args.checkpoint.endswith(".pt") else latest_checkpoint(args.checkpoint)
+        ckpt = latest_checkpoint(args.checkpoint) if os.path.isdir(args.checkpoint) else args.checkpoint
         pol = load_any_policy(ckpt, env, task=args.task, algo=args.algo)
         obs, _ = env.reset()  # runner construction resets the env through the wrapper
         act = lambda o: pol(o)  # noqa: E731
@@ -124,5 +125,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BaseException:  # a failed simulator script must not hang in Kit's shutdown (and keep GPU memory)
+        import traceback
+
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
     app.close()

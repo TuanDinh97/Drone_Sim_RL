@@ -17,7 +17,7 @@ import torch.nn as nn
 
 from quadsim.registry import ALGORITHMS
 
-from .language import BagOfWordsEncoder
+from .language import BagOfWordsEncoder, PretrainedTextEncoder
 
 
 class FiLMCNN(nn.Module):
@@ -41,8 +41,12 @@ class FiLMCNN(nn.Module):
 
 class BCPolicy(nn.Module):
     def __init__(self, obs_layout, act_dim: int, vocab_size: int = 0, image_shape=None, hidden=(256, 256),
-                 text_dim: int = 32, use_images: bool = True, drop_blocks=()):
+                 text_dim: int = 32, use_images: bool = True, drop_blocks=(), text_emb_dim: int = 0,
+                 text_encoder: str = ""):
         super().__init__()
+        self.text_emb_dim, self.text_encoder = int(text_emb_dim), text_encoder
+        if self.text_emb_dim:  # instruction given as a (frozen, pretrained) text embedding instead of token ids
+            drop_blocks = tuple(drop_blocks) + ("tokens",)
         self.layout = [(str(n), int(d)) for n, d in obs_layout]
         self.drop_blocks = tuple(drop_blocks)
         off, self.cont_idx, self.tok_idx = 0, [], []
@@ -59,7 +63,8 @@ class BCPolicy(nn.Module):
         self.register_buffer("mean", torch.zeros(len(self.cont_idx)))
         self.register_buffer("std", torch.ones(len(self.cont_idx)))
         self.text = BagOfWordsEncoder(vocab_size, text_dim, text_dim) if self.tok_idx and vocab_size else None
-        t_dim = self.text.out_dim if self.text else 0
+        self.text_proj = nn.Sequential(nn.Linear(self.text_emb_dim, text_dim), nn.ELU()) if self.text_emb_dim else None
+        t_dim = text_dim if (self.text is not None or self.text_proj is not None) else 0
         self.cnn = FiLMCNN(image_shape[0], t_dim) if (image_shape is not None and use_images) else None
         feat = len(self.cont_idx) + t_dim + (self.cnn.out_dim if self.cnn else 0)
         layers, d = [], feat
@@ -71,17 +76,22 @@ class BCPolicy(nn.Module):
         self.config = {"obs_layout": self.layout, "act_dim": act_dim, "vocab_size": vocab_size,
                        "image_shape": list(image_shape) if image_shape is not None else None,
                        "hidden": list(hidden), "text_dim": text_dim, "use_images": use_images,
-                       "drop_blocks": list(drop_blocks)}
+                       "drop_blocks": list(drop_blocks), "text_emb_dim": self.text_emb_dim,
+                       "text_encoder": text_encoder}
 
     def set_normalizer(self, obs: torch.Tensor):
         x = obs[:, self.cont_index]
         self.mean.copy_(x.mean(0))
         self.std.copy_(x.std(0).clamp_min(1e-3))
 
-    def forward(self, obs: torch.Tensor, image: torch.Tensor | None = None) -> torch.Tensor:
+    def forward(self, obs: torch.Tensor, image: torch.Tensor | None = None,
+                text_emb: torch.Tensor | None = None) -> torch.Tensor:
         parts = [(obs[:, self.cont_index] - self.mean) / self.std]
         cond = None
-        if self.text is not None:
+        if self.text_proj is not None:
+            cond = self.text_proj(text_emb)
+            parts.append(cond)
+        elif self.text is not None:
             cond = self.text(obs[:, self.tok_index].round().long())
             parts.append(cond)
         if self.cnn is not None:
@@ -96,9 +106,11 @@ class BCPolicy(nn.Module):
     def load(cls, path: str, device="cpu") -> BCPolicy:
         ck = torch.load(path, map_location=device, weights_only=False)
         c = ck["config"]
+        drop = tuple(b for b in c.get("drop_blocks", ()) if not (c.get("text_emb_dim") and b == "tokens"))
         m = cls(c["obs_layout"], c["act_dim"], c["vocab_size"], c["image_shape"], tuple(c["hidden"]), c["text_dim"],
-                c["use_images"], tuple(c.get("drop_blocks", ())))
+                c["use_images"], drop, c.get("text_emb_dim", 0), c.get("text_encoder", ""))
         m.load_state_dict(ck["state_dict"])
+        m.text_cache = ck.get("text_cache", {})
         return m.to(device).eval()
 
 
@@ -114,12 +126,13 @@ def train_bc(policy: BCPolicy, train, val=None, epochs: int = 30, batch_size: in
     hist = {"train": [], "val": []}
     obs, act = train.obs.to(device), train.action.to(device)
     img = train.image.to(device) if (train.image is not None and policy.cnn is not None) else None
+    temb = train.text_emb.to(device) if policy.text_proj is not None else None
     for ep in range(epochs):
         perm = torch.randperm(n, device=device)
         tot = 0.0
         for i in range(0, n - batch_size + 1, batch_size):
             b = perm[i: i + batch_size]
-            pred = policy(obs[b], img[b] if img is not None else None)
+            pred = policy(obs[b], img[b] if img is not None else None, temb[b] if temb is not None else None)
             loss = (pred - act[b]).square().mean()
             opt.zero_grad(set_to_none=True)
             loss.backward()
@@ -142,7 +155,8 @@ def evaluate_bc_loss(policy, ds, device, batch_size=4096):
     for i in range(0, n, batch_size):
         o = ds.obs[i: i + batch_size].to(device)
         im = ds.image[i: i + batch_size].to(device) if (ds.image is not None and policy.cnn is not None) else None
-        tot += (policy(o, im) - ds.action[i: i + batch_size].to(device)).square().sum().item()
+        te = ds.text_emb[i: i + batch_size].to(device) if policy.text_proj is not None else None
+        tot += (policy(o, im, te) - ds.action[i: i + batch_size].to(device)).square().sum().item()
     policy.train()
     return tot / (n * ds.action.shape[1])
 
@@ -154,7 +168,27 @@ class _BCAlgorithm:
     name = "bc"
 
     def load_policy(self, checkpoint, env, task=None):
-        pol = BCPolicy.load(checkpoint, str(env.unwrapped.device))
+        u = env.unwrapped
+        pol = BCPolicy.load(checkpoint, str(u.device))
+        if pol.text_proj is not None:  # pretrained text embedding of the instruction strings (cached, CPU encoder)
+            enc = {}
+
+            def embed(texts):
+                missing = [t for t in dict.fromkeys(texts) if t not in pol.text_cache]
+                if missing:
+                    if "e" not in enc:
+                        name, _, sub = pol.text_encoder.partition(":")
+                        enc["e"] = PretrainedTextEncoder(name, sub or None)
+                    for t, e in zip(missing, enc["e"].embed(missing)):
+                        pol.text_cache[t] = e
+                return torch.stack([pol.text_cache[t] for t in texts]).to(u.device)
+
+            @torch.no_grad()
+            def act(obs):
+                return pol(obs["policy"], obs.get("image"), embed(list(u.instructions)))
+
+            act.policy = pol
+            return act
 
         @torch.no_grad()
         def act(obs):

@@ -24,6 +24,7 @@ RUN python -m pip install --no-cache-dir --no-deps -e ${QUADSIM_ROOT}/source/qua
 # scripts/tests/docs are bind-mounted by docker-compose for development; copy them for standalone use
 COPY scripts ${QUADSIM_ROOT}/scripts
 COPY tests ${QUADSIM_ROOT}/tests
+COPY examples ${QUADSIM_ROOT}/examples
 COPY env ${QUADSIM_ROOT}/env
 
 ENTRYPOINT ["/bin/bash", "-lc"]

@@ -106,4 +106,32 @@ racer on the reference integrator, sensor-term rate/latency/history, the PID mul
 log-likelihood, replay buffer, hardware model, tokenizer, datasets, BC language grounding) and an example check that
 runs every extension example in the simulator (\cref{tab:fw_examples}).
 
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\linewidth]{framework_hover_benchmark.png}
+\caption{Hover benchmark suite: success per evaluation condition for PPO, the framework's SAC, a BC student distilled
+from the PPO policy and the cascade baseline (1000 episodes per point, same seed, 95\,\% CI; values in
+\cref{tab:fw_algos}).}\label{fig:fw_bench}
+\end{figure}
+
 \input{generated/fw_results.tex}
+
+\subsection{Findings}
+\begin{itemize}
+\item \textbf{Algorithms (\cref{tab:fw_offpolicy,tab:fw_algos,fig:fw_bench}).} With the changes above SAC matches
+PPO's in-distribution hover success (99.9\,\%) in 21 instead of 8 minutes, with a slightly larger position error and a
+much larger yaw error (its entropy term makes it indifferent to the weakly rewarded yaw). Out of distribution, PPO is
+the most sensitive to latency beyond its training range (67\,\% vs 82--83\,\% for SAC and the BC student), so the
+benchmark exposes a property that the in-distribution number hides. TD3 with the same recipe did not learn
+(negative result).
+\item \textbf{Generality (\cref{tab:fw_vehicles}).} A six-rotor vehicle generated from a frame description trains to
+99.8\,\% with the unchanged task, and the extension examples (vehicle files, sensor terms, a new task, a new control
+interface, a new algorithm) run through the unmodified scripts.
+\item \textbf{Constraints (\cref{tab:fw_safe}).} The Lagrangian keeps the over-speed time below its budget
+(0.082 vs \SI{0.1}{s}) while the unconstrained policy spends \SI{5.3}{s} per course above the limit; the price is a
+slower course and a lower completion rate within the episode limit.
+\item \textbf{Imitation and language (\cref{tab:fw_il}).} An RL policy distils into a BC student without loss. For
+language-conditioned navigation, the last-action input makes BC copy its previous command and fail to stop (causal
+confusion~\cite{dehaan2019causal}); removing it, ignoring unknown words and two DAgger rounds reach the expert's
+100\,\%. A bag-of-words instruction encoder generalizes poorly to unseen phrasings ($\approx$60\,\%), whereas a frozen
+pretrained CLIP text tower, with the same data and policy, reaches 99.8\,\%.
+\end{itemize}

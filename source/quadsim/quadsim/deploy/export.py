@@ -74,13 +74,20 @@ def contract_from_env(env, task: str) -> dict:
                   + (", range ring / 8 m (32, yaw-aligned, CCW from heading)" if c.vision.mode == "none" else ""),
     }.get(type(env).__name__, "task specific")
     layout.append(["task", task_dim, task_desc])
+    for o in getattr(getattr(env, "terms", None), "policy_obs", []):  # configured extra (deployable) terms
+        c_ = o.cfg
+        layout.append([o.name, o.dim, f"observation term {getattr(c_.func, '__name__', c_.func)}{c_.params or ''}: "
+                                      f"scale {c_.scale}, noise std {c_.noise_std}, every {c_.period_steps} policy "
+                                      f"steps, {c_.delay_steps} steps latency"])
     mode = c.control.mode
     action = {
         "motor": "a_i in [-1,1] -> rotor thrust (a_i+1)/2 * T_max_rotor",
         "ctbr": "a0 -> collective thrust (lo + (a0+1)/2 (hi-lo)) * T_max_total [N]; a1..3 -> body rates FLU * max_body_rate",
         "ctatt": "a0 -> collective; a1,a2 -> roll, pitch * max_tilt; a3 -> yaw rate * max_yaw_rate",
         "velocity": "a0..2 -> velocity in yaw-aligned FLU frame * max_velocity [m/s]; a3 -> yaw rate * max_yaw_rate",
-    }[mode]
+        "position": "a0..2 -> position set-point position_center + a * position_range (local frame) [m]; "
+                    "a3 -> yaw rate * max_yaw_rate",
+    }.get(mode, f"custom action interface '{mode}' (see its registered class)")
     p = env.params
     contract = {
         "task": task,
@@ -121,11 +128,16 @@ def contract_from_env(env, task: str) -> dict:
 
 def export_policy(policy_module, contract: dict, out_dir: str, example_obs: torch.Tensor,
                   example_image: torch.Tensor | None = None, opset: int = 17) -> dict:
-    """Export an rsl_rl actor-critic (ActorCritic or ActorCriticCNN) and verify ONNX == PyTorch."""
+    """Export an rsl_rl actor-critic (ActorCritic or ActorCriticCNN) or a quadsim off-policy actor
+    (:class:`quadsim.rl.offpolicy.Actor`, normalizer inside) and verify ONNX == PyTorch."""
     os.makedirs(out_dir, exist_ok=True)
     pol = policy_module
-    norm = pol.actor_obs_normalizer
-    if hasattr(pol, "encoder"):
+    norm = getattr(pol, "actor_obs_normalizer", None)
+    if norm is None:  # off-policy actor: normalization + tanh are part of its forward()
+        model = MlpPolicyExport(nn.Identity(), pol).cpu().eval()
+        inputs = (example_obs.cpu(),)
+        names = ["obs"]
+    elif hasattr(pol, "encoder"):
         model = CnnPolicyExport(norm, pol.encoder, pol.actor).cpu().eval()
         inputs = (example_obs.cpu(), example_image.cpu())
         names = ["obs", "image"]

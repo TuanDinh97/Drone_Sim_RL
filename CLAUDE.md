@@ -13,6 +13,14 @@ Session 3 (same day): tracking, waypoint and range-navigation policies exported 
 (`scripts/sitl/{sitl_scenario,quadsim_task_scenario,compare_tasks}.py`, results `docs/results/sitl_*.json`); hover
 policies trained with 3 seeds each on v0, v1 and v2 distributions (`Quadsim-Hover-v{1,2}`, runs `*_v1_s*`, `*_v2_s*`,
 `*_ctbr_s{1,2}`), summary `docs/results/hover_v1.json`. Report section `report/sitl.tex`.
+Session 4 (framework): quadsim turned into a general drone-RL research framework - registries + plugins
+(`quadsim.registry`: VEHICLES, ACTION_INTERFACES, ALGORITHMS, BASELINES, BENCHMARKS; `--plugins` on every script),
+YAML/generic-frame vehicles (`quadsim.core.vehicles`), action interfaces as classes (`core/controllers/interfaces.py`),
+configurable terms + safe RL (`tasks/base/terms.py`, `tasks/mdp.py`), GPU-native SAC/TD3 (`rl/offpolicy.py`),
+new tasks (race, swarm multi-agent, langnav language-conditioned), IL/VLA (`quadsim.il`, `scripts/il/`, LeRobot v3
+export in `third_party/lerobot-venv`), benchmark suites (`quadsim.benchmark`, `scripts/benchmark/run.py`),
+hardware-aware num_envs, `examples/`. Architecture: docs/FRAMEWORK.md; recipes: docs/TUTORIALS.md.
+Core refactors are guarded by `scripts/validation/regression_evals.sh` + `compare_evals.py` (59 metrics bit-identical).
 Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at the end of docs/PROGRESS.md.
 
 ## Environment (verified)
@@ -44,11 +52,23 @@ Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at 
 - `git worktree`: training writes `./logs/rsl_rl` relative to the cwd → in a worktree, symlink `logs/*`, `datasets`,
   `outputs` to the main checkout so runs survive the worktree.
 - The conda env's editable `quadsim` install points at the main checkout: in a worktree prefix `PYTHONPATH=$PWD/source/quadsim`.
+- 8 GB GPU: at most two simulator processes at a time; a rendered-camera job (~4.3 GB at 64 envs) cannot run next to a
+  4096-env training (PhysX "failed to allocate", the process then hangs holding memory -> `kill -9`). Serialize
+  rendering jobs in a queue (`scripts/il/rgb_pipeline.sh`).
+- Kit's `app.close()` may exit before stdout is flushed: `print(..., flush=True)` in standalone scripts.
+- `quadsim.tasks` / `isaaclab.utils` need the app (pxr); keep CPU-testable code (terms, off-policy, IL) free of
+  `configclass` (plain dataclasses work inside configclass env cfgs).
+- Evaluating controllers in one process vs fresh processes gives slightly different (CI-equivalent) numbers; the
+  benchmark runner always uses fresh processes.
+- LeRobot needs NumPy 2 / pyarrow >= 21: only inside `third_party/lerobot-venv` (never in `quadsim`).
 
 ## Layout
-- `source/quadsim/quadsim/core` – pure PyTorch (no Isaac import): params, motor/aero model, reference integrator, controllers, sensors, wind.
+- `source/quadsim/quadsim/registry.py` – extension registries + plugin loader.
+- `source/quadsim/quadsim/core` – pure PyTorch (no Isaac import): params + vehicles, motor/aero model, reference integrator, controllers + action interfaces, sensors, wind.
 - `source/quadsim/quadsim/isaac` – procedural USD spawner.
-- `source/quadsim/quadsim/tasks` – Isaac Lab DirectRLEnv tasks (base env + hover/track/waypoint/nav).
+- `source/quadsim/quadsim/tasks` – Isaac Lab DirectRLEnv tasks (base env + terms; hover/track/waypoint/nav/race/swarm/langnav), `mdp.py` term library, `baselines.py`.
+- `source/quadsim/quadsim/{rl,il,benchmark,deploy,utils}` – algorithms, imitation/VLA, benchmark suites, export/deploy, hardware.
+- `examples/` – runnable extension examples (checked by `scripts/validation/examples_check.py`).
 - `scripts/validation` – milestone acceptance tests (write `logs/validation/*.json`; curated copies in `docs/results/`).
 - `tests/core` – fast CPU unit tests: `~/miniconda3/envs/quadsim/bin/python -m pytest tests/core -q`.
 

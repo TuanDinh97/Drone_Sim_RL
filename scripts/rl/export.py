@@ -15,6 +15,7 @@ parser.add_argument("--task", required=True)
 parser.add_argument("--checkpoint", required=True)
 parser.add_argument("--out", default=None)
 parser.add_argument("--num_envs", type=int, default=64)
+parser.add_argument("--algo", default=None, help="algorithm of --checkpoint (default: inferred)")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 app = AppLauncher(args).app
@@ -25,14 +26,15 @@ import torch  # noqa: E402
 import quadsim.tasks  # noqa: E402,F401
 from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
 from quadsim.deploy.export import contract_from_env, export_policy  # noqa: E402
-from quadsim.rl.policy_io import latest_checkpoint, load_policy  # noqa: E402
+from quadsim.rl.algorithms import load_any_policy  # noqa: E402
+from quadsim.rl.policy_io import latest_checkpoint  # noqa: E402
 
 
 def main():
     cfg = parse_env_cfg(args.task, device=args.device, num_envs=args.num_envs)
     env = gym.make(args.task, cfg=cfg)
     ckpt = args.checkpoint if args.checkpoint.endswith(".pt") else latest_checkpoint(args.checkpoint)
-    pol = load_policy(ckpt, env, task=args.task)
+    pol = load_any_policy(ckpt, env, task=args.task, algo=args.algo)
     obs, _ = env.reset()
     for _ in range(50):  # real observations as export examples
         with torch.no_grad():

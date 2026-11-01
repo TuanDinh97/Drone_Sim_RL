@@ -14,15 +14,18 @@ from isaaclab.utils import configclass
 
 from quadsim.core.controllers import AttitudeGains, PositionGains, RateGains
 from quadsim.core.disturbances import PushCfg, WindCfg
-from quadsim.core.params import get_preset
 from quadsim.core.sensors import BaroCfg, DepthNoiseCfg, ImuNoiseCfg, OdometryCfg, RgbNoiseCfg
+from quadsim.core.vehicles import get_vehicle
 from quadsim.isaac.spawn import QuadrotorSpawnerCfg
+
+from .terms import SafetyCfg, TermsCfg
 
 
 @configclass
 class DynamicsCfg:
     preset: str = "x500"
-    """Vehicle preset name (see :data:`quadsim.core.params.PRESETS`)."""
+    """Registered vehicle name (:data:`quadsim.registry.VEHICLES`: x500, crazyflie, racer5, hexa_x, ...) or a path
+    to a YAML/JSON vehicle file (:mod:`quadsim.core.vehicles`)."""
     rotor_drag: bool = True
     body_drag: bool = True
     ground_effect: bool = True
@@ -33,16 +36,20 @@ class DynamicsCfg:
 @configclass
 class ControlCfg:
     mode: str = "ctbr"
-    """Policy action interface:
-    ``motor``    : 4 normalized rotor thrusts in [-1, 1] -> [0, T_max]
+    """Policy action interface, a name in :data:`quadsim.registry.ACTION_INTERFACES`
+    (:mod:`quadsim.core.controllers.interfaces`):
+    ``motor``    : normalized per-rotor thrusts in [-1, 1] -> [0, T_max] (one action per rotor)
     ``ctbr``     : collective thrust + body rates (onboard PX4-like rate PID at physics rate)
     ``ctatt``    : collective thrust + roll, pitch + yaw rate (attitude + rate loops onboard)
     ``velocity`` : velocity set-point in the yaw-aligned frame + yaw rate (full cascade onboard)
+    ``position`` : position set-point (``position_center`` + a * ``position_range``) + yaw rate (full cascade)
     """
     max_body_rate: tuple[float, float, float] = (6.0, 6.0, 3.0)  # rad/s at |a| = 1
     max_tilt: float = 0.6  # rad (ctatt)
     max_velocity: tuple[float, float, float] = (3.0, 3.0, 2.0)  # m/s (velocity)
-    max_yaw_rate: float = 2.0  # rad/s (ctatt, velocity)
+    max_yaw_rate: float = 2.0  # rad/s (ctatt, velocity, position)
+    position_center: tuple[float, float, float] = (0.0, 0.0, 1.5)  # m, env frame (position)
+    position_range: tuple[float, float, float] = (3.0, 3.0, 1.5)  # m at |a| = 1 (position)
     collective_range: tuple[float, float] = (0.0, 1.0)  # fraction of nominal max total thrust
     action_delay_steps: tuple[int, int] = (0, 2)  # physics steps, uniform per episode
     rate_gains: RateGains = field(default_factory=RateGains)
@@ -131,6 +138,10 @@ class QuadrotorEnvCfg(DirectRLEnvCfg):
     vision: VisionCfg = VisionCfg()
     wind: WindCfg = field(default_factory=WindCfg)
     push: PushCfg = field(default_factory=PushCfg)
+    terms: TermsCfg = field(default_factory=TermsCfg)
+    """Extra observation / reward / termination / cost / event / curriculum terms (:mod:`quadsim.tasks.base.terms`)."""
+    safety: SafetyCfg = field(default_factory=SafetyCfg)
+    """Constrained RL: Lagrangian reward shaping on the cost terms."""
 
     robot: RigidObjectCfg | None = None  # built from the preset in __post_init__ when None
 
@@ -147,7 +158,7 @@ class QuadrotorEnvCfg(DirectRLEnvCfg):
 
     def __post_init__(self):
         if self.robot is None:
-            params = get_preset(self.dynamics.preset)
+            params = get_vehicle(self.dynamics.preset)
             self.robot = RigidObjectCfg(
                 prim_path="/World/envs/env_.*/Robot",
                 spawn=QuadrotorSpawnerCfg(

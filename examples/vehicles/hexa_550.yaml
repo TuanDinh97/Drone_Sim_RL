@@ -1,0 +1,18 @@
+# Custom 6-rotor vehicle defined entirely in YAML (quadsim.core.vehicles schema).
+# Use it with any task:   python scripts/rl/train.py --task Quadsim-Hover-v0 env.dynamics.preset=examples/vehicles/hexa_550.yaml
+name: hexa_550
+mass: 2.6                      # kg (frame, 6 motors, 6S battery)
+frame: {num_rotors: 6, arm_length: 0.275, layout: x}
+thrust_to_weight: 2.2          # -> k_f derived from omega_max
+omega_max: 900.0               # rad/s
+k_m: 0.016                     # yaw moment / thrust [m]
+tau_up: 0.015                  # motor time constants [s]
+tau_down: 0.03
+rotor_radius: 0.127            # 10-inch propellers
+rotor_inertia: 2.6e-5
+rotor_drag_coeff: 8.0e-5
+body_drag_quad: [0.04, 0.04, 0.08]
+body_size: [0.25, 0.25, 0.10]
+inertia: auto                  # box body + point-mass motors (engineering estimate)
+motor_mass: 0.075
+source: "example vehicle file (not identified)"

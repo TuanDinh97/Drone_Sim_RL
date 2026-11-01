@@ -1,0 +1,121 @@
+{
+  "task": "Quadsim-Waypoint-SpeedCost-v0 (speed limit 2 m/s, budget 0.1 s/episode)",
+  "unconstrained_ppo": {
+    "crash": {
+      "mean": 0.006,
+      "ci95": 0.006769239602791439,
+      "n": 500
+    },
+    "time_out": {
+      "mean": 0.994,
+      "ci95": 0.006769239602791439,
+      "n": 500
+    },
+    "episode_length_s": {
+      "mean": 6.593679841518402,
+      "ci95": 0.10252723737946398,
+      "n": 500
+    },
+    "success": {
+      "mean": 0.994,
+      "ci95": 0.006769239602791439,
+      "n": 500
+    },
+    "waypoints_reached_frac": {
+      "mean": 0.9972000000476837,
+      "ci95": 0.003408552100373532,
+      "n": 500
+    },
+    "time_to_finish": {
+      "mean": 6.5840239793481965,
+      "ci95": 0.10144900958716112,
+      "n": 497
+    },
+    "cost": {
+      "mean": 5.308715898036957,
+      "ci95": 0.07475642130938216,
+      "n": 500
+    },
+    "_source": "logs/eval/safe/Quadsim-Waypoint-SpeedCost-v0_unconstrained_s42.json",
+    "_overrides": []
+  },
+  "unconstrained_cascade": {
+    "crash": {
+      "mean": 0.021956087824351298,
+      "ci95": 0.012831985646448857,
+      "n": 501
+    },
+    "time_out": {
+      "mean": 0.9780439121756487,
+      "ci95": 0.012831985646448857,
+      "n": 501
+    },
+    "episode_length_s": {
+      "mean": 10.559720316332971,
+      "ci95": 0.1876016536167558,
+      "n": 501
+    },
+    "success": {
+      "mean": 0.9281437125748503,
+      "ci95": 0.02261399070804376,
+      "n": 501
+    },
+    "waypoints_reached_frac": {
+      "mean": 0.9752495017891635,
+      "ci95": 0.010030053622585447,
+      "n": 501
+    },
+    "time_to_finish": {
+      "mean": 10.39574170881702,
+      "ci95": 0.1556962066544075,
+      "n": 465
+    },
+    "cost": {
+      "mean": 6.475965120359334,
+      "ci95": 0.12727632770412672,
+      "n": 501
+    },
+    "_source": "logs/eval/safe/Quadsim-Waypoint-SpeedCost-v0_unconstrained_s42.json",
+    "_overrides": []
+  },
+  "ppo_lagrangian": {
+    "crash": {
+      "mean": 0.0,
+      "ci95": 0.0,
+      "n": 504
+    },
+    "time_out": {
+      "mean": 1.0,
+      "ci95": 0.0,
+      "n": 504
+    },
+    "episode_length_s": {
+      "mean": 12.263412415035187,
+      "ci95": 0.1610516372151791,
+      "n": 504
+    },
+    "success": {
+      "mean": 0.876984126984127,
+      "ci95": 0.02867591247204267,
+      "n": 504
+    },
+    "waypoints_reached_frac": {
+      "mean": 0.9734126999974251,
+      "ci95": 0.0064181158024000365,
+      "n": 504
+    },
+    "time_to_finish": {
+      "mean": 11.862443168778226,
+      "ci95": 0.15320005817853619,
+      "n": 442
+    },
+    "cost": {
+      "mean": 0.08166665413106482,
+      "ci95": 0.017121797221342695,
+      "n": 504
+    },
+    "_source": "logs/eval/safe/Quadsim-Waypoint-SpeedCost-v0_safe_lagrangian_s42.json",
+    "_overrides": []
+  },
+  "train_wall_s": 1533.4
+}

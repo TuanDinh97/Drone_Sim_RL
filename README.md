@@ -1,16 +1,47 @@
-# Drone_Sim_RL — a Quadrotor Sim-to-Real RL research platform on Isaac Lab
+# Drone_Sim_RL — quadsim, a drone reinforcement-learning research framework on Isaac Lab
 
-`quadsim` is a GPU-parallel quadrotor simulation and reinforcement-learning platform built on
-**NVIDIA Isaac Lab v2.3.2 / Isaac Sim 5.1.0**, designed around *verified physics* and *Sim-to-Real
-transfer*: every physical model is validated against analytic solutions or an independent integrator,
-policies observe only what a real vehicle can measure, and the exported policy is checked to reproduce
-the simulator bit-for-bit (to 1e-6) through a framework-free deployment interface.
+`quadsim` is a modular, configuration-driven framework for developing, training, testing and comparing drone
+reinforcement-learning methods on **NVIDIA Isaac Lab v2.3.2 / Isaac Sim 5.1.0**, built around *verified physics*
+and *Sim-to-Real transfer*. Researchers define their own vehicles, sensors, control interfaces, tasks, rewards,
+constraints and learning algorithms through registries, configuration terms and plug-in modules, without
+touching the simulation core, and evaluate them reproducibly against classical baselines, in- and out-of-distribution.
 
 > Status and every number quoted here come from executed tests — see [`docs/PROGRESS.md`](docs/PROGRESS.md).
-> Hardware used: Ubuntu 24.04, RTX 5060 **8 GB**, i5-14600KF. Nothing has been flown on a real vehicle yet
-> (see [`docs/SIM2REAL.md`](docs/SIM2REAL.md)). The full technical report is [`report/report.pdf`](report/report.pdf).
+> Architecture: [`docs/FRAMEWORK.md`](docs/FRAMEWORK.md) · Tutorials: [`docs/TUTORIALS.md`](docs/TUTORIALS.md) ·
+> Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) · Sim-to-real: [`docs/SIM2REAL.md`](docs/SIM2REAL.md) ·
+> Report: [`report/report.pdf`](report/report.pdf). Hardware used: Ubuntu 24.04, RTX 5060 **8 GB**, i5-14600KF.
+> Nothing has been flown on a real vehicle yet.
 
-## Verified results (simulation, RTX 5060 8 GB)
+## What the framework provides
+
+| Area | Provided | Extend with |
+|---|---|---|
+| Vehicles | X500 (= PX4 SITL gz x500), Crazyflie 2.x, 5-inch racer, X-hexarotor; motor dynamics, rotor drag, ground effect, gyroscopics, wind | YAML/JSON vehicle files (any rotor count), `VEHICLES.register`, Isaac Lab `MultirotorCfg` conversion |
+| Control interfaces | motor-level, collective thrust + body rates, attitude, velocity, position (PX4-like onboard loops at 200 Hz) | `ACTION_INTERFACES.register` (example: acceleration commands) |
+| Sensors | IMU, barometer, state estimate (EKF2-calibrated profile), depth (ray-cast / RTX), RGB / RGB-D, range ring, 3-D LiDAR term, rangefinder, all with noise / bias / latency / rate | observation terms with `noise_std`, `period_steps`, `delay_steps`, `history` |
+| Tasks | hover, tracking, waypoints, obstacle navigation (range / depth / RGB / RGB-D), **drone racing**, **multi-agent swap**, **language-conditioned navigation**, constrained waypoint racing | subclass `QuadrotorEnv` (example: precision landing) or add reward / termination / cost / event / curriculum terms |
+| Algorithms | PPO (rsl_rl, asymmetric, CNN), **SAC / TD3** (GPU-native, asymmetric), **PPO-Lagrangian** (any algorithm), **BC / DAgger**, **VLA adapters** | `ALGORITHMS.register` (example: Augmented Random Search) |
+| Evaluation | identical seeds and conditions for policies and classical baselines, 95 % CIs, **benchmark suites with in-distribution / OOD splits** and generalization gap | `BENCHMARKS.register(Suite(...))` |
+| Data | synchronized HDF5 recording, **episode-structured demonstrations with instructions**, **LeRobot v3.0 export (verified with LeRobot's loader)**, dataset inspection | — |
+| Deployment | ONNX/TorchScript export + interface contract, NumPy runtime, ROS 2 PX4 offboard bridge, PX4 v1.16 SITL pipeline | optional; nothing in training depends on PX4 / ROS 2 |
+| Resources | GPU-memory-aware `num_envs`, Docker image, 124 CPU unit tests, regression and example checks | — |
+
+## Verified framework results (simulation, RTX 5060 8 GB)
+
+| What | Result | Evidence |
+|---|---|---|
+| Core refactor (interfaces as classes, vehicle registry, terms) | **59/59** reference metrics bit-identical (PPO + cascade + SE(3) + potential field) | `scripts/validation/regression_evals.sh`, `docs/results/framework/regression.json` |
+| Hover benchmark, nominal / mean of 4 OOD conditions (success) | PPO 99.9 / 87.6 %, **SAC 99.9 / 91.3 %**, BC-distilled 99.9 / 91.7 %, cascade 89.8 / 79.2 % | `docs/results/framework/bench_hover_algos.json` |
+| Off-policy SAC (new, asymmetric critic) vs the earlier skrl SAC on hover | **99.9 %** vs 0 % success; TD3 with the same recipe: 0 % (negative) | `docs/results/framework/offpolicy_hover.json` |
+| Hexarotor from the generic frame generator, PPO vs cascade | **99.8 %** (1.2 cm) vs 96.5 % | `docs/results/framework/vehicles_interfaces.json` |
+| Safe RL: waypoint racing with speed ≤ 2 m/s, budget 0.1 s/episode | PPO-Lagrangian **0.082 s** over-speed, 87.7 % success; unconstrained PPO 5.31 s, 99.4 % | `docs/results/framework/safe_rl.json` |
+| RL → BC distillation (hover) | BC student 99.9 %, 1.4 cm (teacher 99.9 %, 1.4 cm) | `docs/results/framework/imitation.json` |
+| Language-conditioned navigation (map + instruction), BC → DAgger | 81 % → **100 %** (expert 100 %); held-out phrasings 60 %; without the instruction 12 % | same |
+| Behaviour cloning with the last action as input | 15.8 % (copycat failure) vs 81 % without it | same |
+| LeRobot v3.0 export (lerobot 0.4.4 loader) | 200 episodes / 26 722 frames, exact state/action/task match | `datasets/lerobot/*/quadsim_export.json` |
+| Extension examples (vehicle YAML / plugin, GNSS sensor, landing task, reward + curriculum, acceleration interface, ARS algorithm, VLA adapter) | executed in the simulator | `logs/validation/examples_check.json` |
+
+## Verified platform results (simulation and PX4 SITL)
 
 | What | Result | Evidence |
 |---|---|---|
@@ -44,7 +75,7 @@ SE(3) baseline design was unstable at 50 Hz; the depth policy (61–67 %) remain
 (see `docs/PROGRESS.md`). RGB/RGB-D pipelines execute end to end but no RGB policy performance is claimed.
 
 
-## Features
+## Platform features (physics, sensing, original tasks)
 
 **Physics** (pure PyTorch core `quadsim.core`, framework-agnostic, unit-tested)
 - Presets: Holybro **X500** (identical to PX4 SITL gz `x500`) and **Crazyflie 2.x** (Förster 2015); any vehicle via `QuadrotorParams`.
@@ -79,6 +110,12 @@ classical baselines under identical seeds.
 | `Quadsim-Nav-RGB-v0` / `-RGBD-v0` | RTX-rendered RGB / RGB-D | velocity | state + image |
 | `Quadsim-{Hover,Track,Waypoint}-v1` | same tasks, sim-to-real distribution identified in PX4 SITL (EKF-like estimate errors, 0–20 ms latency, rate-loop and thrust-map gain randomization) | CTBR | as v0 |
 | `Quadsim-Hover-v2` | v1 + v0-level white estimate noise + collective-rate penalty (no SITL heave limit cycle, see PROGRESS) | CTBR | as v0 |
+| `Quadsim-Hover-Hexa-v0` / `-Hexa-Motor-v0` | hover with a 6-rotor vehicle (generated frame); 6-D motor actions | CTBR / motor | state |
+| `Quadsim-Hover-Sensors-v0` | hover + rangefinder (25 Hz, 20 ms) + barometer terms + energy reward (configuration only) | CTBR | state + sensors |
+| `Quadsim-Race-v0` (+ `-Ellipse`, `-Figure8`) | 2 laps through 7 gates, random circuits (fixed circuits for OOD tests), 5-inch racer | CTBR | state + next two gates |
+| `Quadsim-Swarm-v0` | 4-agent antipodal swap, shared policy, centralized critic | velocity | state + goal + neighbours |
+| `Quadsim-Waypoint-SpeedCost-v0` / `-Safe-v0` | waypoint racing with a speed constraint (cost only / PPO-Lagrangian) | CTBR | as waypoint |
+| `Quadsim-LangNav-v0` (+ `-Heldout`, `-RGB`, `-RGB-Heldout`) | fly to the pillar named in a natural-language instruction | velocity | state + instruction tokens + landmark map or RGB |
 
 **Data & tooling**: synchronized HDF5 recording (truth, estimates, IMU, baro, actions, rotor speeds, wind,
 images), plotting, GUI viewer / MP4 recording with target markers, throughput benchmark.
@@ -112,44 +149,59 @@ proxy), fetch the base image with `python3 scripts/tools/pull_image_via_proxy.py
 
 ## Quick start
 ```bash
-python -m pytest tests/core -q                                         # 78 unit tests (~15 s)
-python scripts/validation/m2_dynamics_validation.py --headless        # PhysX vs reference dynamics
-python scripts/rl/train.py --task Quadsim-Hover-v0 --headless         # ~10 min on an RTX 5060
+python -m pytest tests/core -q                                         # 124 unit tests (~15 s, no simulator)
+python scripts/rl/train.py --headless --task Quadsim-Hover-v0         # PPO, ~8 min on an RTX 5060
+python scripts/rl/train.py --headless --task Quadsim-Hover-v0 --algo sac --num_envs 1024 --max_iterations 15000
 python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers policy cascade \
        --checkpoint logs/rsl_rl/quadsim_hover/<run> --episodes 1000
-python scripts/tools/view.py --task Quadsim-Hover-v0 --checkpoint logs/rsl_rl/quadsim_hover/<run>   # GUI
+python scripts/benchmark/run.py --suite hover --policy mine=logs/rsl_rl/quadsim_hover/<run>   # ID / OOD table
 python scripts/rl/export.py --headless --task Quadsim-Hover-v0 --checkpoint logs/rsl_rl/quadsim_hover/<run>
+python scripts/tools/view.py --task Quadsim-Hover-v0 --checkpoint logs/rsl_rl/quadsim_hover/<run>   # GUI / --video
 ```
-PX4 SITL (native ROS 2 Jazzy + Gazebo Harmonic, see `docs/SIM2REAL.md`):
-```bash
-bash ros2/px4_sitl/setup_px4_sitl.sh                                   # PX4 v1.16.2 SITL + px4_msgs + bridge
-POLICY_DIR=logs/rsl_rl/quadsim_hover/<run>/exported bash scripts/sitl/run_sitl.sh logs/sitl/hover.npz \
-       --thrust_curve 0.0225 0.255 0.7225                              # take-off, hand-over, hold + steps, land
-PYTHONPATH=source/quadsim python3 scripts/sitl/compare.py --sitl "logs/sitl/hover*.npz"   # metrics
-```
-More: `scripts/data/record.py` (datasets), `scripts/tools/view.py --headless --enable_cameras --video` (MP4),
-`scripts/tools/benchmark.py`, `scripts/rl/train_queue.sh` (detached sequential training).
 Config overrides: append `env.<field>=<value>` / `agent.<field>=<value>`, e.g.
-`env.wind.enabled=True env.dynamics.preset=crazyflie agent.max_iterations=300`.
+`env.wind.enabled=True env.dynamics.preset=examples/vehicles/hexa_550.yaml env.control.mode=position`.
+Your own components: `--plugins my_module.py` on every script (see `examples/` and `docs/TUTORIALS.md`).
+
+Imitation learning / VLA data (details in `docs/TUTORIALS.md` §9–10):
+```bash
+python scripts/il/collect_demos.py --headless --task Quadsim-LangNav-v0 --expert langnav_expert --episodes 2000 \
+       --no_images --out datasets/il/langnav_sym_expert.h5
+python scripts/il/train_bc.py --data datasets/il/langnav_sym_expert.h5 --name ln_bc --drop last_action
+python scripts/rl/evaluate.py --headless --task Quadsim-LangNav-v0 --controllers policy --algo bc \
+       --checkpoint logs/il/ln_bc/model.pt
+bash scripts/il/setup_lerobot_env.sh && third_party/lerobot-venv/bin/python scripts/il/export_lerobot.py \
+       datasets/il/langnav_sym_expert.h5 --repo_id quadsim/langnav --out datasets/lerobot/langnav
+```
+PX4 SITL (optional; native ROS 2 Jazzy + Gazebo Harmonic, see `docs/SIM2REAL.md`):
+```bash
+bash ros2/px4_sitl/setup_px4_sitl.sh
+POLICY_DIR=logs/rsl_rl/quadsim_hover/<run>/exported bash scripts/sitl/run_sitl.sh logs/sitl/hover.npz \
+       --thrust_curve 0.0225 0.255 0.7225
+```
 
 ## Repository layout
 ```
 source/quadsim/quadsim/
-  core/          pure PyTorch physics: params, model (motors/aero/wrench), dynamics (reference integrators),
-                 controllers/, sensors/ (IMU, baro, odometry, cameras, ray casting + Warp kernel), disturbances
-  isaac/         procedural USD quadrotor spawner, version-gated upstream patches
-  tasks/         Isaac Lab DirectRLEnv tasks (base, hover, tracking, waypoint, navigation), PPO configs, baselines
-  rl/            CNN actor-critic, policy loading, CLI overrides
-  data/          HDF5 recorder
-  deploy/        export (ONNX/TorchScript + contract), NumPy deployment interface, offboard step logic
-                 (OffboardPolicy), closed-loop metrics / identification, virtual sensors for SITL
-scripts/         validation/ (milestone acceptance tests), rl/ (train, evaluate, export), data/, tools/,
-                 sitl/ (PX4 SITL scenarios, quadsim counterparts, comparison, estimator identification)
+  registry.py    extension registries (vehicles, action interfaces, algorithms, baselines, benchmarks), plugins
+  core/          pure PyTorch: params + vehicles (YAML, generic frames), motor/aero model, reference integrators,
+                 controllers/ (cascade, SE(3), mixer, action interfaces), sensors/, disturbances
+  isaac/         procedural USD spawner (any rotor count), version-gated upstream patches
+  tasks/         QuadrotorEnv + configurable terms (base/), mdp.py term library, baselines, tasks: hover, tracking,
+                 waypoint, navigation, racing, swarm (multi-agent), langnav (language), PPO configs
+  rl/            algorithms (PPO, SAC/TD3), off-policy learner, networks, policy I/O, CLI overrides
+  il/            demonstrations (HDF5), language encoders, BC / DAgger (FiLM CNN), VLA adapter
+  benchmark/     benchmark suites (in-distribution / OOD)
+  data/          synchronized HDF5 recorder
+  deploy/        export + contract, NumPy runtime, PX4 offboard core, closed-loop metrics, virtual sensors
+  utils/         hardware detection, resource-aware defaults
+examples/        runnable extension examples + vehicle files
+scripts/         rl/ (train, evaluate, export), benchmark/, il/ (collect, BC, export to LeRobot, inspect),
+                 validation/ (milestone, regression and example checks), data/, tools/, sitl/
 tests/core/      unit tests (no Isaac Sim needed)
-ros2/            quadsim_px4_bridge ROS 2 package, px4_sitl/ (reproducible PX4 SITL + ROS 2 workspace setup)
+ros2/            PX4 offboard bridge + reproducible PX4 SITL setup (optional)
 docker/          Dockerfile + compose
-docs/            PROGRESS (verified results), ROADMAP, SIM2REAL, figures, results (JSON)
-report/          LaTeX technical report
+docs/            FRAMEWORK, TUTORIALS, TROUBLESHOOTING, PROGRESS (verified results), ROADMAP, SIM2REAL, results
+report/          LaTeX technical report (source + PDF)
 ```
 
 ## Conventions
@@ -157,9 +209,12 @@ World z-up (ENU-like), body FLU, quaternions wxyz (`q_WB`), SI units, PX4 Quad-X
 Policy observations contain only deployable quantities; privileged information is restricted to the critic.
 
 ## Known limitations
-See `docs/PROGRESS.md` (open issues) and the report's limitations section. Most important: no hardware
-flights (PX4 SITL only, hover policy only); depth policies trained on analytic depth with a parametric noise model; RGB policies lack
-texture/lighting randomization; baselines use default (untuned) gains; single training seed per configuration.
+See `docs/PROGRESS.md` (open issues) and the report's limitations section. Most important: no hardware flights (PX4
+SITL only); real-vehicle parameters not identified (presets other than X500/Crazyflie are engineering approximations);
+most new-task results are single-seed; RGB policies lack texture/lighting randomization and the language encoder is a
+small bag-of-words model (held-out phrasings ~60 %); no pretrained VLA was run (the adapter interface and LeRobot
+export are validated, the models are not); TD3 did not learn hover with the SAC recipe; autonomous exploration and
+adaptive-control tasks are not implemented (observation histories are available as terms).
 
 ## License
 BSD-3-Clause (same as Isaac Lab). Isaac Sim is subject to the NVIDIA Omniverse license.

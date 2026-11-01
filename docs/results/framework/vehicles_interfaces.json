@@ -1,0 +1,74 @@
+{
+  "hexa_ctbr_ppo": {
+    "crash": {
+      "mean": 0.0,
+      "ci95": 0.0,
+      "n": 1000
+    },
+    "time_out": {
+      "mean": 1.0,
+      "ci95": 0.0,
+      "n": 1000
+    },
+    "episode_length_s": {
+      "mean": 7.980000019073486,
+      "ci95": 0.0,
+      "n": 1000
+    },
+    "final_pos_err": {
+      "mean": 0.012118407185189426,
+      "ci95": 0.000345483660279425,
+      "n": 1000
+    },
+    "final_yaw_err": {
+      "mean": 0.08461802434921264,
+      "ci95": 0.00285881223640955,
+      "n": 1000
+    },
+    "success": {
+      "mean": 0.998,
+      "ci95": 0.00276908533635206,
+      "n": 1000
+    },
+    "_source": "logs/eval/vehicles/Quadsim-Hover-Hexa-v0_hexa_ctbr_s42.json",
+    "_overrides": []
+  },
+  "hexa_ctbr_cascade": {
+    "crash": {
+      "mean": 0.003,
+      "ci95": 0.003389723528549195,
+      "n": 1000
+    },
+    "time_out": {
+      "mean": 0.997,
+      "ci95": 0.003389723528549195,
+      "n": 1000
+    },
+    "episode_length_s": {
+      "mean": 7.958800018906594,
+      "ci95": 0.023957788217259125,
+      "n": 1000
+    },
+    "final_pos_err": {
+      "mean": 0.04400645199115388,
+      "ci95": 0.004952720761898544,
+      "n": 1000
+    },
+    "final_yaw_err": {
+      "mean": 0.015201676368713378,
+      "ci95": 0.00426233719426064,
+      "n": 1000
+    },
+    "success": {
+      "mean": 0.965,
+      "ci95": 0.01139078750569951,
+      "n": 1000
+    },
+    "_source": "logs/eval/vehicles/Quadsim-Hover-Hexa-v0_hexa_ctbr_s42.json",
+    "_overrides": []
+  },
+  "hexa_motor_ppo": null,
+  "accel_interface_ppo": null,
+  "landing_ppo": null,
+  "landing_cascade": null
+}

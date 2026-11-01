@@ -85,3 +85,31 @@ class NavVisionPPORunnerCfg(QuadPPORunnerCfg):
             super().__post_init__()
         # CNN back-prop on 2048 envs x 32 steps: 16 mini-batches of 4096 images keep activations < 0.5 GB (8 GB GPU)
         self.algorithm.num_mini_batches = 16
+
+
+@configclass
+class WaypointSafePPORunnerCfg(WaypointPPORunnerCfg):
+    experiment_name = "quadsim_waypoint_safe"
+
+
+@configclass
+class HoverHexaPPORunnerCfg(HoverPPORunnerCfg):
+    experiment_name = "quadsim_hover_hexa"
+
+
+@configclass
+class RacePPORunnerCfg(QuadPPORunnerCfg):
+    experiment_name = "quadsim_race"
+    max_iterations = 2000
+
+
+@configclass
+class SwarmPPORunnerCfg(QuadPPORunnerCfg):
+    experiment_name = "quadsim_swarm"
+    max_iterations = 1500
+
+
+@configclass
+class LangNavPPORunnerCfg(QuadPPORunnerCfg):
+    experiment_name = "quadsim_langnav"
+    max_iterations = 1000

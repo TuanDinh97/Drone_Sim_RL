@@ -1,0 +1,109 @@
+%==========================================================================================
+\section{From platform to research framework}\label{sec:framework}
+The platform of the previous sections was built around a fixed set of tasks. An audit of that code base for
+reuse by other researchers found four structural limits: (i) the action interfaces were branches of one controller
+function, so a new interface required editing the base environment; (ii) vehicles were two hard-coded Python presets
+(quadrotors only for direct motor control); (iii) observations, rewards, terminations and randomizations could only be
+extended by subclassing a task; (iv) training was tied to one algorithm library, with a separate, non-competitive SAC
+script, and there were no standard benchmark conditions, no constrained or multi-agent tasks and no
+imitation-learning data path. This section describes the framework that replaced these limits without rebuilding the
+validated core, and the experiments that validate it. Architecture details are in \texttt{docs/FRAMEWORK.md}.
+
+\subsection{Extension points}
+Every replaceable component type has a name registry; components register themselves on import, research code
+registers its own (from any module or file passed as \texttt{--plugins} to every script) and selects them by name in
+the configuration or on the command line (\cref{tab:ext}). Configuration-level extensions do not need a registry:
+each task configuration carries \emph{terms} with the Isaac~Lab signature \texttt{func(env, **params)}
+(\cref{tab:terms}).
+
+\begin{table}[!htbp]\centering\small
+\caption{Registries (\texttt{quadsim.registry}).}\label{tab:ext}
+\begin{tabularx}{\linewidth}{lXX}\toprule
+Registry & Selected by & Built-in components\\\midrule
+\texttt{VEHICLES} & \texttt{dynamics.preset} (name or YAML/JSON file) & x500, crazyflie, racer5, hexa\_x\\
+\texttt{ACTION\_INTERFACES} & \texttt{control.mode} & motor, ctbr, ctatt, velocity, position\\
+\texttt{ALGORITHMS} & \texttt{--algo} & ppo (rsl\_rl), sac, td3, bc, vla\\
+\texttt{BASELINES} & \texttt{--controllers} & cascade, geometric, potential\_field, swarm\_potential, langnav\_expert\\
+\texttt{BENCHMARKS} & \texttt{benchmark/run.py --suite} & hover, track, waypoint, nav\_range, race, swarm, langnav\\
+\bottomrule\end{tabularx}
+\end{table}
+
+\begin{table}[!htbp]\centering\small
+\caption{Configurable MDP terms (\texttt{cfg.terms}).}\label{tab:terms}
+\begin{tabularx}{\linewidth}{lX}\toprule
+Term & Semantics\\\midrule
+observation & appended to the deployable policy observation (or the critic's, if privileged) with sampling period
+$P$, latency $D$, white noise, scale, clip and an optional history of $H$ samples\\
+reward & $w\,f(s_t)\,\Delta t$, logged per term\\
+termination & failure, or truncation (bootstrapped)\\
+cost & constraint cost rate $c(s_t)\ge0$; episode cost $J_c=\sum_t c\,\Delta t$ (seconds of violation for an indicator)\\
+event & start-up / reset / interval randomization or perturbation\\
+curriculum & called before resets with the finished episodes' metrics (e.g.\ raise the initial tilt when success $>80\,\%$)\\
+\bottomrule\end{tabularx}
+\end{table}
+
+\paragraph{Sensor terms.} A term $h$ with period $P$ and latency $D$ (both in policy steps) produces
+$o_t=h\big(s_{P\lfloor (t-D)/P\rfloor}\big)+\eta$, $\eta\sim\mathcal N(0,\sigma^2 I)$, with the history refilled at
+every episode start. The same mechanism implements a 5\,Hz GNSS fix with \SI{100}{ms} latency, a downward rangefinder,
+a 3-D LiDAR ray-casting the task's obstacle primitives, or action/gyro histories for implicit adaptation.
+
+\paragraph{Vehicles.} A vehicle file may inherit from a preset, generate a symmetric $n$-rotor frame (4-rotor X frames
+use the PX4 Quad-X numbering), derive $k_f$ from the thrust-to-weight ratio and estimate the inertia from a box body
+and point-mass motors. Vehicles are rejected if the inertia violates the triangle inequality, the thrust-to-weight
+ratio is $\le1.05$ or the allocation matrix $A\in\R^{4\times n}$ (collective, roll, pitch, yaw) has rank $<4$. The
+USD body, PhysX mass properties, motor and drag model, pseudo-inverse mixer with PX4-style desaturation, hover action
+and the motor-level action dimension follow automatically. An Isaac~Lab \texttt{MultirotorCfg} (allocation matrix with
+rows $[F_x,F_y,F_z,M_x,M_y,M_z]$, thrust $c\,\mathrm{rps}^2$) converts with $y_i=A_{3i}$, $x_i=-A_{4i}$,
+$s_i=-\mathrm{sign}A_{5i}$, $k_f=c/(2\pi)^2$.
+
+\paragraph{Constrained RL.} With cost terms and \texttt{safety.lagrangian}, the environment optimizes the Lagrangian
+of $\max_\pi J_r(\pi)$ s.t.\ $J_c(\pi)\le d$ by returning $\tilde r_t=(r_t-\lambda c_t)/(1+\lambda)$ to \emph{any} RL
+algorithm and updating $\lambda$ with the PID rule of Stooke et al.~\cite{stooke2020pid}: $e_k=\bar J_c-d$,
+$I_k=\max(0,I_{k-1}+K_ie_k)$, $\lambda_k=\min\!\big(\lambda_{\max},\max(0,K_pe_k+I_k+K_d\max(0,\bar J_{c,k}-\bar J_{c,k-1}))\big)$,
+where $\bar J_c$ is the mean cost of the episodes finished since the last update (every rollout). This is the
+reward-penalty form (no separate cost critic).
+
+\paragraph{Multi-agent RL.} $M$ consecutive environment rows form a team sharing a local frame, an episode clock and
+resets; each agent is one row. Any single-agent algorithm therefore trains a parameter-shared decentralized policy
+$\pi(a^i\mid o^i)$, while the critic receives the centralized state (true relative states and goals of all team
+members), i.e.\ a MAPPO-style~\cite{yu2022mappo} centralized-training, decentralized-execution scheme. A crash terminates the crashed
+agent and truncates its teammates; inter-agent collisions are analytic.
+
+\paragraph{Off-policy learning.} The original skrl SAC~\cite{haarnoja2018sac} reached 0\,\% hover success. Two likely causes were addressed
+together (not ablated separately): the tasks' rewards are $\Delta t$-scaled (about $0.02$ per step), so the entropy
+bonus dominated, and the critic only saw the policy observation; the update-to-data ratio was also low (1/256). The framework's SAC/TD3 use asymmetric twin critics with LayerNorm on the
+privileged observation, running observation normalization, rewards in per-second units ($r/\Delta t$), 1024 parallel
+environments, batches of 16\,384 and 4 gradient updates per environment step, following the many-environment recipe of FastTD3~\cite{seo2025fasttd3}; TD3~\cite{fujimoto2018td3} shares the implementation. Time-outs bootstrap from the current
+state (as in rsl\_rl's PPO).
+
+\paragraph{Imitation learning and VLA.} Demonstrations are episode-structured HDF5 files (policy and critic
+observations, camera frames, actions, rewards, ground truth, estimate, instruction text, success, metrics,
+configuration, observation layout, tokenizer). Collection gives every environment the same episode quota, because
+stopping at a global count discards the episodes still running, which are the long ones. Behaviour cloning minimizes
+$\mathbb E\|\pi_\theta(o)-a^\star\|^2$; instruction tokens are embedded with a bag-of-words encoder that ignores
+padding and out-of-vocabulary words, and images are encoded by a CNN whose last feature map is FiLM-modulated~\cite{perez2018film} by the
+instruction embedding. DAgger~\cite{ross2011dagger} alternates rollouts of the learner (labelled by the expert) with retraining on the
+aggregated data. External VLA models plug in through an adapter $(\text{images},\text{instructions},
+\text{proprioception})\mapsto a$; datasets export to the LeRobot~\cite{cadene2024lerobot} v3.0 format and are verified by reloading them with
+LeRobot's own loader.
+
+\paragraph{Benchmarks.} A suite fixes a task, a set of conditions labelled in-distribution (training distribution)
+or out-of-distribution (wind and pushes, harsh dynamics, sensor noise $\times2$--3, \SIrange{20}{30}{ms} latency,
+unseen layouts or phrasings), metrics and seeds. Every controller is evaluated per condition in a fresh simulator
+process with the same seed; the report gives each metric with its 95\,\% CI and the generalization gap
+$\text{id}-\overline{\text{ood}}$ of the primary metric.
+
+\paragraph{Resources.} The default number of environments is lowered automatically when the free GPU memory would
+not fit it (memory model calibrated on the RTX~5060 measurements; never raised unless requested).
+
+\subsection{Validation of the framework}
+\paragraph{Regression.} After moving the action interfaces into classes, the vehicles into a registry and adding the
+term machinery, the reference evaluations (hover, tracking, waypoint, range navigation; PPO policies and the cascade,
+SE(3) and potential-field baselines) were re-run: all 59 metrics are bit-identical to the pre-refactor run.
+\paragraph{Unit and example tests.} 124 CPU unit tests (registries, vehicle files and frames, allocation rank, Isaac Lab
+conversion, hover action of every interface on every vehicle, closed-loop position control of a hexarotor and a
+racer on the reference integrator, sensor-term rate/latency/history, the PID multiplier, the squashed-Gaussian
+log-likelihood, replay buffer, hardware model, tokenizer, datasets, BC language grounding) and an example check that
+runs every extension example in the simulator (\cref{tab:fw_examples}).
+
+\input{generated/fw_results.tex}

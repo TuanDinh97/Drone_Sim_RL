@@ -272,7 +272,146 @@ def hover_v1():
       "\n\\bottomrule\\end{tabular}\n")
 
 
+def _m(e, key, pct_=False, digits=2, scale=1.0):
+    if not e or key not in e or e[key]["mean"] is None or e[key]["mean"] != e[key]["mean"]:
+        return "--"
+    v, ci = e[key]["mean"] * scale, (e[key].get("ci95") or 0.0) * scale
+    if pct_:
+        return f"{100 * v:.1f}\\,\\%"
+    return f"{v:.{digits}f}" + (f"\\,$\\pm$\\,{ci:.{digits}f}" if ci else "")
+
+
+def _table(caption, label, cols, rows, spec=None):
+    spec = spec or ("l" + "c" * (len(cols) - 1))
+    head = " & ".join(cols)
+    body = "\n".join(" & ".join(r) + "\\\\" for r in rows)
+    return (f"\\begin{{table}}[!htbp]\\centering\\small\\caption{{{caption}}}\\label{{{label}}}\n"
+            f"\\resizebox{{\\linewidth}}{{!}}{{\\begin{{tabular}}{{{spec}}}\\toprule\n{head}\\\\\\midrule\n{body}\n"
+            "\\bottomrule\\end{tabular}}\n\\end{table}\n\n")
+
+
+def framework():
+    F = "docs/results/framework"
+    L = lambda n: json.load(open(os.path.join(F, n))) if os.path.exists(os.path.join(F, n)) else None  # noqa: E731
+    out = []
+    # --- algorithms x conditions (hover suite)
+    b = L("bench_hover_algos.json")
+    if b:
+        conds = [c["name"] for c in b["conditions"]]
+        rows = []
+        for lab in ("ppo", "sac", "bc_distilled", "cascade"):
+            r = b["results"].get(lab)
+            if not r:
+                continue
+            pc = r["per_condition"]
+            rows.append([lab.replace("_", r"\_")] + [_m(pc.get(c), "success", True) for c in conds]
+                        + [f"{100 * r['generalization_gap']:+.1f}"])
+        out.append(_table("Hover benchmark suite: success per condition (1000 episodes each, same seed, fresh process "
+                          "per controller and condition) and generalization gap id$-$mean(ood) in points. "
+                          "Source: \\texttt{docs/results/framework/bench\\_hover\\_algos.json}.", "tab:fw_algos",
+                          ["Controller"] + [c.replace("_", r"\_") + (" (id)" if i == 0 else "") for i, c in
+                                            enumerate(conds)] + ["gap"], rows))
+    o = L("offpolicy_hover.json")
+    if o:
+        rows = []
+        for k, lab in (("ppo_reference", "PPO (rsl\\_rl), 4096 envs, 600 it."), ("sac", "SAC (quadsim), 1024 envs, 15k steps"),
+                       ("td3", "TD3 (quadsim), 1024 envs, 15k steps"), ("td3b", "TD3, low exploration noise, 8 updates/step"),
+                       ("ars", "ARS (plugin example), 150 it.")):
+            if k in o and o[k].get("eval"):
+                e = o[k]["eval"]
+                t = o[k].get("train_wall_s")
+                rows.append([lab, _m(e, "success", True), _m(e, "final_pos_err", scale=100, digits=2),
+                             _m(e, "final_yaw_err", digits=2), f"{t / 60:.0f}" if t else "--"])
+        out.append(_table("Learning algorithms on hover (nominal condition, 1000 episodes). Position error in cm, yaw "
+                          "error in rad. Source: \\texttt{offpolicy\\_hover.json}.", "tab:fw_offpolicy",
+                          ["Algorithm", "Success", "Pos. err [cm]", "Yaw err [rad]", "Train [min]"], rows, "lcccc"))
+    v = L("vehicles_interfaces.json")
+    if v:
+        rows = []
+        for k, lab in (("hexa_ctbr_ppo", "hexa\\_x (6 rotors, generated frame), CTBR, PPO"),
+                       ("hexa_ctbr_cascade", "hexa\\_x, cascade baseline"),
+                       ("hexa_motor_ppo", "hexa\\_x, motor-level (6-D action), PPO"),
+                       ("accel_interface_ppo", "x500, acceleration interface (plugin example), PPO"),
+                       ("landing_ppo", "landing task (plugin example), PPO"),
+                       ("landing_cascade", "landing task, cascade baseline")):
+            e = v.get(k)
+            if e:
+                rows.append([lab, _m(e, "success", True), _m(e, "final_pos_err", scale=100, digits=2),
+                             _m(e, "crash", True)])
+        out.append(_table("New vehicles, control interfaces and tasks defined through the extension points (1000 "
+                          "episodes; position error in cm). Source: \\texttt{vehicles\\_interfaces.json}.",
+                          "tab:fw_vehicles", ["Configuration", "Success", "Pos. err [cm]", "Crash"], rows, "lccc"))
+    sr = L("safe_rl.json")
+    if sr:
+        rows = []
+        for k, lab in (("unconstrained_ppo", "PPO (unconstrained)"), ("unconstrained_cascade", "cascade"),
+                       ("ppo_lagrangian", "PPO-Lagrangian (PID multiplier)")):
+            e = sr.get(k)
+            if e:
+                rows.append([lab, _m(e, "success", True), _m(e, "cost", digits=3), _m(e, "time_to_finish", digits=2),
+                             _m(e, "crash", True)])
+        out.append(_table("Constrained waypoint racing: speed $\\le$\\,\\SI{2}{m/s}, budget \\SI{0.1}{s} of over-speed "
+                          "flight per episode (500 episodes). Source: \\texttt{safe\\_rl.json}.", "tab:fw_safe",
+                          ["Policy", "Success", "Episode cost [s]", "Time [s]", "Crash"], rows, "lcccc"))
+    for suite, cap, keys in (("race", "Drone racing (2 laps, 7 gates, 5-inch racer); trained on random circuits.",
+                              ("success", "lap_time", "gates_passed", "crash")),
+                             ("swarm", "Four-agent antipodal swap (shared policy, centralized critic).",
+                              ("success", "agent_collision", "min_separation", "time_to_goal"))):
+        bs = L(f"bench_{suite}.json")
+        if not bs:
+            continue
+        rows = []
+        for lab, r in bs["results"].items():
+            for c in bs["conditions"]:
+                e = r["per_condition"].get(c["name"])
+                if e:
+                    rows.append([lab.replace("_", r"\_"), c["name"].replace("_", r"\_") + f" ({c['split']})"]
+                                + [_m(e, k, k in ("success", "crash", "agent_collision")) for k in keys])
+        out.append(_table(cap + f" Source: \\texttt{{bench\\_{suite}.json}}.", f"tab:fw_{suite}",
+                          ["Controller", "Condition"] + [k.replace("_", r"\_") for k in keys], rows, "llcccc"))
+    il = L("imitation.json")
+    if il:
+        rows = []
+        for k, lab in (("expert_ppo", "PPO teacher"), ("bc", "BC student"), ("bc_no_last_action", "BC student, no last action")):
+            e = il["hover_distillation"].get(k)
+            if e:
+                rows.append(["hover", lab, _m(e, "success", True), "--", _m(e, "final_pos_err", scale=100, digits=2)])
+        sym = il.get("langnav_symbolic", {})
+        for tag, lab in (("expert", "scripted expert (privileged)"), ("langnav_sym_bc", "BC (with last action)"),
+                         ("langnav_sym_bc_nolang", "BC, instruction removed"),
+                         ("langnav_sym_bc_nolast", "BC, no last action"), ("langnav_sym_bc_v2", "+ unknown words ignored"),
+                         ("langnav_sym_dagger1", "+ DAgger round 1"), ("langnav_sym_dagger2", "+ DAgger round 2")):
+            r = sym.get(tag, {})
+            a, h = r.get("Quadsim-LangNav-v0"), r.get("Quadsim-LangNav-Heldout-v0")
+            if a or h:
+                rows.append(["langnav (map)", lab, _m(a, "success", True), _m(h, "success", True),
+                             _m(a, "wrong_landmark", True)])
+        rgb = il.get("langnav_rgb", {})
+        for tag, lab in (("expert", "scripted expert (privileged)"), ("langnav_rgb_bc", "BC, FiLM-CNN + instruction"),
+                         ("langnav_rgb_dagger1", "+ DAgger round 1"), ("vla_color_servo", "VLA adapter: colour servo")):
+            r = rgb.get(tag, {})
+            a, h = r.get("Quadsim-LangNav-RGB-v0"), r.get("Quadsim-LangNav-RGB-Heldout-v0")
+            if a or h:
+                rows.append(["langnav (RGB)", lab, _m(a, "success", True), _m(h, "success", True),
+                             _m(a, "wrong_landmark", True)])
+        out.append(_table("Imitation learning. Hover: RL-to-BC distillation (last column: final position error [cm]). "
+                          "LangNav: success with training / held-out instruction phrasings and wrong-landmark rate "
+                          "(training phrasing). Source: \\texttt{imitation.json}.", "tab:fw_il",
+                          ["Task", "Policy", "Success (train phr.)", "Success (held-out)", "Wrong / pos. err"], rows,
+                          "llccc"))
+    ex = L("examples_check.json")
+    if ex:
+        rows = [[k.replace("_", r"\_"), "pass" if r["pass"] else "FAIL",
+                 f"{100 * r['metrics']['success']:.0f}\\,\\%" if r.get("metrics", {}).get("success") is not None
+                 else "--"] for k, r in ex.items()]
+        out.append(_table("Extension examples executed in the simulator (\\texttt{scripts/validation/examples\\_check.py}); "
+                          "success of the classical baseline where the check is an evaluation.", "tab:fw_examples",
+                          ["Example", "Result", "Baseline success"], rows, "lcc"))
+    w("fw_results.tex", "".join(out))
+
+
 if __name__ == "__main__":
+    framework()
     m2()
     depth()
     sitl()

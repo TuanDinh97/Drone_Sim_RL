@@ -29,6 +29,8 @@ parser.add_argument("--num_envs", type=int, default=500)
 parser.add_argument("--seed", type=int, default=1234)
 parser.add_argument("--tag", default="")
 parser.add_argument("--out_dir", default="logs/eval")
+parser.add_argument("--algo", default=None, help="algorithm of --checkpoint (default: inferred from the checkpoint)")
+parser.add_argument("--plugins", nargs="*", default=[], help="modules / .py files that register components")
 AppLauncher.add_app_launcher_args(parser)
 args, overrides = parser.parse_known_args()
 app = AppLauncher(args).app
@@ -40,8 +42,10 @@ import torch  # noqa: E402
 import quadsim.tasks  # noqa: E402,F401
 from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
 from quadsim.rl.overrides import apply_overrides  # noqa: E402
-from quadsim.rl.policy_io import agent_cfg_for, latest_checkpoint, load_policy  # noqa: E402
-from quadsim.tasks.baselines import BASELINES  # noqa: E402
+from quadsim.registry import BASELINES, import_plugins  # noqa: E402
+from quadsim.rl.algorithms import load_any_policy  # noqa: E402
+from quadsim.rl.policy_io import agent_cfg_for, latest_checkpoint  # noqa: E402
+from quadsim.tasks import baselines as _baselines  # noqa: E402,F401  (registers the classical controllers)
 
 
 def summarize(records):
@@ -66,11 +70,11 @@ def run_controller(name, env):
     obs, _ = env.reset()
     if name == "policy":
         ckpt = args.checkpoint if args.checkpoint.endswith(".pt") else latest_checkpoint(args.checkpoint)
-        pol = load_policy(ckpt, env, task=args.task)
+        pol = load_any_policy(ckpt, env, task=args.task, algo=args.algo)
         obs, _ = env.reset()  # runner construction resets the env through the wrapper
         act = lambda o: pol(o)  # noqa: E731
     else:
-        ctrl = BASELINES[name](u)
+        ctrl = BASELINES.get(name)(u)
         act = lambda o: ctrl()  # noqa: E731
     u.seed(args.seed)
     obs, _ = env.reset()
@@ -93,8 +97,13 @@ def run_controller(name, env):
 
 
 def main():
+    import_plugins(args.plugins)
     env_cfg = parse_env_cfg(args.task, device=args.device, num_envs=args.num_envs)
-    apply_overrides(env_cfg, agent_cfg_for(args.task), overrides)
+    try:
+        agent_cfg = agent_cfg_for(args.task)
+    except Exception:  # task registered by a plugin without an rsl_rl config
+        agent_cfg = None
+    apply_overrides(env_cfg, agent_cfg, overrides)
     env_cfg.seed = args.seed
     env = gym.make(args.task, cfg=env_cfg)
     results = {"task": args.task, "checkpoint": args.checkpoint, "seed": args.seed, "num_envs": args.num_envs,

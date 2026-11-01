@@ -210,7 +210,7 @@ PRESETS = {"x500": make_x500, "crazyflie": make_crazyflie}
 
 
 def get_preset(name: str) -> QuadrotorParams:
-    try:
-        return PRESETS[name]()
-    except KeyError as e:
-        raise KeyError(f"Unknown quadrotor preset '{name}'. Available: {list(PRESETS)}") from e
+    """Registered vehicle name or vehicle file path (see :func:`quadsim.core.vehicles.get_vehicle`)."""
+    from .vehicles import get_vehicle
+
+    return get_vehicle(name)

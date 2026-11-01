@@ -1,0 +1,7 @@
+# Variant of a registered preset: the PX4 x500 with a 400 g payload and slower motors.
+base: x500
+name: x500_heavy
+mass: 2.464
+tau_up: 0.02
+tau_down: 0.035
+source: "x500 + 0.4 kg payload (example)"

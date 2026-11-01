@@ -6,7 +6,11 @@ Per physics step (``_apply_action``, 200 Hz by default):
     -> body-frame wrench written to PhysX -> PhysX integrates the rigid body + contacts.
 
 Tasks subclass :class:`QuadrotorEnv` and implement ``_task_obs``, ``_task_privileged_obs``,
-``_compute_task_reward``, ``_task_dones`` and ``_reset_task``.
+``_compute_task_reward``, ``_task_dones`` and ``_reset_task``. Without subclassing, any task can be extended through
+its configuration: vehicle (``cfg.dynamics.preset``: registered name or vehicle file), action interface
+(``cfg.control.mode``: registered :class:`~quadsim.core.controllers.interfaces.ActionInterface`), extra
+observation / reward / termination / cost / event / curriculum terms (``cfg.terms``) and constrained RL
+(``cfg.safety``), see :mod:`quadsim.tasks.base.terms`.
 
 Observation groups returned by ``_get_observations``:
     ``policy``  deployable observations only (noisy/delayed estimates, gyro, last action, task info)
@@ -25,15 +29,9 @@ import isaaclab.sim as sim_utils
 from isaaclab.assets import RigidObject
 from isaaclab.envs import DirectRLEnv
 
-from quadsim.core import QuadrotorModel, get_preset
+from quadsim.core import QuadrotorModel
 from quadsim.core import math as qm
-from quadsim.core.controllers import (
-    AttitudeController,
-    Mixer,
-    PositionController,
-    RateController,
-    thrust_vector_to_setpoints,
-)
+from quadsim.core.controllers.interfaces import FlightController
 from quadsim.core.disturbances import PushDisturbance, WindModel
 from quadsim.core.sensors import (
     BarometerModel,
@@ -47,8 +45,11 @@ from quadsim.core.sensors import (
     pinhole_ray_dirs,
 )
 from quadsim.core.sensors.noise import sample_uniform
+from quadsim.core.vehicles import get_vehicle
+from quadsim.registry import ACTION_INTERFACES
 
 from .base_env_cfg import QuadrotorEnvCfg
+from .terms import TermManager
 
 
 class QuadrotorEnv(DirectRLEnv):
@@ -56,11 +57,14 @@ class QuadrotorEnv(DirectRLEnv):
 
     def __init__(self, cfg: QuadrotorEnvCfg, render_mode: str | None = None, **kwargs):
         # resolve vehicle preset (allows CLI/Hydra overrides of cfg.dynamics.preset)
-        self.params = get_preset(cfg.dynamics.preset)
+        self.params = get_vehicle(cfg.dynamics.preset)
         cfg.robot.spawn.params = self.params
+        self._iface_cls = ACTION_INTERFACES.get(cfg.control.mode)
         self._configure_spaces(cfg)
         super().__init__(cfg, render_mode, **kwargs)
         n, dev = self.num_envs, self.device
+        self.env_origins = self.scene.env_origins.clone()
+        """Origin of each env's local frame (tasks may let several envs share one, e.g. multi-agent groups)."""
 
         # ---------------- physics model (per-env tensors) ----------------
         p = self.params
@@ -81,23 +85,22 @@ class QuadrotorEnv(DirectRLEnv):
         r = cfg.randomization
         self._dr_extra = [k for k in ("rate_gain_scale", "thrust_gain_scale") if getattr(r, k) is not None]
         self.dr_obs = torch.zeros(n, 8 + len(self._dr_extra), device=dev)  # privileged: normalized DR parameters
-        self.thrust_gain = torch.ones(n, device=dev)
         self._randomize_inertial_properties()
 
-        # ---------------- onboard controllers (nominal model) ----------------
+        # ---------------- onboard flight controller (nominal model) + action interface ----------------
         c = cfg.control
-        self.mixer = Mixer(p, dev)
-        self.rate_ctrl = RateController(p, n, self.physics_dt, c.rate_gains, dev)
-        self.att_ctrl = AttitudeController(c.attitude_gains, dev)
-        self.pos_ctrl = PositionController(p, n, self.physics_dt, c.position_gains, dev)
-        self.max_rate = torch.tensor(c.max_body_rate, device=dev)
-        self.max_vel = torch.tensor(c.max_velocity, device=dev)
-        self.t_max_nominal = p.max_total_thrust
+        self.fc = FlightController(p, c, n, self.physics_dt, dev, thrust_gain_enabled=r.thrust_gain_scale is not None)
+        self.action_iface = self._iface_cls(self.fc)
+        # aliases (baselines, validation scripts and tasks use them)
+        self.mixer, self.rate_ctrl, self.att_ctrl, self.pos_ctrl = fc_parts = (
+            self.fc.mixer, self.fc.rate_ctrl, self.fc.att_ctrl, self.fc.pos_ctrl)
+        del fc_parts
+        self.max_rate, self.max_vel, self.t_max_nominal = self.fc.max_rate, self.fc.max_vel, self.fc.t_max_nominal
+        self.thrust_gain = self.fc.thrust_gain
         self.action_dim = gym.spaces.flatdim(self.single_action_space)
         self.actions = torch.zeros(n, self.action_dim, device=dev)
         self.prev_actions = torch.zeros_like(self.actions)
         self.action_delay = DelayBuffer(n, max(c.action_delay_steps[1], 0), (self.action_dim,), dev)
-        self.yaw_sp = torch.zeros(n, device=dev)
         self.hover_action = self._hover_action()
 
         # ---------------- sensors ----------------
@@ -137,6 +140,13 @@ class QuadrotorEnv(DirectRLEnv):
         self.collect_episode_metrics = False  # evaluation scripts switch this on
         self.episode_metric_buffer: list[dict] = []
         self.crashed = torch.zeros(n, dtype=torch.bool, device=dev)
+        self.last_episode_metrics: dict[str, torch.Tensor] = {}
+        """Per-env metrics of the most recently finished episodes (NaN where none finished yet); curricula use it."""
+
+        # ---------------- configurable extra terms ----------------
+        self.terms = TermManager(self, cfg.terms, cfg.safety)
+        if self.terms.policy_dim:
+            self._refresh_observation_space()
         self.set_debug_vis(self.cfg.debug_vis)
 
     # ======================================================================== setup
@@ -147,8 +157,28 @@ class QuadrotorEnv(DirectRLEnv):
 
     def _configure_spaces(self, cfg: QuadrotorEnvCfg):
         """Derive gym spaces from the configuration (before DirectRLEnv builds them)."""
-        cfg.action_space = 4
-        cfg.observation_space = 12 + (4 if cfg.include_last_action else 0) + self.task_obs_dim(cfg)
+        cfg.action_space = self._iface_cls.action_dim(cfg.control, self.params)
+        cfg.observation_space = 12 + (cfg.action_space if cfg.include_last_action else 0) + self.task_obs_dim(cfg)
+
+    def _refresh_observation_space(self):
+        """Grow the policy observation space by the configured extra (deployable) observation terms."""
+        from isaaclab.envs.utils.spaces import spec_to_gym_space
+
+        self.cfg.observation_space = int(self.cfg.observation_space) + self.terms.policy_dim
+        self.single_observation_space["policy"] = spec_to_gym_space(self.cfg.observation_space)
+        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space["policy"], self.num_envs)
+
+    def obs_layout(self) -> list[list]:
+        """Named blocks of the policy observation ``[[name, dim], ...]`` (datasets, BC policies, export)."""
+        out = [["state", 12]] + ([["last_action", self.action_dim]] if self.cfg.include_last_action else [])
+        if self.task_obs_dim(self.cfg):
+            out.append(["task", self.task_obs_dim(self.cfg)])
+        out += [[o.name, o.dim] for o in self.terms.policy_obs]
+        return out
+
+    @property
+    def yaw_sp(self) -> torch.Tensor:
+        return self.fc.yaw_sp
 
     def _setup_scene(self):
         self.robot = RigidObject(self.cfg.robot)
@@ -244,65 +274,31 @@ class QuadrotorEnv(DirectRLEnv):
 
     # ======================================================================== actions
     def _hover_action(self) -> torch.Tensor:
-        a = torch.zeros(self.action_dim, device=self.device)
-        frac = self.params.weight / self.t_max_nominal
-        lo, hi = self.cfg.control.collective_range
-        if self.cfg.control.mode == "motor":
-            a[:] = 2.0 * frac - 1.0
-        elif self.cfg.control.mode in ("ctbr", "ctatt"):
-            a[0] = 2.0 * (frac - lo) / (hi - lo) - 1.0
-        return a
+        return self.action_iface.hover_action()
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self.prev_actions[:] = self.actions
         self.actions[:] = torch.nan_to_num(actions, nan=0.0).clamp(-1.0, 1.0)
+        if self.terms.cfg.events:
+            self.terms.interval_events()
 
     def _collective_from_action(self, a0: torch.Tensor) -> torch.Tensor:
-        lo, hi = self.cfg.control.collective_range
-        c = (lo + (a0 + 1.0) * 0.5 * (hi - lo)) * self.t_max_nominal
-        if self.cfg.randomization.thrust_gain_scale is not None:  # thrust-map gain error around nominal hover
-            c_h = self.params.weight
-            c = torch.clamp(c_h + self.thrust_gain * (c - c_h), min=0.0)
-        return c
+        return self.fc.collective_from_action(a0)
 
     def _controller(self, a: torch.Tensor, gyro_b: torch.Tensor) -> torch.Tensor:
         """Delayed normalized action -> per-rotor thrust commands (N, R) using onboard estimates."""
-        mode = self.cfg.control.mode
-        if mode == "motor":
-            return (a + 1.0) * 0.5 * self.mixer.t_max
         est = self.odom_meas
         quat = qm.quat_normalize(est[:, 3:7]) if self.cfg.sensors.odometry.enabled else self.robot.data.root_quat_w
-        if mode == "ctbr":
-            collective = self._collective_from_action(a[:, 0])
-            rate_sp = a[:, 1:4] * self.max_rate
-        elif mode == "ctatt":
-            collective = self._collective_from_action(a[:, 0])
-            roll, pitch = a[:, 1] * self.cfg.control.max_tilt, a[:, 2] * self.cfg.control.max_tilt
-            self.yaw_sp = qm.wrap_to_pi(self.yaw_sp + a[:, 3] * self.cfg.control.max_yaw_rate * self.physics_dt)
-            q_sp = qm.quat_from_euler_xyz(roll, pitch, self.yaw_sp)
-            rate_sp = self.att_ctrl(quat, q_sp)
-        elif mode == "velocity":
-            yaw = qm.yaw_from_quat(quat)
-            v_h = a[:, :3] * self.max_vel
-            cy, sy = torch.cos(yaw), torch.sin(yaw)
-            vel_sp = torch.stack([cy * v_h[:, 0] - sy * v_h[:, 1], sy * v_h[:, 0] + cy * v_h[:, 1], v_h[:, 2]], -1)
-            self.yaw_sp = qm.wrap_to_pi(self.yaw_sp + a[:, 3] * self.cfg.control.max_yaw_rate * self.physics_dt)
-            thrust_w = self.pos_ctrl.velocity_to_thrust(vel_sp, est[:, 7:10])
-            collective, q_sp = thrust_vector_to_setpoints(thrust_w, quat, self.yaw_sp)
-            rate_sp = self.att_ctrl(quat, q_sp)
-        else:
-            raise ValueError(f"unknown control mode {mode}")
-        torque = self.rate_ctrl(rate_sp, gyro_b)
-        return self.mixer.allocate(collective, torque)
+        return self.action_iface(a, quat, est, gyro_b)
 
     def _apply_action(self):
         d = self.robot.data
         quat, pos, vel_w, angvel_b = d.root_quat_w, d.root_pos_w, d.root_lin_vel_w, d.root_ang_vel_b
         # --- sensors (sampled at physics rate, internally held at their own rates) ---
         self.imu_meas = self.imu.step(quat, vel_w, angvel_b)
-        self.odom_meas = self.odom.step(pos - self.scene.env_origins, quat, vel_w, self.imu_meas[:, :3]
+        self.odom_meas = self.odom.step(pos - self.env_origins, quat, vel_w, self.imu_meas[:, :3]
                                         if self.cfg.sensors.odometry.ang_vel_from_imu else angvel_b)
-        self.baro_meas = self.baro.step(pos[:, 2] - self.scene.env_origins[:, 2])
+        self.baro_meas = self.baro.step(pos[:, 2] - self.env_origins[:, 2])
         # --- delayed command & onboard control ---
         a = self.action_delay.push(self.actions)
         gyro = self.imu_meas[:, :3] if self.cfg.control.use_imu_gyro_for_rate_loop else angvel_b
@@ -316,7 +312,7 @@ class QuadrotorEnv(DirectRLEnv):
         heights = None
         if self.model.ground_effect:
             arms_w = qm.quat_rotate(quat[:, None, :].expand(-1, self.model.num_rotors, -1), self.model.lever_arms())
-            heights = pos[:, None, 2] + arms_w[..., 2] - self.scene.env_origins[:, None, 2]
+            heights = pos[:, None, 2] + arms_w[..., 2] - self.env_origins[:, None, 2]
         w = self.model.compute_wrench(lin_vel_b, angvel_b, wind_b, heights)
         push_f_w, push_t_b = self.push.step(self.physics_dt)
         force_b = w.force + qm.quat_rotate_inverse(quat, push_f_w + self.payload_force_w)
@@ -346,14 +342,15 @@ class QuadrotorEnv(DirectRLEnv):
         push_b = qm.quat_rotate_inverse(d.root_quat_w, self.push.force) / (self.params.weight + 1e-6)
         return torch.cat([
             d.root_lin_vel_b, d.root_ang_vel_b, rot[..., :2].reshape(-1, 6),
-            (d.root_pos_w[:, 2:3] - self.scene.env_origins[:, 2:3]),
+            (d.root_pos_w[:, 2:3] - self.env_origins[:, 2:3]),
             omega_n, wind_b, push_b, self.dr_obs,
         ], -1)
 
     def _get_observations(self) -> dict:
         task_obs = self._task_obs()
-        policy = torch.cat([self._state_obs(), task_obs], -1)
-        critic = torch.cat([policy, self._privileged_obs(), self._task_privileged_obs()], -1)
+        policy = torch.cat([self._state_obs(), task_obs, *self.terms.policy_terms()], -1)
+        critic = torch.cat([policy, self._privileged_obs(), self._task_privileged_obs(), *self.terms.critic_terms()],
+                           -1)
         obs = {"policy": torch.nan_to_num(policy), "critic": torch.nan_to_num(critic)}
         if self.vision_enabled:
             if self.common_step_counter % self.cfg.vision.update_period_steps == 0:
@@ -376,7 +373,7 @@ class QuadrotorEnv(DirectRLEnv):
         """Analytic distance-to-image-plane depth (N, H, W) of the onboard camera."""
         v = self.cfg.vision
         p, q = self.camera_pose_w()
-        p = p - self.scene.env_origins
+        p = p - self.env_origins
         n, r = self.num_envs, self._cam_dirs_c.shape[0]
         dirs_w = qm.quat_rotate(q[:, None, :].expand(n, r, 4), self._cam_dirs_c[None].expand(n, r, 3))
         origins = p[:, None, :].expand(n, r, 3)
@@ -405,16 +402,23 @@ class QuadrotorEnv(DirectRLEnv):
     # ======================================================================== rewards/dones
     def _get_rewards(self) -> torch.Tensor:
         terms = self._compute_task_reward()
+        if self.terms.cfg.rewards:
+            terms.update(self.terms.rewards())
         reward = torch.zeros(self.num_envs, device=self.device)
         for k, v in terms.items():
             reward += v
             self.episode_sums.setdefault(k, torch.zeros(self.num_envs, device=self.device))
             self.episode_sums[k] += v
+        if self.terms.has_costs:
+            self.extras["cost"] = self.terms.compute_cost()
+            self.extras["raw_reward"] = reward
+            if self.cfg.safety.lagrangian:
+                reward = self.terms.shape_reward(reward)
         return reward
 
     def _generic_crash(self) -> torch.Tensor:
         d = self.robot.data
-        local = d.root_pos_w - self.scene.env_origins
+        local = d.root_pos_w - self.env_origins
         tilt = torch.acos((1 - 2 * (d.root_quat_w[:, 1] ** 2 + d.root_quat_w[:, 2] ** 2)).clamp(-1, 1))
         crash = (local[:, 2] < self.cfg.min_height) | (local.norm(dim=-1) > self.cfg.max_distance)
         crash |= tilt > self.cfg.max_tilt_terminate
@@ -427,6 +431,10 @@ class QuadrotorEnv(DirectRLEnv):
         self.crashed = self._generic_crash() | self._task_crash()
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         time_out |= self._task_timeout()
+        if self.terms.cfg.terminations:
+            fail, trunc = self.terms.terminations()
+            self.crashed |= fail
+            time_out |= trunc
         return self.crashed, time_out & ~self.crashed
 
     # ======================================================================== reset
@@ -445,10 +453,15 @@ class QuadrotorEnv(DirectRLEnv):
             "episode_length_s": self.episode_length_buf[env_ids].float() * self.step_dt,
         }
         metrics.update(self._task_episode_metrics(env_ids))
+        if self.terms.has_costs:
+            metrics["cost"] = self.terms.episode_cost[env_ids].clone()
         for k, v in metrics.items():
             vals = v[played & torch.isfinite(v)]
             if len(vals) > 0:
                 log[f"Metrics/{k}"] = vals.mean().item()
+            buf = self.last_episode_metrics.setdefault(k, torch.full((self.num_envs,), float("nan"), device=self.device))
+            buf[env_ids[played]] = v[played].float()
+        log.update(self.terms.before_reset(env_ids, played))
         if self.collect_episode_metrics and played.any():
             ids = env_ids[played]
             self.episode_metric_buffer.append({"env_id": ids.cpu(), **{k: v[played].cpu() for k, v in metrics.items()}})
@@ -459,7 +472,7 @@ class QuadrotorEnv(DirectRLEnv):
 
         self._randomize_episode(env_ids)
         pos, quat, lin_vel, ang_vel = self._sample_initial_state(env_ids)
-        root = torch.cat([pos + self.scene.env_origins[env_ids], quat, lin_vel, ang_vel], -1)
+        root = torch.cat([pos + self.env_origins[env_ids], quat, lin_vel, ang_vel], -1)
         self.robot.write_root_state_to_sim(root, env_ids)
         # rotor speeds start at (randomized-model) hover
         self.model.reset(env_ids)
@@ -471,9 +484,8 @@ class QuadrotorEnv(DirectRLEnv):
         self.action_delay.reset(env_ids, self.hover_action.expand(k, -1))
         self.action_delay.set_delay(torch.randint(c.action_delay_steps[0], c.action_delay_steps[1] + 1, (k,),
                                                   device=dev), env_ids)
-        self.rate_ctrl.reset(env_ids, ang_vel)
-        self.pos_ctrl.reset(env_ids)
-        self.yaw_sp[env_ids] = qm.yaw_from_quat(quat)
+        self.fc.reset(env_ids, quat, ang_vel)
+        self.action_iface.reset(env_ids)
         state13 = torch.cat([pos, quat, lin_vel, ang_vel], -1)
         self.imu.reset(env_ids, lin_vel)
         self.odom.reset(env_ids, state13)
@@ -486,6 +498,7 @@ class QuadrotorEnv(DirectRLEnv):
         if self.vision_enabled:
             self.rgb_aug.reset(env_ids)
         self._reset_task(env_ids)
+        self.terms.after_reset(env_ids)
 
     # ======================================================================== task hooks
     def _sample_initial_state(self, env_ids):
@@ -550,13 +563,13 @@ class QuadrotorEnv(DirectRLEnv):
         if out is None:
             return
         pts, ids = out
-        pts = pts + self.scene.env_origins[:, None, :]
+        pts = pts + self.env_origins[:, None, :]
         n, m = pts.shape[:2]
         self._markers.visualize(translations=pts.reshape(-1, 3), marker_indices=ids.repeat(n))
 
     # ---------------------------------------------------------------- helpers for tasks
     def local_pos(self) -> torch.Tensor:
-        return self.robot.data.root_pos_w - self.scene.env_origins
+        return self.robot.data.root_pos_w - self.env_origins
 
     def est_pos(self) -> torch.Tensor:
         return self.odom_meas[:, :3]

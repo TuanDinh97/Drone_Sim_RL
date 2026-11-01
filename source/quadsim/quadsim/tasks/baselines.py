@@ -27,6 +27,8 @@ from quadsim.core.controllers import (
 
 def _targets(env):
     """(pos_d, vel_d, acc_d, yaw_d) from the task (env-local frame)."""
+    if hasattr(env, "baseline_targets"):  # task hook (new tasks implement it instead of extending this function)
+        return env.baseline_targets()
     n, dev = env.num_envs, env.device
     z = torch.zeros(n, 3, device=dev)
     name = type(env).__name__
@@ -154,3 +156,8 @@ class PotentialFieldBaseline:
 
 
 BASELINES = {"cascade": CascadeBaseline, "geometric": GeometricBaseline, "potential_field": PotentialFieldBaseline}
+
+from quadsim.registry import BASELINES as _REGISTRY  # noqa: E402
+
+for _name, _cls in BASELINES.items():
+    _REGISTRY.register(_name, _cls, overwrite=True)

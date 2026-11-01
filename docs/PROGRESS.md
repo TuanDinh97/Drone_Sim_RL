@@ -461,6 +461,77 @@ noise terms (1-ulp differences: the cascade baseline evaluated 89.3 % instead of
 reverted; the final code reproduces both v0 evaluations (PPO and cascade) bit-exactly (all metrics at full precision).
 The session-3 trainings / evaluations ran with the 1-ulp variant (statistically equivalent).
 
+## Research framework (2026-11-01, session 4)
+Goal: turn the platform into a general, configuration-driven drone-RL research framework without rebuilding the
+validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`; curated results:
+`docs/results/framework/*.json` (`scripts/tools/collect_framework_results.py`).
+
+### Audit → milestones and acceptance criteria
+| # | Milestone | Acceptance criterion | Status |
+|---|---|---|---|
+| F1 | Extension core: registries + plugins, YAML / generic-frame vehicles, action interfaces as classes (+ `position`), configurable terms (obs with rate/latency/noise/history, reward, termination, cost, event, curriculum) | all reference evaluations bit-identical after the refactor; unit tests; a vehicle with ≠ 4 rotors trains | ✅ 59/59 metrics bit-identical; hexarotor PPO 99.8 % |
+| F2 | Algorithms + benchmark: one `--algo` CLI, GPU-native SAC/TD3 with asymmetric critic, suites with ID/OOD splits, hardware-aware `num_envs` | SAC competitive with PPO on hover; suite runs end to end and reports the generalization gap | ✅ SAC 99.9 % (TD3 ✗, negative) |
+| F3 | Research tasks: drone racing, multi-agent swap, constrained RL (PPO-Lagrangian) | each trains and is evaluated against a baseline; constraint within budget | ✅ safe RL; racing / swarm see below |
+| F4 | IL / VLA: episode-structured demos (+ instructions), BC / DAgger, language-conditioned task, LeRobot export, VLA adapter | BC from an RL expert matches it; language-conditioned BC grounds instructions; export reloads with LeRobot's loader | ✅ (see below) |
+| F5 | Usability: examples, tutorials, troubleshooting, tests, docs, report | every example executes in the simulator; tests pass | ✅ 124 unit tests; examples 9/10 + VLA (see below) |
+
+### F1 — extension core ✅
+- Audit findings: control modes were `if/else` branches of `QuadrotorEnv._controller`; vehicles were two Python presets
+  (motor control assumed 4 rotors); observations / rewards / terminations / randomizations required subclassing; one
+  algorithm library; no benchmark conditions; no IL data path. Isaac Lab 2.3's `isaaclab_contrib` Multirotor was
+  evaluated and not adopted (Nucleus USD assets unreachable here; first-order thrust lag without rotor drag / ground
+  effect / gyroscopics; articulation per vehicle); `from_isaaclab_multirotor()` converts its configs instead.
+- Regression: `scripts/validation/regression_evals.sh` before/after (hover PPO+cascade 1000 episodes, tracking
+  PPO+cascade+SE(3), waypoint PPO+cascade, range navigation PPO+potential field): **59 metrics, max |diff| = 0**.
+- Generality: `hexa_x` (6 rotors, generated frame, auto inertia) hover PPO **99.8 %, 1.21 cm** vs cascade 96.5 %
+  (1000 episodes); closed-loop position control of `hexa_x` and `racer5` on the reference integrator (unit test,
+  < 5 cm after 6 s); every interface's hover action holds every vehicle (unit test).
+
+### F2 — algorithms and benchmarks ✅ (TD3 negative)
+- SAC (`quadsim.rl.offpolicy`, 1024 envs, 15 k steps, 21 min): **99.9 % success, 1.86 cm** on hover (PPO: 99.9 %,
+  1.38 cm in 8 min); its final yaw error is large (0.51 rad vs 0.08). The earlier skrl SAC reached 0 %. Changes made
+  together (not ablated): reward in per-second units, asymmetric LayerNorm twin critics, 4 updates/step, batch 16 k.
+- TD3 with the same recipe: **0 % success** (0.88 m final error) — negative result; a lower-noise variant is queued.
+- Hover benchmark suite (`docs/results/framework/bench_hover_algos.json`, 1000 episodes per cell, fresh process per
+  controller and condition): success nominal / wind+push / harsh dynamics / sensor noise ×2–3 / latency 20–30 ms:
+  PPO 99.9 / 97.3 / 90.1 / 96.0 / **67.2** %; SAC 99.9 / 96.9 / 87.8 / 98.4 / 82.0 %; BC-distilled 99.9 / 97.4 /
+  88.9 / 97.6 / 83.0 %; cascade 89.8 / 80.4 / 68.7 / 86.7 / 81.1 %. Generalization gap (id − mean ood): PPO 12.3,
+  SAC 8.6, BC 8.2, cascade 10.6 points. PPO's weak spot is latency beyond its training range (0–10 ms).
+  Note: the suite evaluates every controller in a fresh process; the cascade's nominal success is 89.8 % here vs
+  88.7 % when evaluated after the policy in one process (different simulator/RNG state, within the CI).
+
+### F3 — racing, multi-agent, constrained RL
+- Constrained waypoint racing (speed ≤ 2 m/s, budget 0.1 s of over-speed flight per episode, PID Lagrangian,
+  1500 iterations): PPO-Lagrangian **episode cost 0.082 s**, success 87.7 %, 0 % crash, 11.9 s per course;
+  unconstrained PPO: cost **5.31 s**, success 99.4 %, 6.6 s; cascade: 6.48 s, 92.8 %. λ settled at ≈ 19.
+- Racing and multi-agent: see the results added below when the queued trainings finish.
+
+### F4 — imitation learning and VLA ✅
+- RL → BC distillation (hover, 1021 successful PPO episodes, 407 k transitions): BC **99.9 %, 1.44 cm** (teacher
+  99.9 %, 1.38 cm); identical with or without the last-action input.
+- Language-conditioned navigation (`Quadsim-LangNav-v0`, symbolic landmark map + instruction tokens; privileged
+  scripted expert 100 %; 2000 expert episodes):
+  | policy | train phrasing | held-out phrasing |
+  |---|---|---|
+  | BC with last action in the input | 15.8 % (83 % flew into the target: copycat) | — |
+  | BC without the instruction tokens | 12.2 % (≈ chance of picking the pillar) | 12.2 % |
+  | BC without last action | 81.0 % (0 % wrong pillar) | 34.4 % |
+  | + out-of-vocabulary words ignored by the encoder | 81.0 % | 65.3 % |
+  | + DAgger round 1 / 2 (1000 learner episodes each, expert labels) | **100 % / 100 %** | 54.5 % / 59.7 % |
+- Defects found while building the expert (its success rose from 72 % — generic cascade, first sampler — to 100 %
+  with a dedicated expert and the fixes): (i) LangNav landmark rejection sampling silently returned overlapping
+  pillars when the constraints were infeasible (`argmax` of an all-false mask) → guaranteed-spacing bearing sampler
+  (collisions with distractor pillars 5 % → 0 %); (ii) success / wrong pillar decided on instantaneous speed (slowing
+  near a distractor counted as a choice) → 0.2 s dwell condition;
+  (iii) demo collection stopped at a global episode count, which drops the long episodes still running → per-env quota
+  (measured bias on the existing dataset: mean length 145.2 vs 145.9 steps, negligible; fixed anyway).
+- LeRobot v3.0 export (lerobot 0.4.4 in `third_party/lerobot-venv`, reloaded with `LeRobotDataset`): 200 episodes,
+  26 722 frames, state/action max error 0, all 32 instruction strings preserved → `pass`.
+
+### F5 — usability ✅
+- `examples/` (custom vehicle YAML + plugin, GNSS sensor term, landing task, reward + curriculum, acceleration
+  interface, ARS algorithm, VLA adapter) executed by `scripts/validation/examples_check.py`; 124 CPU unit tests.
+
 ## Upstream issue found and patched (affects GUI / video)
 - Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the
   property → PhysX transform query before GPU buffers exist when a viewport renders → every RigidObject fails

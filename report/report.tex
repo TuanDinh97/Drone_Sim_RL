@@ -21,7 +21,7 @@
 \newcommand{\pend}{\textcolor{orange!80!black}{\textbf{partial}}}
 \newcommand{\no}{\textcolor{red!70!black}{\textbf{not done}}}
 
-\title{\textbf{quadsim}: A Validated Quadrotor Sim-to-Real Reinforcement-Learning Platform on NVIDIA Isaac Lab\\[4pt]
+\title{\textbf{quadsim}: A Modular, Validated Drone Reinforcement-Learning Research Framework on NVIDIA Isaac Lab\\[4pt]
 \large Technical Report}
 \author{Drone\_Sim\_RL project}
 \date{November 2026}
@@ -52,9 +52,17 @@ limit cycle caused by the thrust-map nonlinearity (removed by an exact thrust-cu
 estimate error, an allocation-geometry asymmetry of the rate loop, and a velocity-loop mismatch that limits the
 velocity-interface navigation policy (2/6 vs 87\,\% success; 4/6 after matching PX4's velocity loop). A first
 SITL-informed training distribution made the heave mode worse (negative result); a corrected one (3 seeds) removed the
-limit cycle in all 9 SITL flights at the cost of vertical damping and out-of-distribution robustness. We report what is
-verified and, explicitly, what is not (no hardware flight yet), and give a prioritized roadmap toward real-world
-deployment.
+limit cycle in all 9 SITL flights at the cost of vertical damping and out-of-distribution robustness. Building on this validated core, quadsim was turned into a general research framework
+(\cref{sec:framework}): registries and plug-ins for vehicles (YAML files, any rotor count), control interfaces
+(motor-level to position control), algorithms and benchmarks; configuration terms for sensors (rate, latency,
+history), rewards, terminations, costs, randomization events and curricula; GPU-native SAC/TD3 with asymmetric
+critics; PPO-Lagrangian constrained RL; parameter-shared multi-agent training with a centralized critic; drone racing
+and language-conditioned navigation tasks; and an imitation-learning / vision-language-action data path (HDF5
+demonstrations, behaviour cloning, DAgger, LeRobot~v3.0 export, VLA adapters). A regression check shows the refactored
+core reproduces 59 reference metrics bit-exactly; the new SAC matches PPO on hover (99.9\,\%) where the earlier SAC
+failed; the Lagrangian keeps a speed constraint within its budget; and language-conditioned behaviour cloning reaches
+the expert's 100\,\% after two DAgger rounds, but only $\sim$60\,\% for unseen phrasings. We report what is verified
+and, explicitly, what is not (no hardware flight yet), and give a prioritized roadmap.
 \end{abstract}
 
 \tableofcontents
@@ -524,6 +532,8 @@ camera, target/reference markers) and headless MP4 recording of trained policies
 %==========================================================================================
 \input{sitl}
 
+\input{framework}
+
 %==========================================================================================
 \section{Limitations}
 The following limitations are explicit; none of them is hidden by the results above.
@@ -549,6 +559,12 @@ procedural scenes lack the texture/lighting diversity needed for transferable RG
 (\cref{sec:v1}); the other tasks use a single seed (compute budget of an 8\,GB consumer GPU), so their confidence
 intervals quantify evaluation noise, not seed-to-seed variability. Classical baselines use
 reasonable default gains, not systematically tuned gains, so the reported margins are upper bounds of the RL advantage.
+\item \textbf{Framework scope.} The racing, multi-agent, safe-RL, landing and language tasks are trained with one seed;
+presets other than the X500 and the Crazyflie (5-inch racer, hexarotor) are engineering approximations. The language
+encoder is a small bag-of-words model trained from eight instruction templates; no pretrained VLM/VLA was run (the
+adapter interface and the LeRobot export are validated, external models are not). TD3 with the SAC recipe did not
+learn hover. Autonomous exploration and explicit adaptive-control tasks are not implemented (observation histories are
+available as terms). The Lagrangian is the reward-penalty form without a cost critic.
 \item \textbf{Platform issues.} Isaac Lab v2.3.2 fails to initialize rigid bodies when a viewport is rendered
 (GUI, video); quadsim applies a version-gated runtime patch (\cref{sec:patch}). Interactive GUI and 4096-environment
 training do not fit simultaneously in 8\,GB VRAM. The first launch with rendering enabled crashed once in the shader
@@ -573,8 +589,10 @@ sim/real comparison.
 \item \textbf{Depth-based navigation transfer}: record real depth frames, extend the depth noise model or add
 image-space randomization, distill the state/range teacher into the depth student (DAgger) to reduce sample cost,
 then test in a real obstacle course.
-\item \textbf{Platform}: multi-seed training and hyper-parameter sweeps, teacher--student distillation, recurrent
-policies for implicit system identification, migration to Isaac Lab 3.x once stable.
+\item \textbf{Framework}: multi-seed results for the new tasks and algorithms; a cost critic for constrained RL;
+pretrained text/vision encoders and fine-tuning of an open VLA on the exported LeRobot data; texture and lighting
+randomization for RGB policies; exploration and adaptive-control benchmark tasks; recurrent policies for implicit
+system identification; migration to Isaac Lab 3.x once stable.
 \end{enumerate}
 
 \section{Reproducibility}
@@ -585,6 +603,11 @@ native installation with \texttt{scripts/setup\_env.sh}; container \texttt{docke
 official image \path{nvcr.io/nvidia/isaac-lab:2.3.2}.
 \item Every training run stores the exact environment and agent configuration (YAML), command line, git commit and
 diff summary next to its checkpoints; evaluation JSONs store seeds and overrides.
+\item Framework checks: \texttt{scripts/validation/regression\_evals.sh} + \texttt{compare\_evals.py} (bit-exact
+reference metrics after core changes), \texttt{scripts/validation/examples\_check.py} (every extension example in the
+simulator), \texttt{scripts/benchmark/run.py} (suites), \texttt{scripts/tools/collect\_framework\_results.py}
+(curated results in \texttt{docs/results/framework}); LeRobot exports are verified by
+\texttt{scripts/il/export\_lerobot.py} in the optional \texttt{third\_party/lerobot-venv}.
 \item Validation: \texttt{pytest tests/core} (unit tests), \texttt{scripts/validation/m\{1,2,3,6\}\_*.py} (milestone
 acceptance tests), \texttt{scripts/rl/evaluate.py} (policy evaluation); tables in this report are generated from
 \texttt{docs/results/*.json} by \texttt{scripts/tools/report\_tables.py}.
@@ -595,7 +618,7 @@ the metric scripts \texttt{compare.py}, \texttt{compare\_tasks.py}, \texttt{esti
 recordings (ROS-side \texttt{.npz}, bridge step logs, PX4 \texttt{.ulg}) are kept in \texttt{logs/sitl/}.
 \end{itemize}
 
-\begin{thebibliography}{9}\small
+\begin{thebibliography}{99}\small
 \bibitem{kaufmann2023champion} E.~Kaufmann, L.~Bauersfeld, A.~Loquercio, M.~M\"uller, V.~Koltun, D.~Scaramuzza.
 Champion-level drone racing using deep reinforcement learning. \emph{Nature} 620, 2023.
 \bibitem{eschmann2024learning} J.~Eschmann, D.~Albani, G.~Loianno. Learning to fly in seconds. \emph{IEEE RA-L}, 2024.
@@ -611,6 +634,27 @@ control. \emph{IEEE RA-L}, 2024.
 image-based robot learning. \emph{RSS}, 2018.
 \bibitem{schulman2017ppo} J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, O.~Klimov. Proximal policy optimization
 algorithms. arXiv:1707.06347, 2017.
+\bibitem{haarnoja2018sac} T.~Haarnoja, A.~Zhou, P.~Abbeel, S.~Levine. Soft actor-critic: off-policy maximum entropy deep
+reinforcement learning with a stochastic actor. \emph{ICML}, 2018.
+\bibitem{fujimoto2018td3} S.~Fujimoto, H.~van~Hoof, D.~Meger. Addressing function approximation error in actor-critic
+methods. \emph{ICML}, 2018.
+\bibitem{seo2025fasttd3} Y.~Seo, C.~Sferrazza, H.~Geng, M.~Nauman, Z.-H.~Yin, P.~Abbeel. FastTD3: simple, fast, and capable
+reinforcement learning for humanoid control. arXiv, 2025.
+\bibitem{stooke2020pid} A.~Stooke, J.~Achiam, P.~Abbeel. Responsive safety in reinforcement learning by PID Lagrangian
+methods. \emph{ICML}, 2020.
+\bibitem{yu2022mappo} C.~Yu, A.~Velu, E.~Vinitsky, J.~Gao, Y.~Wang, A.~Bayen, Y.~Wu. The surprising effectiveness of PPO in
+cooperative multi-agent games. \emph{NeurIPS Datasets and Benchmarks}, 2022.
+\bibitem{song2021racing} Y.~Song, M.~Steinweg, E.~Kaufmann, D.~Scaramuzza. Autonomous drone racing with deep
+reinforcement learning. \emph{IROS}, 2021.
+\bibitem{ross2011dagger} S.~Ross, G.~Gordon, D.~Bagnell. A reduction of imitation learning and structured prediction to
+no-regret online learning. \emph{AISTATS}, 2011.
+\bibitem{dehaan2019causal} P.~de~Haan, D.~Jayaraman, S.~Levine. Causal confusion in imitation learning. \emph{NeurIPS}, 2019.
+\bibitem{perez2018film} E.~Perez, F.~Strub, H.~de~Vries, V.~Dumoulin, A.~Courville. FiLM: visual reasoning with a general
+conditioning layer. \emph{AAAI}, 2018.
+\bibitem{mania2018ars} H.~Mania, A.~Guy, B.~Recht. Simple random search of static linear policies is competitive for
+reinforcement learning. \emph{NeurIPS}, 2018.
+\bibitem{cadene2024lerobot} R.~Cadene et~al. LeRobot: state-of-the-art machine learning for real-world robotics in PyTorch.
+Software, \url{https://github.com/huggingface/lerobot}, 2024.
 \bibitem{foerster2015} J.~F\"orster. System identification of the Crazyflie 2.0 nano quadrocopter. BSc thesis, ETH Zurich, 2015.
 \end{thebibliography}
 \end{document}

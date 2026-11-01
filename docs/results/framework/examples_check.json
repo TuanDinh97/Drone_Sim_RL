@@ -1,0 +1,93 @@
+{
+  "vehicle_yaml_hexa": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers cascade --episodes 100 --num_envs 100 --out_dir logs/validation/examples --tag excheck_vehicle_yaml_hexa env.dynamics.preset=examples/vehicles/hexa_550.yaml",
+    "wall_s": 15.586241483688354,
+    "pass": true,
+    "metrics": {
+      "crash": 0.0,
+      "time_out": 1.0,
+      "episode_length_s": 7.980000019073486,
+      "final_pos_err": 0.04213389680255204,
+      "final_yaw_err": 0.013244800567626953,
+      "success": 0.96
+    }
+  },
+  "vehicle_yaml_inherit": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers cascade --episodes 100 --num_envs 100 --out_dir logs/validation/examples --tag excheck_vehicle_yaml_inherit env.dynamics.preset=examples/vehicles/x500_heavy.yaml",
+    "wall_s": 15.788671970367432,
+    "pass": true,
+    "metrics": {
+      "crash": 0.02,
+      "time_out": 0.98,
+      "episode_length_s": 7.847400018572808,
+      "final_pos_err": 0.17601866262499244,
+      "final_yaw_err": 0.14064343571662902,
+      "success": 0.61
+    }
+  },
+  "vehicle_plugin_quad250": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers cascade --episodes 100 --num_envs 100 --out_dir logs/validation/examples --tag excheck_vehicle_plugin_quad250 env.dynamics.preset=quad_250 --plugins examples/custom_vehicle.py",
+    "wall_s": 15.63735580444336,
+    "pass": true,
+    "metrics": {
+      "crash": 0.01,
+      "time_out": 0.99,
+      "episode_length_s": 7.925800018310547,
+      "final_pos_err": 0.12393665176816285,
+      "final_yaw_err": 0.009631390571594239,
+      "success": 0.63
+    }
+  },
+  "sensor_gnss": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/train.py --headless --task Quadsim-Example-Hover-GNSS-v0 --plugins examples/custom_sensor.py --num_envs 256 --max_iterations 5 --run_name excheck_sensor_gnss",
+    "wall_s": 13.085623741149902,
+    "run_dir": "logs/rsl_rl/quadsim_hover/2026-11-01_13-24-50_excheck_sensor_gnss",
+    "checkpoints": 2,
+    "pass": true
+  },
+  "task_landing": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/train.py --headless --task Quadsim-Example-Land-v0 --plugins examples/custom_task.py --num_envs 256 --max_iterations 5 --run_name excheck_task_landing",
+    "wall_s": 12.585277557373047,
+    "run_dir": "logs/rsl_rl/quadsim_example_land/2026-11-01_13-25-03_excheck_task_landing",
+    "checkpoints": 2,
+    "pass": true
+  },
+  "task_landing_baseline": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/evaluate.py --headless --task Quadsim-Example-Land-v0 --controllers cascade --episodes 100 --num_envs 100 --out_dir logs/validation/examples --tag excheck_task_landing_baseline --plugins examples/custom_task.py",
+    "wall_s": 10.17890977859497,
+    "pass": true,
+    "metrics": {
+      "crash": 1.0,
+      "time_out": 0.0,
+      "episode_length_s": 1.4213725158981247,
+      "success": 0.0,
+      "touchdown_speed": 1.9293457187858283
+    }
+  },
+  "reward_curriculum": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/train.py --headless --task Quadsim-Example-Hover-Curriculum-v0 --plugins examples/custom_reward_curriculum.py --num_envs 256 --max_iterations 5 --run_name excheck_reward_curriculum",
+    "wall_s": 13.183733224868774,
+    "run_dir": "logs/rsl_rl/quadsim_hover/2026-11-01_13-25-26_excheck_reward_curriculum",
+    "checkpoints": 2,
+    "pass": true
+  },
+  "action_interface_accel": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/train.py --headless --task Quadsim-Hover-v0 --plugins examples/custom_action_interface.py --num_envs 256 --max_iterations 5 --run_name excheck_action_interface_accel env.control.mode=acceleration",
+    "wall_s": 13.436410903930664,
+    "run_dir": "logs/rsl_rl/quadsim_hover/2026-11-01_13-25-39_excheck_action_interface_accel",
+    "checkpoints": 2,
+    "pass": true
+  },
+  "algorithm_ars": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/train.py --headless --task Quadsim-Hover-v0 --plugins examples/custom_algorithm.py --num_envs 256 --max_iterations 3 --run_name excheck_algorithm_ars agent.rollout_steps=50 agent.envs_per_direction=8 --algo ars",
+    "wall_s": 11.682023048400879,
+    "run_dir": "logs/ars/quadsim_hover/2026-11-01_13-25-53_excheck_algorithm_ars",
+    "checkpoints": 1,
+    "pass": true
+  },
+  "vla_adapter_color_servo": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/evaluate.py --headless --task Quadsim-LangNav-RGB-v0 --controllers policy --episodes 100 --num_envs 64 --out_dir logs/validation/examples --tag excheck_vla_adapter_color_servo --enable_cameras --algo vla --checkpoint examples/vla_color_servo.py:make_adapter",
+    "wall_s": 627.881760597229,
+    "pass": false
+  }
+}

@@ -1,0 +1,68 @@
+\begin{table}[!htbp]\centering\small\caption{Hover benchmark suite: success per condition (1000 episodes each, same seed, fresh process per controller and condition) and generalization gap id$-$mean(ood) in points. Source: \texttt{docs/results/framework/bench\_hover\_algos.json}.}\label{tab:fw_algos}
+\resizebox{\linewidth}{!}{\begin{tabular}{lcccccc}\toprule
+Controller & nominal (id) & wind\_push & harsh\_dynamics & sensor\_noise & latency & gap\\\midrule
+ppo & 99.9\,\% & 97.3\,\% & 90.1\,\% & 96.0\,\% & 67.2\,\% & +12.3\\
+sac & 99.9\,\% & 96.9\,\% & 87.8\,\% & 98.4\,\% & 82.0\,\% & +8.6\\
+bc\_distilled & 99.9\,\% & 97.4\,\% & 88.9\,\% & 97.6\,\% & 83.0\,\% & +8.2\\
+cascade & 89.8\,\% & 80.4\,\% & 68.7\,\% & 86.7\,\% & 81.1\,\% & +10.6\\
+\bottomrule\end{tabular}}
+\end{table}
+
+\begin{table}[!htbp]\centering\small\caption{Learning algorithms on hover (nominal condition, 1000 episodes). Position error in cm, yaw error in rad. Source: \texttt{offpolicy\_hover.json}.}\label{tab:fw_offpolicy}
+\resizebox{\linewidth}{!}{\begin{tabular}{lcccc}\toprule
+Algorithm & Success & Pos. err [cm] & Yaw err [rad] & Train [min]\\\midrule
+PPO (rsl\_rl), 4096 envs, 600 it. & 99.9\,\% & 1.38\,$\pm$\,0.26 & 0.08\,$\pm$\,0.00 & 8\\
+SAC (quadsim), 1024 envs, 15k steps & 99.9\,\% & 1.86\,$\pm$\,0.37 & 0.51\,$\pm$\,0.01 & 21\\
+TD3 (quadsim), 1024 envs, 15k steps & 0.0\,\% & 88.37\,$\pm$\,1.94 & 0.62\,$\pm$\,0.02 & 19\\
+\bottomrule\end{tabular}}
+\end{table}
+
+\begin{table}[!htbp]\centering\small\caption{New vehicles, control interfaces and tasks defined through the extension points (1000 episodes; position error in cm). Source: \texttt{vehicles\_interfaces.json}.}\label{tab:fw_vehicles}
+\resizebox{\linewidth}{!}{\begin{tabular}{lccc}\toprule
+Configuration & Success & Pos. err [cm] & Crash\\\midrule
+hexa\_x (6 rotors, generated frame), CTBR, PPO & 99.8\,\% & 1.21\,$\pm$\,0.03 & 0.0\,\%\\
+hexa\_x, cascade baseline & 96.5\,\% & 4.40\,$\pm$\,0.50 & 0.3\,\%\\
+\bottomrule\end{tabular}}
+\end{table}
+
+\begin{table}[!htbp]\centering\small\caption{Constrained waypoint racing: speed $\le$\,\SI{2}{m/s}, budget \SI{0.1}{s} of over-speed flight per episode (500 episodes). Source: \texttt{safe\_rl.json}.}\label{tab:fw_safe}
+\resizebox{\linewidth}{!}{\begin{tabular}{lcccc}\toprule
+Policy & Success & Episode cost [s] & Time [s] & Crash\\\midrule
+PPO (unconstrained) & 99.4\,\% & 5.309\,$\pm$\,0.075 & 6.58\,$\pm$\,0.10 & 0.6\,\%\\
+cascade & 92.8\,\% & 6.476\,$\pm$\,0.127 & 10.40\,$\pm$\,0.16 & 2.2\,\%\\
+PPO-Lagrangian (PID multiplier) & 87.7\,\% & 0.082\,$\pm$\,0.017 & 11.86\,$\pm$\,0.15 & 0.0\,\%\\
+\bottomrule\end{tabular}}
+\end{table}
+
+\begin{table}[!htbp]\centering\small\caption{Imitation learning. Hover: RL-to-BC distillation (last column: final position error [cm]). LangNav: success with training / held-out instruction phrasings and wrong-landmark rate (training phrasing). Source: \texttt{imitation.json}.}\label{tab:fw_il}
+\resizebox{\linewidth}{!}{\begin{tabular}{llccc}\toprule
+Task & Policy & Success (train phr.) & Success (held-out) & Wrong / pos. err\\\midrule
+hover & PPO teacher & 99.9\,\% & -- & 1.38\,$\pm$\,0.26\\
+hover & BC student & 99.9\,\% & -- & 1.44\,$\pm$\,0.38\\
+hover & BC student, no last action & 99.9\,\% & -- & 1.40\,$\pm$\,0.21\\
+langnav (map) & scripted expert (privileged) & -- & 100.0\,\% & --\\
+langnav (map) & BC (with last action) & 15.8\,\% & 20.4\,\% & 0.0\,\%\\
+langnav (map) & BC, instruction removed & 12.2\,\% & 12.2\,\% & 10.4\,\%\\
+langnav (map) & BC, no last action & 81.0\,\% & 34.4\,\% & 0.0\,\%\\
+langnav (map) & + unknown words ignored & 81.0\,\% & 65.3\,\% & 0.0\,\%\\
+langnav (map) & + DAgger round 1 & 100.0\,\% & 54.5\,\% & 0.0\,\%\\
+langnav (map) & + DAgger round 2 & 100.0\,\% & 59.7\,\% & 0.0\,\%\\
+\bottomrule\end{tabular}}
+\end{table}
+
+\begin{table}[!htbp]\centering\small\caption{Extension examples executed in the simulator (\texttt{scripts/validation/examples\_check.py}); success of the classical baseline where the check is an evaluation.}\label{tab:fw_examples}
+\resizebox{\linewidth}{!}{\begin{tabular}{lcc}\toprule
+Example & Result & Baseline success\\\midrule
+vehicle\_yaml\_hexa & pass & 96\,\%\\
+vehicle\_yaml\_inherit & pass & 61\,\%\\
+vehicle\_plugin\_quad250 & pass & 63\,\%\\
+sensor\_gnss & pass & --\\
+task\_landing & pass & --\\
+task\_landing\_baseline & pass & 0\,\%\\
+reward\_curriculum & pass & --\\
+action\_interface\_accel & pass & --\\
+algorithm\_ars & pass & --\\
+vla\_adapter\_color\_servo & FAIL & --\\
+\bottomrule\end{tabular}}
+\end{table}
+

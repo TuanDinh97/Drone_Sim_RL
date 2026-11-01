@@ -11,9 +11,14 @@ from quadsim.isaac.patches import apply_isaaclab_patches
 
 apply_isaaclab_patches()
 
+from . import mdp
 from .base import QuadrotorEnv, QuadrotorEnvCfg
+from .base.terms import CostTermCfg, ObsTermCfg, RewardTermCfg
 from .hover.hover_env import HoverEnv, HoverEnvCfg
 from .navigation.nav_env import NavEnv, NavEnvCfg
+from .langnav.langnav_env import LangNavEnv, LangNavEnvCfg, LangNavExpert
+from .racing.race_env import RaceEnv, RaceEnvCfg
+from .swarm.swarm_env import SwarmEnv, SwarmEnvCfg, SwarmPotentialBaseline
 from .tracking.tracking_env import TrackingEnv, TrackingEnvCfg
 from .waypoint.waypoint_env import WaypointEnv, WaypointEnvCfg
 
@@ -109,6 +114,107 @@ class NavRgbdEnvCfg(NavDepthRenderEnvCfg):
         self.vision.mode = "rgbd"
 
 
+@configclass
+class WaypointSpeedCostEnvCfg(WaypointEnvCfg):
+    """Waypoint racing with a speed constraint |v| <= speed_limit, logged as a cost (no constraint enforcement):
+    used to measure the constraint violation of unconstrained policies."""
+
+    speed_limit: float = 2.0
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.terms.costs["overspeed"] = CostTermCfg(func=mdp.speed_violation, params={"limit": self.speed_limit})
+
+
+@configclass
+class WaypointSafeEnvCfg(WaypointSpeedCostEnvCfg):
+    """Constrained RL: PPO-Lagrangian (PID multiplier) keeps the expected over-speed time below ``cost_limit``."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.safety.lagrangian = True
+        self.safety.cost_limit = 0.1  # s of over-speed flight per episode
+        self.safety.ki = 0.05
+        self.safety.kp = 0.5
+
+
+@configclass
+class HoverSensorsEnvCfg(HoverEnvCfg):
+    """Configuration-only task extension: extra deployable sensors (downward rangefinder at 25 Hz with 20 ms latency,
+    barometer) and an energy-efficiency reward term, without touching the hover task's code."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.terms.observations["range_down"] = ObsTermCfg(
+            func=mdp.rangefinder_down, params={"max_range": 8.0}, noise_std=0.02, period_steps=2, delay_steps=1)
+        self.terms.observations["baro"] = ObsTermCfg(func=mdp.baro_altitude, noise_std=0.0)
+        self.terms.rewards["power"] = RewardTermCfg(func=mdp.rotor_power, weight=-0.05)
+
+
+@configclass
+class HoverHexaEnvCfg(HoverEnvCfg):
+    """Hover with a 6-rotor vehicle (generic X-hexarotor preset)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.dynamics.preset = "hexa_x"
+
+
+@configclass
+class HoverHexaMotorEnvCfg(HoverHexaEnvCfg):
+    """Hexarotor with direct per-rotor thrust commands (6-D action)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.control.mode = "motor"
+
+
+@configclass
+class RaceEllipseEnvCfg(RaceEnvCfg):
+    """Fixed elliptic reference circuit (evaluation of policies trained on random circuits)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.track = "ellipse"
+
+
+@configclass
+class RaceFigure8EnvCfg(RaceEnvCfg):
+    """Fixed figure-8 circuit with a crossing (unseen layout family for random-circuit policies)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.track = "figure8"
+        self.num_gates = 8
+
+
+@configclass
+class LangNavHeldoutEnvCfg(LangNavEnvCfg):
+    """Held-out instruction phrasings (generalization of the language grounding)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.template_split = "heldout"
+
+
+@configclass
+class LangNavRgbEnvCfg(LangNavEnvCfg):
+    """Vision-language variant: RGB camera + instruction, no landmark map (colours must be grounded in pixels)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.symbolic = False
+        self.vision.mode = "rgb"
+        self.scene.num_envs = 128
+
+
+@configclass
+class LangNavRgbHeldoutEnvCfg(LangNavRgbEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.template_split = "heldout"
+
+
 _TASKS = {
     "Quadsim-Hover-v0": (HoverEnv, HoverEnvCfg, "HoverPPORunnerCfg"),
     "Quadsim-Hover-Motor-v0": (HoverEnv, HoverMotorEnvCfg, "HoverPPORunnerCfg"),
@@ -123,7 +229,27 @@ _TASKS = {
     "Quadsim-Nav-Depth-Render-v0": (NavEnv, NavDepthRenderEnvCfg, "NavVisionPPORunnerCfg"),
     "Quadsim-Nav-RGB-v0": (NavEnv, NavRgbEnvCfg, "NavVisionPPORunnerCfg"),
     "Quadsim-Nav-RGBD-v0": (NavEnv, NavRgbdEnvCfg, "NavVisionPPORunnerCfg"),
+    "Quadsim-Waypoint-SpeedCost-v0": (WaypointEnv, WaypointSpeedCostEnvCfg, "WaypointPPORunnerCfg"),
+    "Quadsim-Waypoint-Safe-v0": (WaypointEnv, WaypointSafeEnvCfg, "WaypointSafePPORunnerCfg"),
+    "Quadsim-Hover-Sensors-v0": (HoverEnv, HoverSensorsEnvCfg, "HoverPPORunnerCfg"),
+    "Quadsim-Hover-Hexa-v0": (HoverEnv, HoverHexaEnvCfg, "HoverHexaPPORunnerCfg"),
+    "Quadsim-Hover-Hexa-Motor-v0": (HoverEnv, HoverHexaMotorEnvCfg, "HoverHexaPPORunnerCfg"),
+    "Quadsim-Race-v0": (RaceEnv, RaceEnvCfg, "RacePPORunnerCfg"),
+    "Quadsim-Race-Ellipse-v0": (RaceEnv, RaceEllipseEnvCfg, "RacePPORunnerCfg"),
+    "Quadsim-Race-Figure8-v0": (RaceEnv, RaceFigure8EnvCfg, "RacePPORunnerCfg"),
+    "Quadsim-Swarm-v0": (SwarmEnv, SwarmEnvCfg, "SwarmPPORunnerCfg"),
+    "Quadsim-LangNav-v0": (LangNavEnv, LangNavEnvCfg, "LangNavPPORunnerCfg"),
+    "Quadsim-LangNav-Heldout-v0": (LangNavEnv, LangNavHeldoutEnvCfg, "LangNavPPORunnerCfg"),
+    "Quadsim-LangNav-RGB-v0": (LangNavEnv, LangNavRgbEnvCfg, "LangNavPPORunnerCfg"),
+    "Quadsim-LangNav-RGB-Heldout-v0": (LangNavEnv, LangNavRgbHeldoutEnvCfg, "LangNavPPORunnerCfg"),
 }
+
+from quadsim.registry import BASELINES as _BASELINES  # noqa: E402
+
+from . import baselines as _baselines  # noqa: E402,F401  (registers cascade / geometric / potential_field)
+
+_BASELINES.register("swarm_potential", SwarmPotentialBaseline, overwrite=True)
+_BASELINES.register("langnav_expert", LangNavExpert, overwrite=True)
 
 for _name, (_env, _cfg, _agent) in _TASKS.items():
     gym.register(

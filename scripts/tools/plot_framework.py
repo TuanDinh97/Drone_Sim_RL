@@ -16,7 +16,7 @@ SURF, INK, MUTED, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 SERIES = [("ppo", "PPO", "#2a78d6", "o"), ("sac", "SAC", "#eb6834", "s"),
           ("bc_distilled", "BC (distilled from PPO)", "#1baf7a", "^"), ("cascade", "cascade PID", "#eda100", "D")]
 NAMES = {"nominal": "nominal\n(training dist.)", "wind_push": "wind + pushes", "harsh_dynamics": "harsh dynamics",
-         "sensor_noise": "sensor noise x2-3", "latency": "latency 20-30 ms"}
+         "sensor_noise": "sensor noise x2-3", "latency": "latency\n(command 20-30 ms)"}
 
 
 def main():

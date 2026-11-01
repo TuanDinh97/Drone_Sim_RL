@@ -1,0 +1,6044 @@
+{
+ "note": "old = published value (evaluator stopped at a global episode count); new = per-environment episode quota and the review fixes (hover reset frame, cascade integrator reset, race track resampling, LangNav success/collision exclusivity, rendered-camera re-render). The regression section separates the evaluator's effect from the code fixes on the reference set.",
+ "files": 155,
+ "passed": 155,
+ "success_abs_change_points": {
+  "n": 161,
+  "max": 29.6875,
+  "median": 0.4,
+  "over_2_points": 37
+ },
+ "largest_changes": [
+  {
+   "file": "logs/eval/Quadsim-Track-v0_nominal.json",
+   "controller": "geometric",
+   "metric": "crash",
+   "old": 0.532,
+   "new": 0.032,
+   "diff": -0.5
+  },
+  {
+   "file": "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_cascade__wind.json",
+   "controller": "cascade",
+   "metric": "success",
+   "old": 0.0,
+   "new": 0.296875,
+   "diff": 0.296875
+  },
+  {
+   "file": "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc_nolast.json",
+   "controller": "policy",
+   "metric": "success",
+   "old": 0.344,
+   "new": 0.582,
+   "diff": 0.238
+  },
+  {
+   "file": "logs/benchmark_suites/race/seeds/Quadsim-Race-Figure8-v0_ppo_v1_s1__figure8.json",
+   "controller": "policy",
+   "metric": "success",
+   "old": 0.4311377245508982,
+   "new": 0.666,
+   "diff": 0.23486227544910182
+  },
+  {
+   "file": "logs/benchmark_suites/race/seeds/Quadsim-Race-Figure8-v0_ppo_v1_s1__figure8.json",
+   "controller": "policy",
+   "metric": "crash",
+   "old": 0.5688622754491018,
+   "new": 0.334,
+   "diff": -0.23486227544910182
+  },
+  {
+   "file": "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc.json",
+   "controller": "policy",
+   "metric": "success",
+   "old": 0.204,
+   "new": 0.41,
+   "diff": 0.206
+  },
+  {
+   "file": "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc.json",
+   "controller": "policy",
+   "metric": "crash",
+   "old": 0.542,
+   "new": 0.346,
+   "diff": -0.19600000000000006
+  },
+  {
+   "file": "logs/benchmark_suites/race/final/Quadsim-Race-Figure8-v0_ppo_v1__figure8.json",
+   "controller": "policy",
+   "metric": "success",
+   "old": 0.5429141716566867,
+   "new": 0.738,
+   "diff": 0.19508582834331334
+  },
+  {
+   "file": "logs/benchmark_suites/race/final/Quadsim-Race-Figure8-v0_ppo_v1__figure8.json",
+   "controller": "policy",
+   "metric": "crash",
+   "old": 0.45708582834331335,
+   "new": 0.262,
+   "diff": -0.19508582834331334
+  },
+  {
+   "file": "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_cascade__wind.json",
+   "controller": "cascade",
+   "metric": "crash",
+   "old": 0.552,
+   "new": 0.369140625,
+   "diff": -0.18285937500000005
+  },
+  {
+   "file": "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_cascade__swap4.json",
+   "controller": "cascade",
+   "metric": "success",
+   "old": 0.18253968253968253,
+   "new": 0.359375,
+   "diff": 0.17683531746031747
+  },
+  {
+   "file": "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_cascade__latency.json",
+   "controller": "cascade",
+   "metric": "success",
+   "old": 0.1937984496124031,
+   "new": 0.359375,
+   "diff": 0.1655765503875969
+  },
+  {
+   "file": "logs/benchmark_suites/race/final/Quadsim-Race-v0_cascade__random_tracks.json",
+   "controller": "cascade",
+   "metric": "crash",
+   "old": 0.4,
+   "new": 0.252,
+   "diff": -0.14800000000000002
+  },
+  {
+   "file": "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc_nolast.json",
+   "controller": "policy",
+   "metric": "crash",
+   "old": 0.272,
+   "new": 0.124,
+   "diff": -0.14800000000000002
+  },
+  {
+   "file": "logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json",
+   "controller": "cascade",
+   "metric": "success",
+   "old": 0.5204386839481555,
+   "new": 0.641,
+   "diff": 0.1205613160518445
+  },
+  {
+   "file": "logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json",
+   "controller": "cascade",
+   "metric": "crash",
+   "old": 0.4795613160518445,
+   "new": 0.359,
+   "diff": -0.1205613160518445
+  },
+  {
+   "file": "logs/eval/vehicles/Quadsim-Example-Land-v0_land_v2_s42.json",
+   "controller": "cascade",
+   "metric": "success",
+   "old": 0.5204386839481555,
+   "new": 0.641,
+   "diff": 0.1205613160518445
+  },
+  {
+   "file": "logs/eval/vehicles/Quadsim-Example-Land-v0_land_v2_s42.json",
+   "controller": "cascade",
+   "metric": "crash",
+   "old": 0.4795613160518445,
+   "new": 0.359,
+   "diff": -0.1205613160518445
+  },
+  {
+   "file": "logs/benchmark_suites/race/seeds/Quadsim-Race-Figure8-v0_ppo_v1_s2__figure8.json",
+   "controller": "policy",
+   "metric": "success",
+   "old": 0.6759443339960238,
+   "new": 0.792,
+   "diff": 0.11605566600397621
+  },
+  {
+   "file": "logs/benchmark_suites/race/seeds/Quadsim-Race-Figure8-v0_ppo_v1_s2__figure8.json",
+   "controller": "policy",
+   "metric": "crash",
+   "old": 0.3240556660039761,
+   "new": 0.208,
+   "diff": -0.11605566600397613
+  },
+  {
+   "file": "logs/benchmark_suites/race/final/Quadsim-Race-v0_cascade__wind.json",
+   "controller": "cascade",
+   "metric": "crash",
+   "old": 0.38578680203045684,
+   "new": 0.278,
+   "diff": -0.10778680203045682
+  },
+  {
+   "file": "logs/eval/Quadsim-Nav-Range-v0_range_v2.json",
+   "controller": "potential_field",
+   "metric": "success",
+   "old": 0.498,
+   "new": 0.394,
+   "diff": -0.10399999999999998
+  },
+  {
+   "file": "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_cascade__latency.json",
+   "controller": "cascade",
+   "metric": "crash",
+   "old": 0.42829457364341084,
+   "new": 0.337890625,
+   "diff": -0.09040394864341084
+  },
+  {
+   "file": "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_cascade__swap4.json",
+   "controller": "cascade",
+   "metric": "crash",
+   "old": 0.44642857142857145,
+   "new": 0.361328125,
+   "diff": -0.08510044642857145
+  },
+  {
+   "file": "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc_nolang.json",
+   "controller": "policy",
+   "metric": "crash",
+   "old": 0.612,
+   "new": 0.532,
+   "diff": -0.07999999999999996
+  }
+ ],
+ "regression": {
+  "evaluator_only": {
+   "metrics": 59,
+   "bit_identical": 33,
+   "changed": [
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "policy",
+     "metric": "crash",
+     "a": 0.17,
+     "b": 0.156,
+     "diff": -0.014000000000000012
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "policy",
+     "metric": "time_out",
+     "a": 0.83,
+     "b": 0.844,
+     "diff": 0.014000000000000012
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "policy",
+     "metric": "episode_length_s",
+     "a": 3.9734798896312715,
+     "b": 4.042839886903763,
+     "diff": 0.0693599972724912
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "policy",
+     "metric": "success",
+     "a": 0.83,
+     "b": 0.844,
+     "diff": 0.014000000000000012
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "policy",
+     "metric": "collision",
+     "a": 0.166,
+     "b": 0.152,
+     "diff": -0.014000000000000012
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "policy",
+     "metric": "min_clearance",
+     "a": 0.5255550820231437,
+     "b": 0.5282264730334282,
+     "diff": 0.002671391010284463
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "policy",
+     "metric": "time_to_goal",
+     "a": 4.236096264942582,
+     "b": 4.261563858714714,
+     "diff": 0.025467593772131814
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "policy",
+     "metric": "path_length",
+     "a": 12.169812903346786,
+     "b": 12.197963183525049,
+     "diff": 0.028150280178262932
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "policy",
+     "metric": "active_obstacles",
+     "a": 11.892,
+     "b": 11.886,
+     "diff": -0.006000000000000227
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "potential_field",
+     "metric": "crash",
+     "a": 0.084,
+     "b": 0.072,
+     "diff": -0.01200000000000001
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "potential_field",
+     "metric": "time_out",
+     "a": 0.916,
+     "b": 0.928,
+     "diff": 0.01200000000000001
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "potential_field",
+     "metric": "episode_length_s",
+     "a": 14.119719666481018,
+     "b": 15.410159645080567,
+     "diff": 1.290439978599549
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "potential_field",
+     "metric": "success",
+     "a": 0.498,
+     "b": 0.394,
+     "diff": -0.10399999999999998
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "potential_field",
+     "metric": "collision",
+     "a": 0.052,
+     "b": 0.04,
+     "diff": -0.011999999999999997
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "potential_field",
+     "metric": "min_clearance",
+     "a": 0.7042563719749451,
+     "b": 0.6980048567652702,
+     "diff": -0.006251515209674818
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "potential_field",
+     "metric": "time_to_goal",
+     "a": 10.182088112735364,
+     "b": 10.504872859432007,
+     "diff": 0.3227847466966427
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "potential_field",
+     "metric": "path_length",
+     "a": 14.251233273241894,
+     "b": 14.444772221715317,
+     "diff": 0.19353894847342268
+    },
+    {
+     "file": "Quadsim-Nav-Range-v0.json",
+     "controller": "potential_field",
+     "metric": "active_obstacles",
+     "a": 11.24,
+     "b": 11.79,
+     "diff": 0.5499999999999989
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "policy",
+     "metric": "episode_length_s",
+     "a": 6.593679841518402,
+     "b": 6.669919839382172,
+     "diff": 0.07623999786376956
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "policy",
+     "metric": "time_to_finish",
+     "a": 6.5840239793481965,
+     "b": 6.660724178406315,
+     "diff": 0.0767001990581182
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "crash",
+     "a": 0.021956087824351298,
+     "b": 0.02,
+     "diff": -0.0019560878243512977
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "time_out",
+     "a": 0.9780439121756487,
+     "b": 0.98,
+     "diff": 0.0019560878243513047
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "episode_length_s",
+     "a": 10.559720316332971,
+     "b": 10.739079749107361,
+     "diff": 0.17935943277439037
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "success",
+     "a": 0.9281437125748503,
+     "b": 0.92,
+     "diff": -0.008143712574850248
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "waypoints_reached_frac",
+     "a": 0.9752495017891635,
+     "b": 0.9748000009059906,
+     "diff": -0.00044950088317285974
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "time_to_finish",
+     "a": 10.39574170881702,
+     "b": 10.51847803696342,
+     "diff": 0.12273632814640045
+    }
+   ]
+  },
+  "code_fixes": {
+   "metrics": 59,
+   "bit_identical": 39,
+   "changed": [
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "policy",
+     "metric": "crash",
+     "a": 0.001,
+     "b": 0.0,
+     "diff": -0.001
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "policy",
+     "metric": "time_out",
+     "a": 0.999,
+     "b": 1.0,
+     "diff": 0.0010000000000000009
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "policy",
+     "metric": "episode_length_s",
+     "a": 7.972460019052028,
+     "b": 7.980000019073486,
+     "diff": 0.007540000021458049
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "policy",
+     "metric": "final_pos_err",
+     "a": 0.013774360691546462,
+     "b": 0.012563481704215519,
+     "diff": -0.001210878987330943
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "policy",
+     "metric": "final_yaw_err",
+     "a": 0.07745580577850342,
+     "b": 0.077021963596344,
+     "diff": -0.0004338421821594163
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "cascade",
+     "metric": "crash",
+     "a": 0.005,
+     "b": 0.006,
+     "diff": 0.001
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "cascade",
+     "metric": "time_out",
+     "a": 0.995,
+     "b": 0.994,
+     "diff": -0.0010000000000000009
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "cascade",
+     "metric": "episode_length_s",
+     "a": 7.948080018877983,
+     "b": 7.937420018851757,
+     "diff": -0.010660000026225802
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "cascade",
+     "metric": "final_pos_err",
+     "a": 0.06101708834292367,
+     "b": 0.06283478593546897,
+     "diff": 0.0018176975925452976
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "cascade",
+     "metric": "final_yaw_err",
+     "a": 0.026307044267654418,
+     "b": 0.026957417249679566,
+     "diff": 0.0006503729820251485
+    },
+    {
+     "file": "Quadsim-Hover-v0.json",
+     "controller": "cascade",
+     "metric": "success",
+     "a": 0.887,
+     "b": 0.903,
+     "diff": 0.016000000000000014
+    },
+    {
+     "file": "Quadsim-Track-v0.json",
+     "controller": "cascade",
+     "metric": "crash",
+     "a": 0.032,
+     "b": 0.03,
+     "diff": -0.0020000000000000018
+    },
+    {
+     "file": "Quadsim-Track-v0.json",
+     "controller": "cascade",
+     "metric": "time_out",
+     "a": 0.968,
+     "b": 0.97,
+     "diff": 0.0020000000000000018
+    },
+    {
+     "file": "Quadsim-Track-v0.json",
+     "controller": "cascade",
+     "metric": "episode_length_s",
+     "a": 9.721719555258751,
+     "b": 9.727639554142952,
+     "diff": 0.0059199988842006945
+    },
+    {
+     "file": "Quadsim-Track-v0.json",
+     "controller": "cascade",
+     "metric": "track_rmse",
+     "a": 0.4655735469609499,
+     "b": 0.4659533492550254,
+     "diff": 0.00037980229407552635
+    },
+    {
+     "file": "Quadsim-Track-v0.json",
+     "controller": "cascade",
+     "metric": "track_max_err",
+     "a": 1.0282708457112313,
+     "b": 1.0399538786262275,
+     "diff": 0.011683032914996172
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "episode_length_s",
+     "a": 10.739079749107361,
+     "b": 10.599919756412506,
+     "diff": -0.13915999269485546
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "success",
+     "a": 0.92,
+     "b": 0.916,
+     "diff": -0.0040000000000000036
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "waypoints_reached_frac",
+     "a": 0.9748000009059906,
+     "b": 0.970000000923872,
+     "diff": -0.004799999982118663
+    },
+    {
+     "file": "Quadsim-Waypoint-v0.json",
+     "controller": "cascade",
+     "metric": "time_to_finish",
+     "a": 10.51847803696342,
+     "b": 10.38192117682711,
+     "diff": -0.1365568601363112
+    }
+   ]
+  }
+ },
+ "per_file": {
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_bc_distilled__harsh_dynamics.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1010
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.8891089108910891,
+      "new": 0.919
+     },
+     "crash": {
+      "old": 0.040594059405940595,
+      "new": 0.033
+     },
+     "time_out": {
+      "old": 0.9594059405940594,
+      "new": 0.967
+     },
+     "final_pos_err": {
+      "old": 0.13787299852309942,
+      "new": 0.11041479954856913
+     },
+     "episode_length_s": {
+      "old": 7.709326749833504,
+      "new": 7.7687200173139574
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_bc_distilled__latency.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.83,
+      "new": 0.826
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.01735546921682544,
+      "new": 0.017349468797445297
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_bc_distilled__nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.01398034979926888,
+      "new": 0.013167382943211124
+     },
+     "episode_length_s": {
+      "old": 7.972480019032955,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_bc_distilled__sensor_noise.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.976,
+      "new": 0.976
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.020421567785670048,
+      "new": 0.020449170015868733
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_bc_distilled__wind_push.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.974,
+      "new": 0.974
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.02770764499017969,
+      "new": 0.027678082448779607
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_cascade__harsh_dynamics.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 1026
+   },
+   "episodes_new": {
+    "cascade": 1000
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.6871345029239766,
+      "new": 0.72
+     },
+     "crash": {
+      "old": 0.07115009746588694,
+      "new": 0.062
+     },
+     "time_out": {
+      "old": 0.928849902534113,
+      "new": 0.938
+     },
+     "final_pos_err": {
+      "old": 0.2475760059064022,
+      "new": 0.2192200357678812
+     },
+     "episode_length_s": {
+      "old": 7.570448357401303,
+      "new": 7.595080015152693
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_cascade__latency.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 1000
+   },
+   "episodes_new": {
+    "cascade": 1000
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.811,
+      "new": 0.823
+     },
+     "crash": {
+      "old": 0.008,
+      "new": 0.005
+     },
+     "time_out": {
+      "old": 0.992,
+      "new": 0.995
+     },
+     "final_pos_err": {
+      "old": 0.08142668805178255,
+      "new": 0.07358313028886915
+     },
+     "episode_length_s": {
+      "old": 7.923220018744469,
+      "new": 7.944420018851757
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_cascade__nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 1000
+   },
+   "episodes_new": {
+    "cascade": 1000
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.898,
+      "new": 0.888
+     },
+     "crash": {
+      "old": 0.004,
+      "new": 0.003
+     },
+     "time_out": {
+      "old": 0.996,
+      "new": 0.997
+     },
+     "final_pos_err": {
+      "old": 0.06046987732686102,
+      "new": 0.05876131278439425
+     },
+     "episode_length_s": {
+      "old": 7.952680018812418,
+      "new": 7.960240018963813
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_cascade__sensor_noise.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 1000
+   },
+   "episodes_new": {
+    "cascade": 1000
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.867,
+      "new": 0.874
+     },
+     "crash": {
+      "old": 0.003,
+      "new": 0.009
+     },
+     "time_out": {
+      "old": 0.997,
+      "new": 0.991
+     },
+     "final_pos_err": {
+      "old": 0.06398302694386802,
+      "new": 0.07287178333033807
+     },
+     "episode_length_s": {
+      "old": 7.958820019006729,
+      "new": 7.920480018556118
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_cascade__wind_push.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 1000
+   },
+   "episodes_new": {
+    "cascade": 1000
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.804,
+      "new": 0.811
+     },
+     "crash": {
+      "old": 0.004,
+      "new": 0.008
+     },
+     "time_out": {
+      "old": 0.996,
+      "new": 0.992
+     },
+     "final_pos_err": {
+      "old": 0.07563286170642823,
+      "new": 0.07832803652388975
+     },
+     "episode_length_s": {
+      "old": 7.951920018851757,
+      "new": 7.9249400187730785
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_ppo__harsh_dynamics.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1007
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.900695134061569,
+      "new": 0.91
+     },
+     "crash": {
+      "old": 0.03773584905660377,
+      "new": 0.034
+     },
+     "time_out": {
+      "old": 0.9622641509433962,
+      "new": 0.966
+     },
+     "final_pos_err": {
+      "old": 0.12089609887227583,
+      "new": 0.10932796425103151
+     },
+     "episode_length_s": {
+      "old": 7.7311618844234005,
+      "new": 7.761800017237663
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_ppo__latency.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.672,
+      "new": 0.699
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.001
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "final_pos_err": {
+      "old": 0.021287775899050756,
+      "new": 0.021819749948801474
+     },
+     "episode_length_s": {
+      "old": 7.9724400190413,
+      "new": 7.973180019021035
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_ppo__nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.013774360691546462,
+      "new": 0.012563481704215519
+     },
+     "episode_length_s": {
+      "old": 7.972460019052028,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_ppo__sensor_noise.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.96,
+      "new": 0.961
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.02031320279033389,
+      "new": 0.020339466548641213
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_ppo__wind_push.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.973,
+      "new": 0.972
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.028609265420003794,
+      "new": 0.027144591478747315
+     },
+     "episode_length_s": {
+      "old": 7.972580019056797,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_sac__harsh_dynamics.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1025
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.8780487804878049,
+      "new": 0.897
+     },
+     "crash": {
+      "old": 0.06048780487804878,
+      "new": 0.051
+     },
+     "time_out": {
+      "old": 0.9395121951219512,
+      "new": 0.949
+     },
+     "final_pos_err": {
+      "old": 0.16141431205633391,
+      "new": 0.1388240985868033
+     },
+     "episode_length_s": {
+      "old": 7.586302455198474,
+      "new": 7.645220016360283
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_sac__latency.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.82,
+      "new": 0.806
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.002
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 0.998
+     },
+     "final_pos_err": {
+      "old": 0.020417291545832994,
+      "new": 0.023847913162549958
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.9666200190186505
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_sac__nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.018556633326923474,
+      "new": 0.016656951564829797
+     },
+     "episode_length_s": {
+      "old": 7.9725600190162655,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_sac__sensor_noise.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.984,
+      "new": 0.982
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.02251369284791872,
+      "new": 0.022509293217095546
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/hover/algos/Quadsim-Hover-v0_sac__wind_push.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.969,
+      "new": 0.97
+     },
+     "crash": {
+      "old": 0.002,
+      "new": 0.002
+     },
+     "time_out": {
+      "old": 0.998,
+      "new": 0.998
+     },
+     "final_pos_err": {
+      "old": 0.03731964072876144,
+      "new": 0.03664577731047757
+     },
+     "episode_length_s": {
+      "old": 7.96502001902461,
+      "new": 7.965680018931628
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-Ellipse-v0_cascade__ellipse.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 541
+   },
+   "episodes_new": {
+    "cascade": 500
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "crash": {
+      "old": 0.21072088724584104,
+      "new": 0.144
+     },
+     "time_out": {
+      "old": 0.789279112754159,
+      "new": 0.856
+     },
+     "lap_time": {
+      "old": 14.996685690658037,
+      "new": 15.218206915868764
+     },
+     "episode_length_s": {
+      "old": 17.563622518740388,
+      "new": 18.492479573965074
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-Ellipse-v0_ppo__ellipse.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.996,
+      "new": 0.996
+     },
+     "crash": {
+      "old": 0.004,
+      "new": 0.004
+     },
+     "time_out": {
+      "old": 0.996,
+      "new": 0.996
+     },
+     "lap_time": {
+      "old": 2.4881762999570918,
+      "new": 2.4888977426326346
+     },
+     "episode_length_s": {
+      "old": 4.885799887597561,
+      "new": 4.8872798871397976
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-Ellipse-v0_ppo_v1__ellipse.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.978,
+      "new": 0.98
+     },
+     "crash": {
+      "old": 0.022,
+      "new": 0.02
+     },
+     "time_out": {
+      "old": 0.978,
+      "new": 0.98
+     },
+     "lap_time": {
+      "old": 2.4885886513417765,
+      "new": 2.489878974133922
+     },
+     "episode_length_s": {
+      "old": 4.844119889497757,
+      "new": 4.851519889593124
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-Figure8-v0_cascade__figure8.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 529
+   },
+   "episodes_new": {
+    "cascade": 500
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "crash": {
+      "old": 0.1890359168241966,
+      "new": 0.16
+     },
+     "time_out": {
+      "old": 0.8109640831758034,
+      "new": 0.84
+     },
+     "lap_time": {
+      "old": 18.39706482057986,
+      "new": 18.416571088518417
+     },
+     "episode_length_s": {
+      "old": 17.7359542177395,
+      "new": 18.09071957421303
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-Figure8-v0_ppo__figure8.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.0,
+      "new": 0.054
+     },
+     "crash": {
+      "old": 1.0,
+      "new": 0.946
+     },
+     "time_out": {
+      "old": 0.0,
+      "new": 0.054
+     },
+     "lap_time": {
+      "old": 3.7799999713897705,
+      "new": 4.150166557232539
+     },
+     "episode_length_s": {
+      "old": 1.0752799745798112,
+      "new": 2.3631599515080453
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-Figure8-v0_ppo_v1__figure8.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.5429141716566867,
+      "new": 0.738
+     },
+     "crash": {
+      "old": 0.45708582834331335,
+      "new": 0.262
+     },
+     "time_out": {
+      "old": 0.5429141716566867,
+      "new": 0.738
+     },
+     "lap_time": {
+      "old": 3.696709599802571,
+      "new": 3.728528596516559
+     },
+     "episode_length_s": {
+      "old": 4.962275333747178,
+      "new": 6.266959857702255
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-v0_cascade__random_tracks.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 605
+   },
+   "episodes_new": {
+    "cascade": 500
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.006611570247933884,
+      "new": 0.006
+     },
+     "crash": {
+      "old": 0.4,
+      "new": 0.252
+     },
+     "time_out": {
+      "old": 0.6,
+      "new": 0.748
+     },
+     "lap_time": {
+      "old": 15.086805217795902,
+      "new": 15.041805250777138
+     },
+     "episode_length_s": {
+      "old": 14.933255860264882,
+      "new": 16.988119610786438
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-v0_cascade__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 591
+   },
+   "episodes_new": {
+    "cascade": 500
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.00676818950930626,
+      "new": 0.006
+     },
+     "crash": {
+      "old": 0.38578680203045684,
+      "new": 0.278
+     },
+     "time_out": {
+      "old": 0.6142131979695431,
+      "new": 0.722
+     },
+     "lap_time": {
+      "old": 15.204013730438662,
+      "new": 15.078357874457517
+     },
+     "episode_length_s": {
+      "old": 15.184669702822838,
+      "new": 16.62119961476326
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-v0_ppo__random_tracks.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.952,
+      "new": 0.944
+     },
+     "crash": {
+      "old": 0.048,
+      "new": 0.056
+     },
+     "time_out": {
+      "old": 0.952,
+      "new": 0.944
+     },
+     "lap_time": {
+      "old": 2.4410351443241347,
+      "new": 2.4709690197226926
+     },
+     "episode_length_s": {
+      "old": 4.614839883863926,
+      "new": 4.668479889035225
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-v0_ppo__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.942,
+      "new": 0.958
+     },
+     "crash": {
+      "old": 0.058,
+      "new": 0.042
+     },
+     "time_out": {
+      "old": 0.942,
+      "new": 0.958
+     },
+     "lap_time": {
+      "old": 2.45104161798954,
+      "new": 2.4715399928161497
+     },
+     "episode_length_s": {
+      "old": 4.608999892532825,
+      "new": 4.714599885523319
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-v0_ppo_v1__random_tracks.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.9281437125748503,
+      "new": 0.948
+     },
+     "crash": {
+      "old": 0.0718562874251497,
+      "new": 0.052
+     },
+     "time_out": {
+      "old": 0.9281437125748503,
+      "new": 0.948
+     },
+     "lap_time": {
+      "old": 2.4418104738938182,
+      "new": 2.452567799604014
+     },
+     "episode_length_s": {
+      "old": 4.544630624524907,
+      "new": 4.634119890093803
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/final/Quadsim-Race-v0_ppo_v1__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.942,
+      "new": 0.954
+     },
+     "crash": {
+      "old": 0.058,
+      "new": 0.046
+     },
+     "time_out": {
+      "old": 0.942,
+      "new": 0.954
+     },
+     "lap_time": {
+      "old": 2.4438332801063853,
+      "new": 2.468612785911955
+     },
+     "episode_length_s": {
+      "old": 4.599999893739819,
+      "new": 4.689319892108441
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-Ellipse-v0_ppo_s1__ellipse.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.992,
+      "new": 0.992
+     },
+     "crash": {
+      "old": 0.008,
+      "new": 0.008
+     },
+     "time_out": {
+      "old": 0.992,
+      "new": 0.992
+     },
+     "lap_time": {
+      "old": 2.4666264516761505,
+      "new": 2.4686746444089347
+     },
+     "episode_length_s": {
+      "old": 4.835399893641472,
+      "new": 4.839919893145561
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-Ellipse-v0_ppo_s2__ellipse.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.978,
+      "new": 0.982
+     },
+     "crash": {
+      "old": 0.022,
+      "new": 0.018
+     },
+     "time_out": {
+      "old": 0.978,
+      "new": 0.982
+     },
+     "lap_time": {
+      "old": 2.4740528992382913,
+      "new": 2.47752530096027
+     },
+     "episode_length_s": {
+      "old": 4.785359885215759,
+      "new": 4.8087198865413665
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-Ellipse-v0_ppo_v1_s1__ellipse.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.966,
+      "new": 0.972
+     },
+     "crash": {
+      "old": 0.034,
+      "new": 0.028
+     },
+     "time_out": {
+      "old": 0.966,
+      "new": 0.972
+     },
+     "lap_time": {
+      "old": 2.494040759242311,
+      "new": 2.4968762112437592
+     },
+     "episode_length_s": {
+      "old": 4.808239884078502,
+      "new": 4.835239883899689
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-Ellipse-v0_ppo_v1_s2__ellipse.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.966,
+      "new": 0.972
+     },
+     "crash": {
+      "old": 0.034,
+      "new": 0.028
+     },
+     "time_out": {
+      "old": 0.966,
+      "new": 0.972
+     },
+     "lap_time": {
+      "old": 2.489979577889996,
+      "new": 2.4901625455879586
+     },
+     "episode_length_s": {
+      "old": 4.805159887969494,
+      "new": 4.82319988745451
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-Figure8-v0_ppo_s1__figure8.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.0,
+      "new": 0.064
+     },
+     "crash": {
+      "old": 1.0,
+      "new": 0.936
+     },
+     "time_out": {
+      "old": 0.0,
+      "new": 0.064
+     },
+     "lap_time": {
+      "old": 3.9397201804847986,
+      "new": 3.9957757602477897
+     },
+     "episode_length_s": {
+      "old": 2.0000799529552458,
+      "new": 3.010839928328991
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-Figure8-v0_ppo_s2__figure8.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.0,
+      "new": 0.004
+     },
+     "crash": {
+      "old": 1.0,
+      "new": 0.996
+     },
+     "time_out": {
+      "old": 0.0,
+      "new": 0.004
+     },
+     "lap_time": {
+      "old": 3.9034837876596757,
+      "new": 3.9178399076461794
+     },
+     "episode_length_s": {
+      "old": 1.9688399512171746,
+      "new": 2.773359932243824
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-Figure8-v0_ppo_v1_s1__figure8.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.4311377245508982,
+      "new": 0.666
+     },
+     "crash": {
+      "old": 0.5688622754491018,
+      "new": 0.334
+     },
+     "time_out": {
+      "old": 0.4311377245508982,
+      "new": 0.666
+     },
+     "lap_time": {
+      "old": 3.703092698788725,
+      "new": 3.7257720645469954
+     },
+     "episode_length_s": {
+      "old": 4.640399087926823,
+      "new": 6.043799852132797
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-Figure8-v0_ppo_v1_s2__figure8.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 503
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6759443339960238,
+      "new": 0.792
+     },
+     "crash": {
+      "old": 0.3240556660039761,
+      "new": 0.208
+     },
+     "time_out": {
+      "old": 0.6759443339960238,
+      "new": 0.792
+     },
+     "lap_time": {
+      "old": 3.6981867250505385,
+      "new": 3.725618959608532
+     },
+     "episode_length_s": {
+      "old": 5.829860702068147,
+      "new": 6.597639848351479
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-v0_ppo_s1__random_tracks.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.948,
+      "new": 0.972
+     },
+     "crash": {
+      "old": 0.052,
+      "new": 0.03
+     },
+     "time_out": {
+      "old": 0.948,
+      "new": 0.97
+     },
+     "lap_time": {
+      "old": 2.4448446667219046,
+      "new": 2.441384878517897
+     },
+     "episode_length_s": {
+      "old": 4.635519892789423,
+      "new": 4.695239885210991
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-v0_ppo_s1__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.95,
+      "new": 0.958
+     },
+     "crash": {
+      "old": 0.05,
+      "new": 0.042
+     },
+     "time_out": {
+      "old": 0.95,
+      "new": 0.958
+     },
+     "lap_time": {
+      "old": 2.439460522900973,
+      "new": 2.44817243317559
+     },
+     "episode_length_s": {
+      "old": 4.613999899983406,
+      "new": 4.677839890122414
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-v0_ppo_s2__random_tracks.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.948,
+      "new": 0.968
+     },
+     "crash": {
+      "old": 0.052,
+      "new": 0.032
+     },
+     "time_out": {
+      "old": 0.948,
+      "new": 0.968
+     },
+     "lap_time": {
+      "old": 2.452374944090843,
+      "new": 2.4612678450309424
+     },
+     "episode_length_s": {
+      "old": 4.6165198888778685,
+      "new": 4.7107998924851415
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-v0_ppo_s2__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.966,
+      "new": 0.966
+     },
+     "crash": {
+      "old": 0.034,
+      "new": 0.034
+     },
+     "time_out": {
+      "old": 0.966,
+      "new": 0.966
+     },
+     "lap_time": {
+      "old": 2.447613116645028,
+      "new": 2.4664212165434667
+     },
+     "episode_length_s": {
+      "old": 4.666959889240563,
+      "new": 4.720119888961315
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-v0_ppo_v1_s1__random_tracks.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.938,
+      "new": 0.968
+     },
+     "crash": {
+      "old": 0.062,
+      "new": 0.032
+     },
+     "time_out": {
+      "old": 0.938,
+      "new": 0.968
+     },
+     "lap_time": {
+      "old": 2.4613720850240663,
+      "new": 2.464765732497159
+     },
+     "episode_length_s": {
+      "old": 4.629039893306792,
+      "new": 4.734719877541065
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-v0_ppo_v1_s1__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.93,
+      "new": 0.954
+     },
+     "crash": {
+      "old": 0.07,
+      "new": 0.046
+     },
+     "time_out": {
+      "old": 0.93,
+      "new": 0.954
+     },
+     "lap_time": {
+      "old": 2.4522198244582776,
+      "new": 2.4759266250245195
+     },
+     "episode_length_s": {
+      "old": 4.578079905048012,
+      "new": 4.733639879703522
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-v0_ppo_v1_s2__random_tracks.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.9481037924151696,
+      "new": 0.956
+     },
+     "crash": {
+      "old": 0.05189620758483034,
+      "new": 0.044
+     },
+     "time_out": {
+      "old": 0.9481037924151696,
+      "new": 0.956
+     },
+     "lap_time": {
+      "old": 2.4650727170916458,
+      "new": 2.476550259629314
+     },
+     "episode_length_s": {
+      "old": 4.638842208612108,
+      "new": 4.724919888019562
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/race/seeds/Quadsim-Race-v0_ppo_v1_s2__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.924,
+      "new": 0.958
+     },
+     "crash": {
+      "old": 0.076,
+      "new": 0.042
+     },
+     "time_out": {
+      "old": 0.924,
+      "new": 0.958
+     },
+     "lap_time": {
+      "old": 2.4557691784495983,
+      "new": 2.4824229429879474
+     },
+     "episode_length_s": {
+      "old": 4.541239897862077,
+      "new": 4.725519887566566
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_cascade__latency.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 516
+   },
+   "episodes_new": {
+    "cascade": 512
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.1937984496124031,
+      "new": 0.359375
+     },
+     "crash": {
+      "old": 0.42829457364341084,
+      "new": 0.337890625
+     },
+     "time_out": {
+      "old": 0.5717054263565892,
+      "new": 0.662109375
+     },
+     "agent_collision": {
+      "old": 0.42829457364341084,
+      "new": 0.337890625
+     },
+     "time_to_goal": {
+      "old": 2.2361999487876894,
+      "new": 2.2370651655870937
+     },
+     "episode_length_s": {
+      "old": 2.8313177232594455,
+      "new": 4.290937321726233
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_cascade__swap4.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 504
+   },
+   "episodes_new": {
+    "cascade": 512
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.18253968253968253,
+      "new": 0.359375
+     },
+     "crash": {
+      "old": 0.44642857142857145,
+      "new": 0.361328125
+     },
+     "time_out": {
+      "old": 0.5535714285714286,
+      "new": 0.638671875
+     },
+     "agent_collision": {
+      "old": 0.44642857142857145,
+      "new": 0.361328125
+     },
+     "time_to_goal": {
+      "old": 2.2386955981669217,
+      "new": 2.275652128717174
+     },
+     "episode_length_s": {
+      "old": 2.7117459310425653,
+      "new": 4.294531071558595
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_cascade__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "cascade": 500
+   },
+   "episodes_new": {
+    "cascade": 512
+   },
+   "metrics": {
+    "cascade": {
+     "success": {
+      "old": 0.0,
+      "new": 0.296875
+     },
+     "crash": {
+      "old": 0.552,
+      "new": 0.369140625
+     },
+     "time_out": {
+      "old": 0.448,
+      "new": 0.630859375
+     },
+     "agent_collision": {
+      "old": 0.552,
+      "new": 0.369140625
+     },
+     "episode_length_s": {
+      "old": 1.0991999754905701,
+      "new": 3.8781248396262527
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_ppo__latency.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 512
+   },
+   "episodes_new": {
+    "policy": 512
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.8046875,
+      "new": 0.8046875
+     },
+     "crash": {
+      "old": 0.01171875,
+      "new": 0.01171875
+     },
+     "time_out": {
+      "old": 0.98828125,
+      "new": 0.98828125
+     },
+     "agent_collision": {
+      "old": 0.01171875,
+      "new": 0.01171875
+     },
+     "time_to_goal": {
+      "old": 2.160519947767258,
+      "new": 2.160519947767258
+     },
+     "episode_length_s": {
+      "old": 9.7726558027789,
+      "new": 9.7726558027789
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_ppo__swap4.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 512
+   },
+   "episodes_new": {
+    "policy": 512
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.875,
+      "new": 0.875
+     },
+     "crash": {
+      "old": 0.00390625,
+      "new": 0.00390625
+     },
+     "time_out": {
+      "old": 0.99609375,
+      "new": 0.99609375
+     },
+     "agent_collision": {
+      "old": 0.00390625,
+      "new": 0.00390625
+     },
+     "time_to_goal": {
+      "old": 2.0414566378893815,
+      "new": 2.0414566378893815
+     },
+     "episode_length_s": {
+      "old": 9.911562046036124,
+      "new": 9.911562046036124
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_ppo__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 512
+   },
+   "episodes_new": {
+    "policy": 512
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.8984375,
+      "new": 0.8984375
+     },
+     "crash": {
+      "old": 0.0078125,
+      "new": 0.0078125
+     },
+     "time_out": {
+      "old": 0.9921875,
+      "new": 0.9921875
+     },
+     "agent_collision": {
+      "old": 0.0078125,
+      "new": 0.0078125
+     },
+     "time_to_goal": {
+      "old": 2.0869443960606104,
+      "new": 2.0869443960606104
+     },
+     "episode_length_s": {
+      "old": 9.842030799016356,
+      "new": 9.842030799016356
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_swarm_potential__latency.json": {
+   "pass": true,
+   "episodes_old": {
+    "swarm_potential": 512
+   },
+   "episodes_new": {
+    "swarm_potential": 512
+   },
+   "metrics": {
+    "swarm_potential": {
+     "success": {
+      "old": 0.9609375,
+      "new": 0.9609375
+     },
+     "crash": {
+      "old": 0.009765625,
+      "new": 0.009765625
+     },
+     "time_out": {
+      "old": 0.990234375,
+      "new": 0.990234375
+     },
+     "agent_collision": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_to_goal": {
+      "old": 6.939796581500914,
+      "new": 6.939796581500914
+     },
+     "episode_length_s": {
+      "old": 9.729062054306269,
+      "new": 9.729062054306269
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_swarm_potential__swap4.json": {
+   "pass": true,
+   "episodes_old": {
+    "swarm_potential": 512
+   },
+   "episodes_new": {
+    "swarm_potential": 512
+   },
+   "metrics": {
+    "swarm_potential": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "agent_collision": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_to_goal": {
+      "old": 6.887226407416165,
+      "new": 6.887226407416165
+     },
+     "episode_length_s": {
+      "old": 9.979999542236328,
+      "new": 9.979999542236328
+     }
+    }
+   }
+  },
+  "logs/benchmark_suites/swarm/final/Quadsim-Swarm-v0_swarm_potential__wind.json": {
+   "pass": true,
+   "episodes_old": {
+    "swarm_potential": 516
+   },
+   "episodes_new": {
+    "swarm_potential": 512
+   },
+   "metrics": {
+    "swarm_potential": {
+     "success": {
+      "old": 0.9689922480620154,
+      "new": 0.9765625
+     },
+     "crash": {
+      "old": 0.003875968992248062,
+      "new": 0.001953125
+     },
+     "time_out": {
+      "old": 0.9961240310077519,
+      "new": 0.998046875
+     },
+     "agent_collision": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_to_goal": {
+      "old": 6.8020946979522705,
+      "new": 6.8020946979522705
+     },
+     "episode_length_s": {
+      "old": 9.886666214743325,
+      "new": 9.931405795738101
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Hover-v0_ablation_harsh_DR.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1011
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.7853610286844708,
+      "new": 0.787
+     },
+     "crash": {
+      "old": 0.03857566765578635,
+      "new": 0.04
+     },
+     "time_out": {
+      "old": 0.9614243323442137,
+      "new": 0.96
+     },
+     "final_pos_err": {
+      "old": 0.16372871864840396,
+      "new": 0.15928040922014042
+     },
+     "episode_length_s": {
+      "old": 7.729732954920694,
+      "new": 7.734780016750097
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Hover-v0_ablation_harsh_noDR.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1009
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.7720515361744301,
+      "new": 0.782
+     },
+     "crash": {
+      "old": 0.048562933597621406,
+      "new": 0.034
+     },
+     "time_out": {
+      "old": 0.9514370664023786,
+      "new": 0.966
+     },
+     "final_pos_err": {
+      "old": 0.18577368324207155,
+      "new": 0.16777275573159567
+     },
+     "episode_length_s": {
+      "old": 7.656214089766957,
+      "new": 7.753060017824173
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Hover-v0_ablation_ideal_DR.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.0022338473194395193,
+      "new": 0.002230349839286646
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Hover-v0_ablation_ideal_noDR.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.002764768028166145,
+      "new": 0.002770579941337928
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Hover-v0_ablation_randomized_DR.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.013774360691546462,
+      "new": 0.012563481704215519
+     },
+     "episode_length_s": {
+      "old": 7.972460019052028,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Hover-v0_ablation_randomized_noDR.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.020505024141981267,
+      "new": 0.01915869451430626
+     },
+     "episode_length_s": {
+      "old": 7.972360019057989,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Hover-v0_nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "episodes_new": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.013774360691546462,
+      "new": 0.012563481704215519
+     },
+     "episode_length_s": {
+      "old": 7.972460019052028,
+      "new": 7.980000019073486
+     }
+    },
+    "cascade": {
+     "success": {
+      "old": 0.887,
+      "new": 0.903
+     },
+     "crash": {
+      "old": 0.005,
+      "new": 0.006
+     },
+     "time_out": {
+      "old": 0.995,
+      "new": 0.994
+     },
+     "final_pos_err": {
+      "old": 0.06101708834292367,
+      "new": 0.06283478593546897
+     },
+     "episode_length_s": {
+      "old": 7.948080018877983,
+      "new": 7.937420018851757
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Hover-v0_wind_push.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000,
+    "cascade": 1001
+   },
+   "episodes_new": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.973,
+      "new": 0.972
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.028609265420003794,
+      "new": 0.027144591478747315
+     },
+     "episode_length_s": {
+      "old": 7.972580019056797,
+      "new": 7.980000019073486
+     }
+    },
+    "cascade": {
+     "success": {
+      "old": 0.7862137862137862,
+      "new": 0.808
+     },
+     "crash": {
+      "old": 0.006993006993006993,
+      "new": 0.005
+     },
+     "time_out": {
+      "old": 0.993006993006993,
+      "new": 0.995
+     },
+     "final_pos_err": {
+      "old": 0.08268418309877028,
+      "new": 0.07595526095037348
+     },
+     "episode_length_s": {
+      "old": 7.9302497691326925,
+      "new": 7.947480018913746
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Nav-Depth-Render-v0_depth_v2_rendered.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 300
+   },
+   "episodes_new": {
+    "policy": 300
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6,
+      "new": 0.6
+     },
+     "crash": {
+      "old": 0.39666666666666667,
+      "new": 0.39666666666666667
+     },
+     "time_out": {
+      "old": 0.6033333333333334,
+      "new": 0.6033333333333334
+     },
+     "time_to_goal": {
+      "old": 4.309888776143392,
+      "new": 4.309888776143392
+     },
+     "episode_length_s": {
+      "old": 3.603799904982249,
+      "new": 3.603799904982249
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Nav-Depth-v0_depth_v2_raycast.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6107784431137725,
+      "new": 0.638
+     },
+     "crash": {
+      "old": 0.38922155688622756,
+      "new": 0.358
+     },
+     "time_out": {
+      "old": 0.6107784431137725,
+      "new": 0.642
+     },
+     "time_to_goal": {
+      "old": 4.24954236177058,
+      "new": 4.287962257301546
+     },
+     "episode_length_s": {
+      "old": 3.5591216617953516,
+      "new": 3.718759899377823
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Nav-Range-v0_pf_full.json": {
+   "pass": true,
+   "episodes_old": {
+    "potential_field": 570
+   },
+   "episodes_new": {
+    "potential_field": 500
+   },
+   "metrics": {
+    "potential_field": {
+     "success": {
+      "old": 0.3929824561403509,
+      "new": 0.366
+     },
+     "crash": {
+      "old": 0.0824561403508772,
+      "new": 0.074
+     },
+     "time_out": {
+      "old": 0.9175438596491228,
+      "new": 0.926
+     },
+     "time_to_goal": {
+      "old": 9.861874765583448,
+      "new": 10.072677351737934
+     },
+     "episode_length_s": {
+      "old": 15.110034736415797,
+      "new": 15.570199636936188
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Nav-Range-v0_range_v1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.5289421157684631,
+      "new": 0.578
+     },
+     "crash": {
+      "old": 0.47105788423153694,
+      "new": 0.422
+     },
+     "time_out": {
+      "old": 0.5289421157684631,
+      "new": 0.578
+     },
+     "time_to_goal": {
+      "old": 3.6741885895998974,
+      "new": 3.708581220732428
+     },
+     "episode_length_s": {
+      "old": 2.9741715867362335,
+      "new": 3.1284799231290816
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Nav-Range-v0_range_v2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500,
+    "potential_field": 500
+   },
+   "episodes_new": {
+    "policy": 500,
+    "potential_field": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.83,
+      "new": 0.844
+     },
+     "crash": {
+      "old": 0.17,
+      "new": 0.156
+     },
+     "time_out": {
+      "old": 0.83,
+      "new": 0.844
+     },
+     "time_to_goal": {
+      "old": 4.236096264942582,
+      "new": 4.261563858714714
+     },
+     "episode_length_s": {
+      "old": 3.9734798896312715,
+      "new": 4.042839886903763
+     }
+    },
+    "potential_field": {
+     "success": {
+      "old": 0.498,
+      "new": 0.394
+     },
+     "crash": {
+      "old": 0.084,
+      "new": 0.072
+     },
+     "time_out": {
+      "old": 0.916,
+      "new": 0.928
+     },
+     "time_to_goal": {
+      "old": 10.182088112735364,
+      "new": 10.504872859432007
+     },
+     "episode_length_s": {
+      "old": 14.119719666481018,
+      "new": 15.410159645080567
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Track-v0_geometric_v2.json": {
+   "pass": true,
+   "episodes_old": {
+    "geometric": 500
+   },
+   "episodes_new": {
+    "geometric": 500
+   },
+   "metrics": {
+    "geometric": {
+     "crash": {
+      "old": 0.018,
+      "new": 0.018
+     },
+     "time_out": {
+      "old": 0.982,
+      "new": 0.982
+     },
+     "track_rmse": {
+      "old": 0.4923960868418217,
+      "new": 0.4923960868418217
+     },
+     "episode_length_s": {
+      "old": 9.847719549775123,
+      "new": 9.847719549775123
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Track-v0_moderate.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500,
+    "cascade": 500,
+    "geometric": 500
+   },
+   "episodes_new": {
+    "policy": 500,
+    "cascade": 500,
+    "geometric": 500
+   },
+   "metrics": {
+    "policy": {
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "track_rmse": {
+      "old": 0.05804649358615279,
+      "new": 0.05804649358615279
+     },
+     "episode_length_s": {
+      "old": 9.979999542236328,
+      "new": 9.979999542236328
+     }
+    },
+    "cascade": {
+     "crash": {
+      "old": 0.0,
+      "new": 0.002
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 0.998
+     },
+     "track_rmse": {
+      "old": 0.1737356789559126,
+      "new": 0.17559517250210047
+     },
+     "episode_length_s": {
+      "old": 9.979999542236328,
+      "new": 9.962679543018341
+     }
+    },
+    "geometric": {
+     "crash": {
+      "old": 0.002,
+      "new": 0.002
+     },
+     "time_out": {
+      "old": 0.998,
+      "new": 0.998
+     },
+     "track_rmse": {
+      "old": 0.22722754906862974,
+      "new": 0.22722754906862974
+     },
+     "episode_length_s": {
+      "old": 9.962279543161392,
+      "new": 9.962279543161392
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Track-v0_nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500,
+    "cascade": 500,
+    "geometric": 500
+   },
+   "episodes_new": {
+    "policy": 500,
+    "cascade": 500,
+    "geometric": 500
+   },
+   "metrics": {
+    "policy": {
+     "crash": {
+      "old": 0.002,
+      "new": 0.002
+     },
+     "time_out": {
+      "old": 0.998,
+      "new": 0.998
+     },
+     "track_rmse": {
+      "old": 0.12587112298607825,
+      "new": 0.12587112298607825
+     },
+     "episode_length_s": {
+      "old": 9.973719542503357,
+      "new": 9.973719542503357
+     }
+    },
+    "cascade": {
+     "crash": {
+      "old": 0.032,
+      "new": 0.03
+     },
+     "time_out": {
+      "old": 0.968,
+      "new": 0.97
+     },
+     "track_rmse": {
+      "old": 0.4655735469609499,
+      "new": 0.4659533492550254
+     },
+     "episode_length_s": {
+      "old": 9.721719555258751,
+      "new": 9.727639554142952
+     }
+    },
+    "geometric": {
+     "crash": {
+      "old": 0.532,
+      "new": 0.032
+     },
+     "time_out": {
+      "old": 0.468,
+      "new": 0.968
+     },
+     "track_rmse": {
+      "old": 1.1415442903637887,
+      "new": 0.4900052481591701
+     },
+     "episode_length_s": {
+      "old": 6.020239756226539,
+      "new": 9.730799555540084
+     }
+    }
+   }
+  },
+  "logs/eval/Quadsim-Waypoint-v0_nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500,
+    "cascade": 501
+   },
+   "episodes_new": {
+    "policy": 500,
+    "cascade": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.994,
+      "new": 0.994
+     },
+     "crash": {
+      "old": 0.006,
+      "new": 0.006
+     },
+     "time_out": {
+      "old": 0.994,
+      "new": 0.994
+     },
+     "time_to_finish": {
+      "old": 6.5840239793481965,
+      "new": 6.660724178406315
+     },
+     "episode_length_s": {
+      "old": 6.593679841518402,
+      "new": 6.669919839382172
+     }
+    },
+    "cascade": {
+     "success": {
+      "old": 0.9281437125748503,
+      "new": 0.916
+     },
+     "crash": {
+      "old": 0.021956087824351298,
+      "new": 0.02
+     },
+     "time_out": {
+      "old": 0.9780439121756487,
+      "new": 0.98
+     },
+     "time_to_finish": {
+      "old": 10.39574170881702,
+      "new": 10.38192117682711
+     },
+     "episode_length_s": {
+      "old": 10.559720316332971,
+      "new": 10.599919756412506
+     }
+    }
+   }
+  },
+  "logs/eval/algos/Quadsim-Hover-v0_ars_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.465,
+      "new": 0.468
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.11824186153709888,
+      "new": 0.11866757490858436
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/algos/Quadsim-Hover-v0_sac_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.018556633326923474,
+      "new": 0.016656951564829797
+     },
+     "episode_length_s": {
+      "old": 7.9725600190162655,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/algos/Quadsim-Hover-v0_td3_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.8836534165740013,
+      "new": 0.8749203676581383
+     },
+     "episode_length_s": {
+      "old": 7.972280019044876,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/algos/Quadsim-Hover-v0_td3b_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.996,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.028979814067366532,
+      "new": 0.02725202434428502
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_02-30-46_ctbr_s42_harsh.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1004
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.796812749003984,
+      "new": 0.787
+     },
+     "crash": {
+      "old": 0.030876494023904383,
+      "new": 0.04
+     },
+     "time_out": {
+      "old": 0.9691235059760956,
+      "new": 0.96
+     },
+     "final_pos_err": {
+      "old": 0.14765763457862668,
+      "new": 0.15928040922014042
+     },
+     "episode_length_s": {
+      "old": 7.782529897958159,
+      "new": 7.734780016750097
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_02-30-46_ctbr_s42_v0env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.013774384458200074,
+      "new": 0.012563481704215519
+     },
+     "episode_length_s": {
+      "old": 7.972460019052028,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-05-36_v1_s1_harsh.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1010
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.7217821782178218,
+      "new": 0.718
+     },
+     "crash": {
+      "old": 0.04455445544554455,
+      "new": 0.039
+     },
+     "time_out": {
+      "old": 0.9554455445544554,
+      "new": 0.961
+     },
+     "final_pos_err": {
+      "old": 0.21549931188542765,
+      "new": 0.20492701825289988
+     },
+     "episode_length_s": {
+      "old": 7.6906930863267124,
+      "new": 7.7167200171649455
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-05-36_v1_s1_v0env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.994,
+      "new": 0.992
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.024041634176508522,
+      "new": 0.022472342893714085
+     },
+     "episode_length_s": {
+      "old": 7.972420019030571,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-14-10_v1_s2_harsh.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1009
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6164519326065411,
+      "new": 0.618
+     },
+     "crash": {
+      "old": 0.03964321110009911,
+      "new": 0.03
+     },
+     "time_out": {
+      "old": 0.9603567888999008,
+      "new": 0.97
+     },
+     "final_pos_err": {
+      "old": 0.24787923227349523,
+      "new": 0.23506232105358504
+     },
+     "episode_length_s": {
+      "old": 7.719603584855943,
+      "new": 7.795820017158985
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-14-10_v1_s2_v0env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.016487745228165294,
+      "new": 0.016511125382676253
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-22-45_v1_s3_harsh.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1005
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6567164179104478,
+      "new": 0.644
+     },
+     "crash": {
+      "old": 0.03383084577114428,
+      "new": 0.038
+     },
+     "time_out": {
+      "old": 0.9661691542288557,
+      "new": 0.962
+     },
+     "final_pos_err": {
+      "old": 0.2094554351239618,
+      "new": 0.2049007663850207
+     },
+     "episode_length_s": {
+      "old": 7.767502504794752,
+      "new": 7.7295200173258785
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-22-45_v1_s3_v0env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.01578633531858213,
+      "new": 0.015809253275161608
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-31-27_ctbr_s1_harsh.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1007
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.7646474677259185,
+      "new": 0.76
+     },
+     "crash": {
+      "old": 0.039721946375372394,
+      "new": 0.036
+     },
+     "time_out": {
+      "old": 0.9602780536246276,
+      "new": 0.964
+     },
+     "final_pos_err": {
+      "old": 0.18066564399879445,
+      "new": 0.17032205957733096
+     },
+     "episode_length_s": {
+      "old": 7.721151953124716,
+      "new": 7.7409800173342225
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-31-27_ctbr_s1_v0env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.001
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 0.999
+     },
+     "final_pos_err": {
+      "old": 0.011973794234567322,
+      "new": 0.013745384281734005
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.972400019049645
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-39-34_ctbr_s2_harsh.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1012
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.7806324110671937,
+      "new": 0.786
+     },
+     "crash": {
+      "old": 0.045454545454545456,
+      "new": 0.036
+     },
+     "time_out": {
+      "old": 0.9545454545454546,
+      "new": 0.964
+     },
+     "final_pos_err": {
+      "old": 0.17418940860539742,
+      "new": 0.159929974221508
+     },
+     "episode_length_s": {
+      "old": 7.68992096494898,
+      "new": 7.7454000174403195
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_08-39-34_ctbr_s2_v0env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.014130762554181274,
+      "new": 0.012030562538304366
+     },
+     "episode_length_s": {
+      "old": 7.972540019035339,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_09-11-04_v2_s1_harsh.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1010
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6811881188118812,
+      "new": 0.68
+     },
+     "crash": {
+      "old": 0.041584158415841586,
+      "new": 0.028
+     },
+     "time_out": {
+      "old": 0.9584158415841584,
+      "new": 0.972
+     },
+     "final_pos_err": {
+      "old": 0.19173679442357014,
+      "new": 0.18400278383400293
+     },
+     "episode_length_s": {
+      "old": 7.705623779143437,
+      "new": 7.790900017440319
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_09-11-04_v2_s1_v0env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.988,
+      "new": 0.985
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.017564178290311247,
+      "new": 0.015919909646443558
+     },
+     "episode_length_s": {
+      "old": 7.9725200190544125,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_09-18-48_v2_s2_harsh.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1011
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.7161226508407518,
+      "new": 0.728
+     },
+     "crash": {
+      "old": 0.04648862512363996,
+      "new": 0.036
+     },
+     "time_out": {
+      "old": 0.9535113748763601,
+      "new": 0.964
+     },
+     "final_pos_err": {
+      "old": 0.19039736178926533,
+      "new": 0.17655707411048935
+     },
+     "episode_length_s": {
+      "old": 7.670445120210817,
+      "new": 7.747400016963482
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_09-18-48_v2_s2_v0env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.988,
+      "new": 0.988
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.001
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 0.999
+     },
+     "final_pos_err": {
+      "old": 0.01518301845798851,
+      "new": 0.017108790097525344
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.973200019001961
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_09-26-08_v2_s3_harsh.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1014
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6587771203155819,
+      "new": 0.697
+     },
+     "crash": {
+      "old": 0.03944773175542406,
+      "new": 0.037
+     },
+     "time_out": {
+      "old": 0.960552268244576,
+      "new": 0.963
+     },
+     "final_pos_err": {
+      "old": 0.20949776469237544,
+      "new": 0.1760466759619303
+     },
+     "episode_length_s": {
+      "old": 7.72051283737729,
+      "new": 7.742840016871691
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v0_2026-11-01_09-26-08_v2_s3_v0env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 0.998
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.001
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 0.999
+     },
+     "final_pos_err": {
+      "old": 0.012709211176726968,
+      "new": 0.014287782601313666
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.9724400190413
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v1_2026-11-01_02-30-46_ctbr_s42_v1env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.695,
+      "new": 0.712
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.001
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "final_pos_err": {
+      "old": 0.06695851757936179,
+      "new": 0.06742558487015776
+     },
+     "episode_length_s": {
+      "old": 7.972320019036531,
+      "new": 7.972380019038916
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v1_2026-11-01_08-05-36_v1_s1_v1env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.68,
+      "new": 0.7
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.003
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 0.997
+     },
+     "final_pos_err": {
+      "old": 0.06749926115432754,
+      "new": 0.07062056222418323
+     },
+     "episode_length_s": {
+      "old": 7.972460019052028,
+      "new": 7.958800018876791
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v1_2026-11-01_08-14-10_v1_s2_v1env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.787,
+      "new": 0.763
+     },
+     "crash": {
+      "old": 0.003,
+      "new": 0.002
+     },
+     "time_out": {
+      "old": 0.997,
+      "new": 0.998
+     },
+     "final_pos_err": {
+      "old": 0.0689050279785879,
+      "new": 0.06749638656992465
+     },
+     "episode_length_s": {
+      "old": 7.957820019006729,
+      "new": 7.966400018930435
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v1_2026-11-01_08-22-45_v1_s3_v1env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.802,
+      "new": 0.769
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.06695514680515044,
+      "new": 0.0650757547118701
+     },
+     "episode_length_s": {
+      "old": 7.972480019032955,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v1_2026-11-01_08-31-27_ctbr_s1_v1env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.734,
+      "new": 0.744
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.06658127054106444,
+      "new": 0.06484134828159585
+     },
+     "episode_length_s": {
+      "old": 7.972460019052028,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v1_2026-11-01_08-39-34_ctbr_s2_v1env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.759,
+      "new": 0.761
+     },
+     "crash": {
+      "old": 0.002,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.998,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.0686590346088633,
+      "new": 0.0649900268050842
+     },
+     "episode_length_s": {
+      "old": 7.964940019011498,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v1_2026-11-01_09-11-04_v2_s1_v1env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.665,
+      "new": 0.664
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.001
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 0.999
+     },
+     "final_pos_err": {
+      "old": 0.06646727384673431,
+      "new": 0.0680196092678234
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.972540019035339
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v1_2026-11-01_09-18-48_v2_s2_v1env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.647,
+      "new": 0.642
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.002
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 0.998
+     },
+     "final_pos_err": {
+      "old": 0.06792939436947927,
+      "new": 0.0702882905267179
+     },
+     "episode_length_s": {
+      "old": 7.973620018959045,
+      "new": 7.965180019021035
+     }
+    }
+   }
+  },
+  "logs/eval/hover_v1/Quadsim-Hover-v1_2026-11-01_09-26-08_v2_s3_v1env.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.766,
+      "new": 0.772
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.001
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 0.999
+     },
+     "final_pos_err": {
+      "old": 0.06514969904813915,
+      "new": 0.06703250326728448
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.972340019047261
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-Hover-v0_hover_bc.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.014435081731993706,
+      "new": 0.012587961025419645
+     },
+     "episode_length_s": {
+      "old": 7.972680019021034,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-Hover-v0_hover_bc_nolast.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.01398034979926888,
+      "new": 0.013167382943211124
+     },
+     "episode_length_s": {
+      "old": 7.972480019032955,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_expert.json": {
+   "pass": true,
+   "episodes_old": {
+    "langnav_expert": 502
+   },
+   "episodes_new": {
+    "langnav_expert": 500
+   },
+   "metrics": {
+    "langnav_expert": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.904940173208001,
+      "new": 2.938239934206009
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.204,
+      "new": 0.41
+     },
+     "crash": {
+      "old": 0.542,
+      "new": 0.346
+     },
+     "time_out": {
+      "old": 0.458,
+      "new": 0.654
+     },
+     "wrong_landmark": {
+      "old": 0.152,
+      "new": 0.062
+     },
+     "episode_length_s": {
+      "old": 5.497959843158722,
+      "new": 5.564159838199616
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc_nolang.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.122,
+      "new": 0.108
+     },
+     "crash": {
+      "old": 0.612,
+      "new": 0.532
+     },
+     "time_out": {
+      "old": 0.388,
+      "new": 0.468
+     },
+     "wrong_landmark": {
+      "old": 0.104,
+      "new": 0.1
+     },
+     "episode_length_s": {
+      "old": 4.700159852266312,
+      "new": 5.61611980676651
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc_nolast.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.344,
+      "new": 0.582
+     },
+     "crash": {
+      "old": 0.272,
+      "new": 0.124
+     },
+     "time_out": {
+      "old": 0.728,
+      "new": 0.876
+     },
+     "wrong_landmark": {
+      "old": 0.192,
+      "new": 0.03
+     },
+     "episode_length_s": {
+      "old": 5.049759841442108,
+      "new": 5.318999813556671
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc_v2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 502
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6533864541832669,
+      "new": 0.582
+     },
+     "crash": {
+      "old": 0.16334661354581673,
+      "new": 0.124
+     },
+     "time_out": {
+      "old": 0.8366533864541833,
+      "new": 0.876
+     },
+     "wrong_landmark": {
+      "old": 0.03187250996015936,
+      "new": 0.03
+     },
+     "episode_length_s": {
+      "old": 4.485577548405089,
+      "new": 5.318999813556671
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc_v2_s1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.654,
+      "new": 0.64
+     },
+     "crash": {
+      "old": 0.338,
+      "new": 0.276
+     },
+     "time_out": {
+      "old": 0.662,
+      "new": 0.724
+     },
+     "wrong_landmark": {
+      "old": 0.01,
+      "new": 0.01
+     },
+     "episode_length_s": {
+      "old": 3.263799919128418,
+      "new": 3.9183198869228364
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_bc_v2_s2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 523
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6520076481835564,
+      "new": 0.624
+     },
+     "crash": {
+      "old": 0.27151051625239003,
+      "new": 0.232
+     },
+     "time_out": {
+      "old": 0.7284894837476099,
+      "new": 0.768
+     },
+     "wrong_landmark": {
+      "old": 0.01338432122370937,
+      "new": 0.014
+     },
+     "episode_length_s": {
+      "old": 3.7182408213387483,
+      "new": 4.292999880075454
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_dagger1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 505
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.5445544554455446,
+      "new": 0.508
+     },
+     "crash": {
+      "old": 0.3722772277227723,
+      "new": 0.34
+     },
+     "time_out": {
+      "old": 0.6277227722772277,
+      "new": 0.66
+     },
+     "wrong_landmark": {
+      "old": 0.005940594059405941,
+      "new": 0.012
+     },
+     "episode_length_s": {
+      "old": 3.7332276207385675,
+      "new": 4.357479870796204
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_dagger2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 523
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.5965583173996176,
+      "new": 0.562
+     },
+     "crash": {
+      "old": 0.32122370936902483,
+      "new": 0.294
+     },
+     "time_out": {
+      "old": 0.6787762906309751,
+      "new": 0.706
+     },
+     "wrong_landmark": {
+      "old": 0.021032504780114723,
+      "new": 0.024
+     },
+     "episode_length_s": {
+      "old": 3.6699042928834262,
+      "new": 4.217559871196747
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_dagger2_clip.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.998003992015968,
+      "new": 0.97
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.001996007984031936,
+      "new": 0.002
+     },
+     "episode_length_s": {
+      "old": 2.9975648066716754,
+      "new": 3.25495992398262
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_dagger2_clip_s1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.998003992015968,
+      "new": 0.956
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.001996007984031936,
+      "new": 0.002
+     },
+     "episode_length_s": {
+      "old": 2.9590019266048593,
+      "new": 3.306999913930893
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_dagger2_clip_s2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 0.98
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.002
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 0.998
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 3.038163602233171,
+      "new": 3.2005199213027953
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_dagger2_s1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.864,
+      "new": 0.842
+     },
+     "crash": {
+      "old": 0.136,
+      "new": 0.13
+     },
+     "time_out": {
+      "old": 0.864,
+      "new": 0.87
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 3.090359926700592,
+      "new": 3.356319912672043
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_dagger2_s2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.808,
+      "new": 0.8
+     },
+     "crash": {
+      "old": 0.192,
+      "new": 0.196
+     },
+     "time_out": {
+      "old": 0.808,
+      "new": 0.804
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 3.204839928150177,
+      "new": 3.29023992395401
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_langnav_rgb_bc.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 301
+   },
+   "episodes_new": {
+    "policy": 320
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.9003322259136213,
+      "new": 0.853125
+     },
+     "crash": {
+      "old": 0.09966777408637874,
+      "new": 0.140625
+     },
+     "time_out": {
+      "old": 0.9003322259136213,
+      "new": 0.859375
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.003125
+     },
+     "episode_length_s": {
+      "old": 3.4793354660965674,
+      "new": 3.5579999148845673
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_langnav_rgb_dagger1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 301
+   },
+   "episodes_new": {
+    "policy": 320
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 3.1034550785622326,
+      "new": 3.1230624318122864
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_langnav_rgb_dagger1_clip.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 300
+   },
+   "episodes_new": {
+    "policy": 320
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.9833333333333333,
+      "new": 0.990625
+     },
+     "crash": {
+      "old": 0.016666666666666666,
+      "new": 0.009375
+     },
+     "time_out": {
+      "old": 0.9833333333333333,
+      "new": 0.990625
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.959533260265986,
+      "new": 3.0033124327659606
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_vla_color_servo.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 323
+   },
+   "episodes_new": {
+    "policy": 320
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.07430340557275542,
+      "new": 0.071875
+     },
+     "crash": {
+      "old": 0.015479876160990712,
+      "new": 0.009375
+     },
+     "time_out": {
+      "old": 0.9845201238390093,
+      "new": 0.990625
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 9.522476356465011,
+      "new": 9.576312068849802
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-RGB-v0_expert.json": {
+   "pass": true,
+   "episodes_old": {
+    "langnav_expert": 301
+   },
+   "episodes_new": {
+    "langnav_expert": 320
+   },
+   "metrics": {
+    "langnav_expert": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.8778736892332666,
+      "new": 2.8994374342262743
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-RGB-v0_langnav_rgb_bc.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 300
+   },
+   "episodes_new": {
+    "policy": 320
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.8233333333333334,
+      "new": 0.828125
+     },
+     "crash": {
+      "old": 0.17666666666666667,
+      "new": 0.16875
+     },
+     "time_out": {
+      "old": 0.8233333333333334,
+      "new": 0.83125
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 3.436733251810074,
+      "new": 3.5425624191761016
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-RGB-v0_langnav_rgb_dagger1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 300
+   },
+   "episodes_new": {
+    "policy": 320
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.9011332654953,
+      "new": 2.9372499268501997
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-RGB-v0_langnav_rgb_dagger1_clip.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 300
+   },
+   "episodes_new": {
+    "policy": 320
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.9966666666666667,
+      "new": 0.996875
+     },
+     "crash": {
+      "old": 0.0033333333333333335,
+      "new": 0.003125
+     },
+     "time_out": {
+      "old": 0.9966666666666667,
+      "new": 0.996875
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.9737332661946616,
+      "new": 2.985124933347106
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-RGB-v0_vla_color_servo.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 321
+   },
+   "episodes_new": {
+    "policy": 320
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.06230529595015576,
+      "new": 0.065625
+     },
+     "crash": {
+      "old": 0.009345794392523364,
+      "new": 0.01875
+     },
+     "time_out": {
+      "old": 0.9906542056074766,
+      "new": 0.98125
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 9.638691153481743,
+      "new": 9.556062069535255
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_bc.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.158,
+      "new": 0.154
+     },
+     "crash": {
+      "old": 0.842,
+      "new": 0.826
+     },
+     "time_out": {
+      "old": 0.158,
+      "new": 0.174
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.002
+     },
+     "episode_length_s": {
+      "old": 2.995639931678772,
+      "new": 3.3539999186992646
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_bc_nolang.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.122,
+      "new": 0.108
+     },
+     "crash": {
+      "old": 0.612,
+      "new": 0.532
+     },
+     "time_out": {
+      "old": 0.388,
+      "new": 0.468
+     },
+     "wrong_landmark": {
+      "old": 0.104,
+      "new": 0.1
+     },
+     "episode_length_s": {
+      "old": 4.700159852266312,
+      "new": 5.61611980676651
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_bc_nolast.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.81,
+      "new": 0.81
+     },
+     "crash": {
+      "old": 0.194,
+      "new": 0.18
+     },
+     "time_out": {
+      "old": 0.806,
+      "new": 0.82
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 3.058999927520752,
+      "new": 3.2315999205112456
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_bc_v2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.81,
+      "new": 0.81
+     },
+     "crash": {
+      "old": 0.194,
+      "new": 0.18
+     },
+     "time_out": {
+      "old": 0.806,
+      "new": 0.82
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 3.058999927520752,
+      "new": 3.2315999205112456
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_bc_v2_s1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.6846307385229541,
+      "new": 0.688
+     },
+     "crash": {
+      "old": 0.3213572854291417,
+      "new": 0.284
+     },
+     "time_out": {
+      "old": 0.6786427145708582,
+      "new": 0.716
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 3.0569260772354827,
+      "new": 3.425999912261963
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_bc_v2_s2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.780439121756487,
+      "new": 0.78
+     },
+     "crash": {
+      "old": 0.2215568862275449,
+      "new": 0.206
+     },
+     "time_out": {
+      "old": 0.7784431137724551,
+      "new": 0.794
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 3.092494936998257,
+      "new": 3.2868799192905427
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_dagger1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.9133332675088663,
+      "new": 2.9642399327754974
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_dagger2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.9012399320602418,
+      "new": 2.9451599311828613
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_dagger2_clip.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.9408399310112,
+      "new": 2.9913199312686922
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_dagger2_clip_s1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.9356799321174623,
+      "new": 2.971359931230545
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_dagger2_clip_s2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.880559928894043,
+      "new": 2.916119928598404
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_dagger2_s1.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.90778436322888,
+      "new": 2.9502799308300016
+     }
+    }
+   }
+  },
+  "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_dagger2_s2.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 502
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "wrong_landmark": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "episode_length_s": {
+      "old": 2.894820651210162,
+      "new": 2.9328399324417114
+     }
+    }
+   }
+  },
+  "logs/eval/reverify/Quadsim-Hover-v0_nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "episodes_new": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.013774360691546462,
+      "new": 0.012563481704215519
+     },
+     "episode_length_s": {
+      "old": 7.972460019052028,
+      "new": 7.980000019073486
+     }
+    },
+    "cascade": {
+     "success": {
+      "old": 0.887,
+      "new": 0.903
+     },
+     "crash": {
+      "old": 0.005,
+      "new": 0.006
+     },
+     "time_out": {
+      "old": 0.995,
+      "new": 0.994
+     },
+     "final_pos_err": {
+      "old": 0.06101708834292367,
+      "new": 0.06283478593546897
+     },
+     "episode_length_s": {
+      "old": 7.948080018877983,
+      "new": 7.937420018851757
+     }
+    }
+   }
+  },
+  "logs/eval/reverify/Quadsim-Hover-v0_regress.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.013774384458200074,
+      "new": 0.012563481704215519
+     },
+     "episode_length_s": {
+      "old": 7.972460019052028,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/reverify/Quadsim-Hover-v0_regress_final.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "episodes_new": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.999,
+      "new": 0.999
+     },
+     "crash": {
+      "old": 0.001,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 0.999,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.013774360691546462,
+      "new": 0.012563481704215519
+     },
+     "episode_length_s": {
+      "old": 7.972460019052028,
+      "new": 7.980000019073486
+     }
+    },
+    "cascade": {
+     "success": {
+      "old": 0.887,
+      "new": 0.903
+     },
+     "crash": {
+      "old": 0.005,
+      "new": 0.006
+     },
+     "time_out": {
+      "old": 0.995,
+      "new": 0.994
+     },
+     "final_pos_err": {
+      "old": 0.06101708834292367,
+      "new": 0.06283478593546897
+     },
+     "episode_length_s": {
+      "old": 7.948080018877983,
+      "new": 7.937420018851757
+     }
+    }
+   }
+  },
+  "logs/eval/reverify/Quadsim-Track-v0_nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "crash": {
+      "old": 0.0,
+      "new": 0.002
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 0.998
+     },
+     "track_rmse": {
+      "old": 0.12235597892478109,
+      "new": 0.12587112298607825
+     },
+     "episode_length_s": {
+      "old": 9.979999542236328,
+      "new": 9.973719542503357
+     }
+    }
+   }
+  },
+  "logs/eval/reverify/Quadsim-Waypoint-v0_nominal.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 501
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.9880239520958084,
+      "new": 0.994
+     },
+     "crash": {
+      "old": 0.011976047904191617,
+      "new": 0.006
+     },
+     "time_out": {
+      "old": 0.9880239520958084,
+      "new": 0.994
+     },
+     "time_to_finish": {
+      "old": 6.555393775785812,
+      "new": 6.660724178406315
+     },
+     "episode_length_s": {
+      "old": 6.5497802779108225,
+      "new": 6.669919839382172
+     }
+    }
+   }
+  },
+  "logs/eval/safe/Quadsim-Waypoint-SpeedCost-v0_safe_lagrangian_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 504
+   },
+   "episodes_new": {
+    "policy": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.876984126984127,
+      "new": 0.876
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "cost": {
+      "old": 0.08166665413106482,
+      "new": 0.0811999874189496
+     },
+     "time_to_finish": {
+      "old": 11.862443168778226,
+      "new": 11.888173242682191
+     },
+     "episode_length_s": {
+      "old": 12.263412415035187,
+      "new": 12.288999716758727
+     }
+    }
+   }
+  },
+  "logs/eval/safe/Quadsim-Waypoint-SpeedCost-v0_unconstrained_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 500,
+    "cascade": 501
+   },
+   "episodes_new": {
+    "policy": 500,
+    "cascade": 500
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.994,
+      "new": 0.994
+     },
+     "crash": {
+      "old": 0.006,
+      "new": 0.006
+     },
+     "time_out": {
+      "old": 0.994,
+      "new": 0.994
+     },
+     "cost": {
+      "old": 5.308715898036957,
+      "new": 5.349955874443054
+     },
+     "time_to_finish": {
+      "old": 6.5840239793481965,
+      "new": 6.660724178406315
+     },
+     "episode_length_s": {
+      "old": 6.593679841518402,
+      "new": 6.669919839382172
+     }
+    },
+    "cascade": {
+     "success": {
+      "old": 0.9281437125748503,
+      "new": 0.916
+     },
+     "crash": {
+      "old": 0.021956087824351298,
+      "new": 0.02
+     },
+     "time_out": {
+      "old": 0.9780439121756487,
+      "new": 0.98
+     },
+     "cost": {
+      "old": 6.475965120359334,
+      "new": 6.503116786956787
+     },
+     "time_to_finish": {
+      "old": 10.39574170881702,
+      "new": 10.38192117682711
+     },
+     "episode_length_s": {
+      "old": 10.559720316332971,
+      "new": 10.599919756412506
+     }
+    }
+   }
+  },
+  "logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000,
+    "cascade": 1003
+   },
+   "episodes_new": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "crash": {
+      "old": 0.005,
+      "new": 0.005
+     },
+     "time_out": {
+      "old": 0.995,
+      "new": 0.995
+     },
+     "episode_length_s": {
+      "old": 7.953860018491745,
+      "new": 7.953860018491745
+     }
+    },
+    "cascade": {
+     "success": {
+      "old": 0.5204386839481555,
+      "new": 0.641
+     },
+     "crash": {
+      "old": 0.4795613160518445,
+      "new": 0.359
+     },
+     "time_out": {
+      "old": 0.5204386839481555,
+      "new": 0.641
+     },
+     "episode_length_s": {
+      "old": 2.756590166869216,
+      "new": 3.1287999303936957
+     }
+    }
+   }
+  },
+  "logs/eval/vehicles/Quadsim-Example-Land-v0_land_v2_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000,
+    "cascade": 1003
+   },
+   "episodes_new": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.941,
+      "new": 0.941
+     },
+     "crash": {
+      "old": 0.059,
+      "new": 0.059
+     },
+     "time_out": {
+      "old": 0.941,
+      "new": 0.941
+     },
+     "episode_length_s": {
+      "old": 1.8742599537372588,
+      "new": 1.8766199538707733
+     }
+    },
+    "cascade": {
+     "success": {
+      "old": 0.5204386839481555,
+      "new": 0.641
+     },
+     "crash": {
+      "old": 0.4795613160518445,
+      "new": 0.359
+     },
+     "time_out": {
+      "old": 0.5204386839481555,
+      "new": 0.641
+     },
+     "episode_length_s": {
+      "old": 2.756590166869216,
+      "new": 3.1287999303936957
+     }
+    }
+   }
+  },
+  "logs/eval/vehicles/Quadsim-Hover-Hexa-Motor-v0_hexa_motor_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.013977070233784616,
+      "new": 0.013961975400568918
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  },
+  "logs/eval/vehicles/Quadsim-Hover-Hexa-v0_hexa_ctbr_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "episodes_new": {
+    "policy": 1000,
+    "cascade": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.998,
+      "new": 0.998
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.012118407185189426,
+      "new": 0.012126881654723547
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    },
+    "cascade": {
+     "success": {
+      "old": 0.965,
+      "new": 0.962
+     },
+     "crash": {
+      "old": 0.003,
+      "new": 0.003
+     },
+     "time_out": {
+      "old": 0.997,
+      "new": 0.997
+     },
+     "final_pos_err": {
+      "old": 0.04400645199115388,
+      "new": 0.04457800961681642
+     },
+     "episode_length_s": {
+      "old": 7.958800018906594,
+      "new": 7.960580018818378
+     }
+    }
+   }
+  },
+  "logs/eval/vehicles/Quadsim-Hover-v0_accel_s42.json": {
+   "pass": true,
+   "episodes_old": {
+    "policy": 1000
+   },
+   "episodes_new": {
+    "policy": 1000
+   },
+   "metrics": {
+    "policy": {
+     "success": {
+      "old": 0.998,
+      "new": 0.997
+     },
+     "crash": {
+      "old": 0.0,
+      "new": 0.0
+     },
+     "time_out": {
+      "old": 1.0,
+      "new": 1.0
+     },
+     "final_pos_err": {
+      "old": 0.01382530653499998,
+      "new": 0.013950762665830552
+     },
+     "episode_length_s": {
+      "old": 7.980000019073486,
+      "new": 7.980000019073486
+     }
+    }
+   }
+  }
+ }
+}

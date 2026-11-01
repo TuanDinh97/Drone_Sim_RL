@@ -380,7 +380,8 @@ def framework():
         sym = il.get("langnav_symbolic", {})
         for tag, lab in (("expert", "scripted expert (privileged)"), ("langnav_sym_bc", "BC (with last action)"),
                          ("langnav_sym_bc_nolang", "BC, instruction removed"),
-                         ("langnav_sym_bc_nolast", "BC, no last action"), ("langnav_sym_bc_v2", "+ unknown words ignored"),
+                         ("langnav_sym_bc_v2_unkavg", "BC, no last action, unknown words averaged in"),
+                         ("langnav_sym_bc_v2", "same policy, unknown words ignored"),
                          ("langnav_sym_dagger1", "+ DAgger round 1"), ("langnav_sym_dagger2", "+ DAgger round 2"),
                          ("langnav_sym_dagger2_clip", "same data, frozen CLIP text encoder")):
             r = sym.get(tag, {})
@@ -403,6 +404,41 @@ def framework():
                           "(training phrasing). Source: \\texttt{imitation.json}.", "tab:fw_il",
                           ["Task", "Policy", "Success (train phr.)", "Success (held-out)", "Wrong / pos. err"], rows,
                           "llccc"))
+    ms = L("multiseed.json")
+    if ms:
+        def srow(lab, st, pct_=True, digits=3):
+            if not st:
+                return None
+            f = (lambda x: f"{100 * x:.1f}") if pct_ else (lambda x: f"{x:.{digits}f}")  # noqa: E731
+            spread = (f"{f(st['mean'])}\\,$\\pm$\\,{f(st['std'])}" if st["std"] is not None
+                      else f"{f(st['mean'])} (1 seed)")
+            return [lab] + ["--" if v is None else f(v) for v in st["per_seed"].values()] + [spread]
+
+        rows = []
+        for var, name in (("v0_ccw_circuits", "Race-v0"), ("v1_both_directions", "Race-v1 (both directions)")):
+            for c in ("random_tracks", "ellipse", "figure8", "wind"):
+                rows.append(srow(f"{name}, success [\\%], {c.replace('_', ' ')}", ms["race"][var][c]["success"]))
+        for c in ("swap4", "wind", "latency"):
+            rows.append(srow(f"Swarm, success [\\%], {c}", ms["swarm"]["ppo"][c]["success"]))
+        rows.append(srow("Swarm, agent collisions [\\%], swap4", ms["swarm"]["ppo"]["swap4"]["agent_collision"]))
+        rows.append(srow("PPO-Lagrangian, episode cost [s] (budget 0.1)", ms["safe"]["ppo_lagrangian"]["cost"], False))
+        rows.append(srow("PPO-Lagrangian, success [\\%]", ms["safe"]["ppo_lagrangian"]["success"]))
+        for fam, name, tags in (("langnav_symbolic", "LangNav map", (("langnav_sym_bc_v2_unkavg", "BC, unknown words averaged"),
+                                                                     ("langnav_sym_bc_v2", "BC"),
+                                                                     ("langnav_sym_dagger2", "DAgger-2"),
+                                                                     ("langnav_sym_dagger2_clip", "DAgger-2 + CLIP"))),
+                                ("langnav_rgb", "LangNav RGB", (("langnav_rgb_bc", "BC"),
+                                                                ("langnav_rgb_dagger1", "DAgger-1"),
+                                                                ("langnav_rgb_dagger1_clip", "DAgger-1 + CLIP")))):
+            for tag, lab in tags:
+                for ph, phl in (("train_phrasing", "train phr."), ("heldout_phrasing", "held-out phr.")):
+                    rows.append(srow(f"{name}, {lab}, success [\\%], {phl}", ms[fam][tag][ph]["success"]))
+        out.append(_table("Multi-seed replication: the published single-seed runs (seed 42; BC seed 0) and two "
+                          "more seeds with identical configurations; mean $\\pm$ sample std over seeds. BC seeds "
+                          "vary initialization and train/validation split on the same demonstrations. Source: "
+                          "\\texttt{multiseed.json}.", "tab:fw_multiseed",
+                          ["Result", "Seed 42 / 0", "Seed 1", "Seed 2", "Mean $\\pm$ std"],
+                          [r for r in rows if r], "lcccc"))
     ex = L("examples_check.json")
     if ex:
         rows = [[k.replace("_", r"\_"), "pass" if r["pass"] else "FAIL",

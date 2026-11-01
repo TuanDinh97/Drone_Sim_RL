@@ -20,7 +20,6 @@
 \newcommand{\ok}{\textcolor{green!50!black}{\textbf{pass}}}
 \newcommand{\pend}{\textcolor{orange!80!black}{\textbf{partial}}}
 \newcommand{\no}{\textcolor{red!70!black}{\textbf{not done}}}
-\newcommand{\TBD}[1]{\textcolor{red}{\textbf{[TBD: #1]}}}
 
 \title{\textbf{quadsim}: A Validated Quadrotor Sim-to-Real Reinforcement-Learning Platform on NVIDIA Isaac Lab\\[4pt]
 \large Technical Report}
@@ -51,7 +50,9 @@ bridge: hover, tracking and waypoint policies transfer at the control level (hov
 2--3\,cm RMS w.r.t.\ the onboard estimate, as in quadsim), while the cross-check exposed four bridge defects, a heave
 limit cycle caused by the thrust-map nonlinearity (removed by an exact thrust-curve map), PX4 EKF2's correlated
 estimate error, an allocation-geometry asymmetry of the rate loop, and a velocity-loop mismatch that limits the
-velocity-interface navigation policy (2/6 vs 87\,\% success; 4/6 after matching PX4's velocity loop). We report what is
+velocity-interface navigation policy (2/6 vs 87\,\% success; 4/6 after matching PX4's velocity loop). A first
+SITL-informed training distribution made the heave mode worse (negative result); a corrected one (3 seeds) removed the
+limit cycle in all 9 SITL flights at the cost of vertical damping and out-of-distribution robustness. We report what is
 verified and, explicitly, what is not (no hardware flight yet), and give a prioritized roadmap toward real-world
 deployment.
 \end{abstract}
@@ -271,7 +272,8 @@ The \emph{v1} tasks (\texttt{Quadsim-\{Hover,Track,Waypoint\}-v1}) add the corre
 cross-check (\cref{sec:sitl}): the EKF-like estimate model, action and estimator delays of 0--4 steps (\SIrange{0}{20}{ms}),
 noise scale $\times[0.5,2]$, a per-episode rate-PID gain scale $\times[0.6,1.4]$ and a thrust-map gain around hover,
 $C=C_h+g\,(C_{\mathrm{cmd}}-C_h)$ with $g\in[0.8,1.7]$, which represents a thrust-curve or calibration error of the
-deployed thrust mapping.
+deployed thrust mapping. \texttt{Quadsim-Hover-v2} additionally restores the v0 white-noise level and penalizes the change
+of the collective command (\cref{sec:v1}).
 
 \subsection{Learning algorithm}
 PPO~\cite{schulman2017ppo} (rsl\_rl 3.1.2) with GAE ($\gamma=0.99,\lambda=0.95$), adaptive learning rate (KL target
@@ -588,7 +590,8 @@ acceptance tests), \texttt{scripts/rl/evaluate.py} (policy evaluation); tables i
 \texttt{docs/results/*.json} by \texttt{scripts/tools/report\_tables.py}.
 \item PX4 SITL: \texttt{ros2/px4\_sitl/setup\_px4\_sitl.sh} (PX4 v1.16.2, ROS~2 Jazzy, Gazebo Harmonic, px4\_msgs from
 the same PX4 tree), \texttt{scripts/sitl/run\_sitl.sh} (one experiment from fresh PX4 parameters to landing),
-\texttt{scripts/sitl/\{compare,compare\_tasks,estimator\_stats,hover\_v1\_summary\}.py} (metrics); the raw
+the metric scripts \texttt{compare.py}, \texttt{compare\_tasks.py}, \texttt{estimator\_stats.py} and
+\texttt{hover\_v1\_summary.py} in \texttt{scripts/sitl/}; the raw
 recordings (ROS-side \texttt{.npz}, bridge step logs, PX4 \texttt{.ulg}) are kept in \texttt{logs/sitl/}.
 \end{itemize}
 

@@ -61,8 +61,8 @@ def main():
             fs = sorted(glob.glob(f"{S}/sitl_{r}_{mp}_r*.npz"))
             if fs:
                 ev = [evaluate_run(f) for f in fs]
-                d[f"sitl_{mp}"] = {"runs": len(ev), "limit_cycle_runs": int(sum(e["hover_collective"]["rms"] > OSC
-                                                                               for e in ev)),
+                n_lc = int(sum(e["hover_collective"]["rms"] > OSC for e in ev))
+                d[f"sitl_{mp}"] = {"runs": len(ev), "limit_cycle_runs": n_lc,
                                    "collective_std": float(np.mean([e["hover_collective"]["rms"] for e in ev])),
                                    "hover_est_rms": float(np.mean([e["hover_est"]["rms_3d"] for e in ev])),
                                    "step_x_settling": float(np.nanmean([e["step_x_est"]["settling_s"] for e in ev])),

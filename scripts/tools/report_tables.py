@@ -216,8 +216,8 @@ def sitl():
                 cells = []
                 for g in groups:
                     r = sitl_by[g].get(int(li))
-                    cells.append("--" if r is None else ("goal" if r["success"] else ("collision" if r["collision"]
-                                                                                       else "timeout")))
+                    outc = None if r is None else ("goal" if r["success"] else "collision" if r["collision"] else "timeout")
+                    cells.append(outc or "--")
                 nob = len(lay[int(li)]["cylinders"]) if lay else ""
                 rows.append(f"{li} & {nob} & {100 * ql['success']:.0f} / {100 * ql['collision']:.0f} & " +
                             " & ".join(cells) + "\\\\")
@@ -249,8 +249,20 @@ def hover_v1():
             ("SITL linear map: $x$ step settling [s]", "sitl_linear", "step_x_settling", 1, 2),
             ("SITL curve map: collective std", "sitl_curve", "collective_std", 1, 3),
             ("SITL curve map: hover RMS w.r.t. estimate [cm]", "sitl_curve", "hover_est_rms", 100, 2)]
+    def total(fam, sec):  # limit-cycle runs summed over seeds
+        st = f[fam].get(sec, {})
+        if "limit_cycle_runs" not in st:
+            return "--"
+        return f"{int(sum(st['limit_cycle_runs']['values']))} / {int(sum(st['runs']['values']))}"
+
     lines = []
     for lab, sec, key, sc, dg in rows:
+        if key == "limit_cycle_runs":
+            lines.append(" & ".join([lab] + [total(k, sec) for k in fams]) + "\\\\")
+            if sec == "sitl_linear":
+                lines.append(" & ".join(["SITL curve map: runs with limit cycle"] + [total(k, "sitl_curve") for k in fams])
+                             + "\\\\")
+            continue
         cells = [_ms(f[k].get(sec, {}), key, sc, dg) for k in fams]
         if all(c == "--" for c in cells):
             continue

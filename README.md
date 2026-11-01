@@ -31,6 +31,7 @@ the simulator bit-for-bit (to 1e-6) through a framework-free deployment interfac
 | PX4 SITL: tracking (circle / figure-8), estimate-referenced RMSE | **2.2 / 3.4 cm** (quadsim 2.5 / 3.0 cm) | `docs/results/sitl_tasks.json` |
 | PX4 SITL: waypoint course | completed in all runs, 6.7 s (quadsim 5.1 s) | same |
 | PX4 SITL: range navigation (velocity interface), default / matched PX4 velocity loop | **2/6 / 4/6** goals (quadsim 87 %) | same |
+| Hover, 3 seeds each, training distributions v0 / v1 / v2: SITL heave limit cycle (linear thrust map) | 1/6 / 4/6 / **0/6** runs | `docs/results/hover_v1.json` |
 
 SITL also found four bridge bugs (incl. a missing failsafe path), a heave limit cycle caused by the linear thrust map
 (fixed by an exact thrust-curve map), EKF2's correlated estimate error, PX4's slower rate and velocity loops and a SITL
@@ -77,6 +78,7 @@ classical baselines under identical seeds.
 | `Quadsim-Nav-Depth-Render-v0` | same, RTX-rendered depth | velocity | state + depth |
 | `Quadsim-Nav-RGB-v0` / `-RGBD-v0` | RTX-rendered RGB / RGB-D | velocity | state + image |
 | `Quadsim-{Hover,Track,Waypoint}-v1` | same tasks, sim-to-real distribution identified in PX4 SITL (EKF-like estimate errors, 0–20 ms latency, rate-loop and thrust-map gain randomization) | CTBR | as v0 |
+| `Quadsim-Hover-v2` | v1 + v0-level white estimate noise + collective-rate penalty (no SITL heave limit cycle, see PROGRESS) | CTBR | as v0 |
 
 **Data & tooling**: synchronized HDF5 recording (truth, estimates, IMU, baro, actions, rotor speeds, wind,
 images), plotting, GUI viewer / MP4 recording with target markers, throughput benchmark.
@@ -110,7 +112,7 @@ proxy), fetch the base image with `python3 scripts/tools/pull_image_via_proxy.py
 
 ## Quick start
 ```bash
-python -m pytest tests/core -q                                         # 80 unit tests (~15 s)
+python -m pytest tests/core -q                                         # 78 unit tests (~15 s)
 python scripts/validation/m2_dynamics_validation.py --headless        # PhysX vs reference dynamics
 python scripts/rl/train.py --task Quadsim-Hover-v0 --headless         # ~10 min on an RTX 5060
 python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers policy cascade \

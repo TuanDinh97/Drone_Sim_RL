@@ -225,9 +225,12 @@ class OdometryModel:
         c = self.cfg
         if c.enabled:
             s = self.noise_scale
-            pos_w = pos_w + self.drift.step(self.sim_dt) + s * (torch.randn_like(pos_w) * c.pos_noise_std + self.bias
-                                                                 + self.pos_gm.step(self.sim_dt))
-            lin_vel_w = lin_vel_w + s * (torch.randn_like(lin_vel_w) * c.vel_noise_std + self.vel_gm.step(self.sim_dt))
+            # v0 terms with the exact v0 arithmetic and random-draw order (bit-identical v0 results); the EKF-like terms
+            # (zero unless configured) are added separately
+            pos_w = pos_w + self.drift.step(self.sim_dt) + s * torch.randn_like(pos_w) * c.pos_noise_std
+            pos_w = pos_w + s * (self.bias + self.pos_gm.step(self.sim_dt))
+            lin_vel_w = lin_vel_w + s * torch.randn_like(lin_vel_w) * c.vel_noise_std
+            lin_vel_w = lin_vel_w + s * self.vel_gm.step(self.sim_dt)
             dq = quat_exp_rotvec(s * torch.randn_like(pos_w) * c.att_noise_std)
             quat_w = quat_mul(quat_w, dq)
         return self.delay.push(torch.cat([pos_w, quat_w, lin_vel_w, ang_vel_b], -1))

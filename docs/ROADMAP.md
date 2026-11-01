@@ -16,8 +16,10 @@ Ordered by dependency; each milestone has explicit acceptance criteria that are 
 ## Beyond the current scope (future work, prioritized)
 1. Real-flight system identification (thrust stand, k_f, k_m, τ; bifilar pendulum inertia) for the target vehicle; update presets.
 2. PX4 SITL/HITL loop: run exported policy as an offboard ROS 2 node against PX4 SITL (gz x500) to cross-check dynamics.
-   **SITL done for the hover policy** (docs/PROGRESS.md, "PX4 SITL cross-check"); next: tracking/waypoint policies in SITL,
-   rate-loop identification/matching, EKF2-like estimate errors in training, HITL.
+   **SITL done** for hover, tracking, waypoint and range-navigation policies (docs/PROGRESS.md, sessions 2–3), incl.
+   rate- and velocity-loop identification and SITL-informed training distributions (v1 negative, v2 removes the heave
+   limit cycle). Next: navigation trained with an identified/randomized autopilot velocity loop, tracking/waypoint on
+   v2-like distributions, rendered gz camera for depth policies, HITL latency measurement.
 3. Hardware-in-the-loop latency measurement and estimator-in-the-loop (PX4 EKF2 outputs replace the odometry noise model).
 4. Rendered-camera domain randomization (textures, lighting, sim-to-real image gap), event cameras.
 5. Isaac Lab 3.x migration (Isaac Sim 6.2, quaternion xyzw convention change; the core is framework-agnostic to ease this).

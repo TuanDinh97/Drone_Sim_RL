@@ -316,11 +316,11 @@ sim-to-sim gaps found in SITL into improvements of the training environment. Wor
 ### Re-verification of reported results ✅
 | item | reported | re-run (this session) | verdict |
 |---|---|---|---|
-| unit tests | 48 (README) / 60 | 80 pass (new tests added) | ✅ |
+| unit tests | 48 (README) / 60 | 78 pass (new tests added) | ✅ |
 | env smoke test (6 non-camera tasks) | pass | pass | ✅ |
 | M2 dynamics (x500) | all pass | all pass | ✅ |
 | M6 deploy consistency (hover) | obs 9.5e-7, success 99.8 % | identical | ✅ |
-| hover eval, 1000 ep. (PPO / cascade) | 99.9 % 1.38 cm / 88.7 % 6.1 cm | **bit-identical** (also after this session's code changes) | ✅ |
+| hover eval, 1000 ep. (PPO / cascade) | 99.9 % 1.38 cm / 88.7 % 6.1 cm | **bit-identical** at full precision, also with the final code of this session | ✅ |
 | tracking eval, 500 ep. | 12.6 ± 1.5 cm | 12.2 cm | ✅ within CI (original used 250 envs, re-run 500 → other samples; `evaluate.py` now records `num_envs`) |
 | waypoint eval, 500 ep. | 99.4 ± 0.7 % | 98.8 % | ✅ within CI (same reason) |
 | camera tasks (rendered depth, RGB, RGB-D), 16 envs | pass | finite obs, image shapes 1/3/4×48×64 | ✅ |
@@ -399,7 +399,10 @@ Same reference / course / layouts in both simulators (`scripts/sitl/quadsim_task
   3–4× larger in SITL because of EKF2's correlated error.
 - **Waypoints**: course completed in every SITL run (also 1 extra geometry-fix run), but 6.3–7.0 s instead of 5.13 s.
   Ruled out: body drag (quadsim without body drag: 5.13 s), allocation geometry (6.29 s). At up to 7 m/s EKF2's error
-  reaches 30 cm, so on truth some waypoints are passed just outside the 0.3 m radius. AIRMODE_PLACEHOLDER
+  reaches 30 cm, so on truth some waypoints are passed just outside the 0.3 m radius. PX4 roll/pitch air mode
+  (`MC_AIRMODE=1`, keeps attitude authority at saturated thrust): 6.45 / 6.20 s — within the spread, no clear change.
+  Cause still open (remaining candidates: EKF2's error at 7 m/s affecting the estimate-based switching and the
+  approach geometry, differences in motor saturation at full thrust).
 - **Navigation (velocity interface) — largest gap.** With PX4's default velocity controller 2/6 layouts reached the goal
   (quadsim 87 %). Velocity-loop identification (FOPDT, lateral axis): PX4 default L = 0.21 s, τ = 0.52 s; quadsim cascade
   L = 0.14 s, τ = 0.22 s (`MPC_XY_VEL_P_ACC` 1.8 vs simulated 3.0). PX4 configured like the simulated cascade
@@ -414,14 +417,49 @@ Gauss–Markov position/velocity errors; levels from SITL EKF2, widened), action
 ×[0.5, 2], rate-PID gain ×[0.6, 1.4], thrust-map gain around hover ×[0.8, 1.7]. All new terms are off in the v0 tasks
 (v0 evaluations bit-identical, unit test for the unchanged random stream).
 
-HOVER_V1_PLACEHOLDER
+Hover, 3 seeds per training distribution (v0: seed 42 + seeds 1, 2), same evaluation for all
+(`scripts/sitl/hover_v1_summary.py` → `docs/results/hover_v1.json`; quadsim 1000 episodes per seed and condition;
+scenario = hover + 1 m steps with nominal dynamics and a thrust-map gain g; SITL with `EKF2_GPS_DELAY=0`, linear map ×2 and
+curve map ×1 per seed, "limit cycle" = collective-action std > 0.1 in the hover window):
+
+| metric (mean ± std over seeds) | v0 | v1 | v2 |
+|---|---|---|---|
+| quadsim, v0 distribution: success | 99.9 ± 0.1 % | 99.8 ± 0.3 % | 99.2 ± 0.6 % |
+| quadsim, v1 distribution: success (bias-limited, truth-referenced) | 72.9 ± 2.6 % | 75.6 ± 5.4 % | 69.3 ± 5.2 % |
+| quadsim, harsh OOD: success | **78.1 ± 1.3 %** | 66.5 ± 4.3 % | 68.5 ± 2.4 % |
+| scenario g = 1.0: collective std | 0.149 ± 0.016 | 0.211 ± 0.049 | **0.079 ± 0.003** |
+| scenario g = 1.6: vertical velocity RMS [cm/s] | 8.7 ± 1.0 | 9.0 ± 2.3 | 8.6 ± 0.8 |
+| PX4 SITL, linear map: runs with heave limit cycle | 1 / 6 | 4 / 6 | **0 / 6** |
+| PX4 SITL, curve map: runs with heave limit cycle | (v0 s42: 0 / 4, previous section) | 1 / 3 | **0 / 3** |
+| PX4 SITL hover RMS w.r.t. estimate (linear map) [cm] | 1.0 ± 0.1 | 2.2 ± 0.3 | 1.3 ± 0.2 |
+
+Reading:
+- **v1 is a negative result.** Making the estimate noise realistic (correlated, little white noise) and randomizing the
+  thrust gain up to 1.7 produced policies with *more* collective chatter and a less damped heave mode: 4/6 SITL runs with
+  the linear map developed the limit cycle (v0: 1/6), one even with the curve map, hover precision halved, and success under
+  the harsh OOD condition dropped by 12 points. In-distribution performance was unchanged.
+- **v2** (v1 + v0-level white estimate noise + collective-rate penalty, w = 1.0) halves the collective chatter in quadsim
+  relative to v0 (a0 std 0.08 vs 0.15) with v0-level hover precision, and **no heave limit cycle in any of its 9 SITL
+  flights** (3 seeds × linear map ×2 + curve map ×1). Costs: a less damped vertical step (overshoot 7–20 % for two of the
+  three seeds vs 1–2 % for v0 in SITL; one curve-map flight needed 14.5 s to re-enter the 5 cm band after a 20 %
+  overshoot), harsh-OOD success 68.5 % (v0 78.1 %) and a larger final yaw error. No distribution dominates: v0 with the
+  thrust-curve map is the best-validated deployment choice; v2 is the more robust option when only a linear thrust map
+  is available. Next iteration (not done): a z-velocity damping term instead of / with the collective-rate penalty, and
+  isolating which v1 component costs harsh-OOD robustness.
+- The quadsim thrust-gain scenario ranks the policies like SITL does (chattier collective in quadsim → limit cycle in SITL),
+  so it is a cheap pre-deployment screen. The robust deployment-side fix remains the thrust-curve map.
+- Final yaw error in the v0 distribution: v0 0.17, v1 0.16, v2 0.28 rad (weak yaw reward; the collective-rate penalty
+  shifts the trade-off further away from yaw).
 
 ### Defects fixed in this session
 `evaluate.py` did not record `num_envs` (made the tracking/waypoint re-runs look non-reproducible); NavEnv ring docstring
 (true vs estimated pose); SITL harness: rclpy abort at exit (skipped ulog copy), `ls | head` SIGPIPE under pipefail, nav
 analysis window used a different clock origin than the trajectories; `load_policy` could not evaluate a policy in an env
 with a different critic input (now actor-only fallback); new step-log column order (q/velocity swapped) found by the
-analysis and fixed.
+analysis and fixed; a refactor of the odometry noise briefly changed the floating-point association of the v0
+noise terms (1-ulp differences: the cascade baseline evaluated 89.3 % instead of 88.7 %) — caught by the regression check,
+reverted; the final code reproduces both v0 evaluations (PPO and cascade) bit-exactly (all metrics at full precision).
+The session-3 trainings / evaluations ran with the 1-ulp variant (statistically equivalent).
 
 ## Upstream issue found and patched (affects GUI / video)
 - Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the

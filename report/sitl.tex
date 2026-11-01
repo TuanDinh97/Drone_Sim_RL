@@ -11,7 +11,7 @@ re-runnable (\texttt{ros2/px4\_sitl/setup\_px4\_sitl.sh}, \texttt{scripts/sitl/}
 the same unit-tested functions (\texttt{quadsim.deploy.closed\_loop\_metrics}) for quadsim and SITL.
 
 \subsection{Setup and deployment pipeline}
-\begin{figure}[h]\centering
+\begin{figure}[!htbp]\centering
 \begin{tikzpicture}[node distance=6mm and 13mm, every node/.style={font=\footnotesize},
   box/.style={draw, rounded corners=2pt, align=center, minimum height=11mm, inner sep=3pt},
   arr/.style={-{Stealth[length=2mm]}, semithick}, lab/.style={font=\scriptsize, fill=white, inner sep=1pt}]
@@ -88,7 +88,7 @@ white (\SI{1}{cm} position, \SI{3}{cm/s} velocity, \SI{10}{mrad} attitude). In m
 \SI{0.11}{s}: its default GNSS delay compensation (\texttt{EKF2\_GPS\_DELAY}=\SI{110}{ms}, correct for real receivers)
 assumes a latency the gz GNSS does not have. Matching it (0\,ms) removed the lead and halved the truth-referenced
 tracking error (14$\to$\SI{7}{cm}). These statistics define the EKF-like model of the v1 training distribution.
-\begin{table}[h]\centering\small
+\begin{table}[!htbp]\centering\small
 \resizebox{\linewidth}{!}{\input{generated/sitl_estimator.tex}}
 \caption{PX4 EKF2 error vs gz ground truth (\texttt{scripts/sitl/estimator\_stats.py}, \texttt{docs/results/sitl\_estimator.json}).}
 \label{tab:sitl-est}
@@ -97,7 +97,7 @@ tracking error (14$\to$\SI{7}{cm}). These statistics define the EKF-like model o
 \subsection{Hover and set-point steps}
 The scenario of \cref{tab:sitl-hover} holds the hand-over pose for \SI{30}{s} (RMS over 10--30\,s), then steps the goal by
 \SI{1}{m} in $x$ and in $z$; quadsim flies the same schedule with 64 environments starting at the goal.
-\begin{table}[h]\centering\small
+\begin{table}[!htbp]\centering\small
 \resizebox{\linewidth}{!}{\input{generated/sitl_hover.tex}}
 \caption{Hover policy (v0, seed 42), quadsim vs PX4 SITL (number of SITL runs in brackets; $\pm$ = std over envs / runs).
 ``w.r.t. estimate'' measures what the policy regulates; truth-referenced numbers include EKF2's error. These SITL runs
@@ -105,7 +105,7 @@ used PX4's default \texttt{EKF2\_GPS\_DELAY}=\SI{110}{ms}, which slows the $x$ s
 Source: \texttt{docs/results/sitl\_comparison.json}.}
 \label{tab:sitl-hover}
 \end{table}
-\begin{figure}[h]\centering
+\begin{figure}[!htbp]\centering
 \includegraphics[width=\linewidth]{sitl_vs_quadsim.png}
 \caption{Top: \SI{1}{m} steps (quadsim truth, SITL estimate and truth). Middle: hover collective command and vertical
 velocity -- with the linear thrust map PX4 SITL shows a \SI{4}{Hz} heave limit cycle that the thrust-curve map removes.
@@ -131,17 +131,30 @@ $\approx$\SI{10}{ms} longer. (v) PX4's hover-thrust estimate is 0.7295
 \SI{1.3}{cm} low. (vi) Odometry is 5--16\,ms old at the policy step (median per run, max \SI{23}{ms}) -- at and above the
 trained 0--10\,ms.
 
-\subsection{Training distribution v1 and multi-seed comparison}\label{sec:v1}
+\subsection{Training distributions v1 / v2 and multi-seed comparison}\label{sec:v1}
 The findings above define the v1 distribution (\cref{sec:dr}). Hover policies were trained with three seeds on v1 and
-compared with three seeds of v0 (seed 42 plus two new seeds) in quadsim and in SITL (\cref{tab:hover-v1}).
-\begin{table}[h]\centering\small
+compared with three seeds of v0 (seed 42 plus two new seeds) and, after the v1 result, three seeds of a corrected
+distribution v2, in quadsim and in SITL with \texttt{EKF2\_GPS\_DELAY}=0 (\cref{tab:hover-v1}).
+\begin{table}[!htbp]\centering\small
 \resizebox{\linewidth}{!}{\input{generated/hover_v1.tex}}
-\caption{Hover policies trained on v0 vs v1, mean $\pm$ std over 3 seeds. Quadsim: 1000 episodes per seed and
+\caption{Hover policies trained on v0, v1 and v2, mean $\pm$ std over 3 seeds. Quadsim: 1000 episodes per seed and
 condition; scenario: hover + steps with nominal dynamics and a thrust-map gain $g$ (1.6 = linear map on the gz x500).
 SITL: limit-cycle runs = collective std $>0.1$ in hover. Source: \texttt{docs/results/hover\_v1.json}.}
 \label{tab:hover-v1}
 \end{table}
-\TBD{v1 findings}
+\textbf{v1 is a negative result.} Making the training estimate noise realistic (correlated, little white noise) and
+randomizing the thrust-map gain up to 1.7 produced policies with \emph{more} collective chatter: 4 of 6 SITL flights with
+the linear map developed the heave limit cycle (v0: 1 of 6), one even with the curve map, the SITL hover error doubled
+(2.2 vs \SI{1.0}{cm}), and success under the harsh out-of-distribution condition dropped from 78 to 67\,\%, while
+in-distribution performance was unchanged. \textbf{v2} keeps v1's correlated estimate errors, latencies and gain
+randomization, restores v0's white-noise level and adds a collective-rate penalty
+$-w\,(a_{0,k}-a_{0,k-1})^2\Delta t$ ($w=1$). It halves the collective chatter in quadsim (std 0.08 vs 0.15), keeps
+v0's hover precision, and \emph{none} of its 9 SITL flights (3 seeds, linear and curve maps) showed the limit cycle.
+The price is a less damped vertical step (overshoot 7--20\,\% for two seeds vs 1--2\,\% for v0), lower harsh-condition
+success (69\,\%) and a larger yaw error. No training distribution dominates: v0 with the thrust-curve map is the
+best-validated deployment configuration, v2 the more robust choice when only a linear thrust map is available.
+Across all nine policies, the collective chatter in the quadsim thrust-gain scenario ranks the policies as SITL does,
+which makes it a cheap pre-deployment screen.
 
 \subsection{Trajectory tracking and waypoints}
 \Cref{tab:sitl-tasks} compares the tracking policy on a circle ($r=\SI{1}{m}$, \SI{0.2}{Hz}, \SI{1.26}{m/s}) and a figure-8
@@ -150,9 +163,11 @@ Referenced to the estimate, tracking in SITL equals quadsim (circle 2.2 vs \SI{2
 the truth-referenced error is 3--4$\times$ larger because of EKF2's correlated error. The waypoint course was completed
 in every SITL run (policy's own estimate-based switching) but took \SI{6.7}{s} instead of \SI{5.1}{s}; at up to
 \SI{7}{m/s} EKF2's error reaches \SI{30}{cm}, so on truth some waypoints were passed just outside the \SI{0.3}{m} radius.
-Removing quadsim's body drag did not change its time (\SI{5.13}{s}) and fixing the allocation geometry did not change
-SITL's; PX4's saturation handling and slower inner loop are the remaining, not isolated, candidates.
-\begin{table}[h]\centering\small
+Removing quadsim's body drag did not change its time (\SI{5.13}{s}); in SITL neither the true allocation geometry
+(\SI{6.29}{s}) nor roll/pitch air mode (\texttt{MC\_AIRMODE}=1, \SI{6.45}{s} / \SI{6.20}{s}) changed it beyond the
+run-to-run spread. The cause remains open (candidates: EKF2's error at \SI{7}{m/s} acting on the estimate-based
+switching and approach geometry, motor saturation at full thrust).
+\begin{table}[!htbp]\centering\small
 \input{generated/sitl_tasks.tex}
 \caption{Tracking and waypoint policies (v0), quadsim (32 envs) vs PX4 SITL (2 runs each); RMSE after the first
 \SI{2}{s}. Source: \texttt{docs/results/sitl\_tasks.json}.}
@@ -166,8 +181,8 @@ to the training caster, unit-tested), and collisions are evaluated from the grou
 layouts drawn from the full-density training distribution were flown once in SITL and by 32 quadsim environments each
 (\cref{tab:sitl-nav}). With PX4's default velocity controller only 2 of 6 SITL flights reached the goal, against 87\,\%
 quadsim success on the same layouts. Identifying both velocity loops from the flight data explains the gap: PX4's
-lateral velocity response has $L=\SI{0.22}{s}$, $\tau=\SI{0.44}{s}$ (VAF 0.85) against $L=\SI{0.14}{s}$, $\tau=\SI{0.22}{s}$
-for quadsim's simulated cascade -- PX4's default horizontal velocity gain (\texttt{MPC\_XY\_VEL\_P\_ACC}=1.8) is lower than the
+lateral velocity response has $L=\SI{0.21}{s}$, $\tau=\SI{0.52}{s}$ (VAF 0.78, 6 flights) against $L=\SI{0.14}{s}$,
+$\tau=\SI{0.22}{s}$ (VAF 0.91) for quadsim's simulated cascade -- PX4's default horizontal velocity gain (\texttt{MPC\_XY\_VEL\_P\_ACC}=1.8) is lower than the
 simulated one (3.0), so avoidance manoeuvres arrive late. Configuring PX4's velocity controller like the training cascade
 (\texttt{MPC\_XY\_VEL\_P\_ACC}=3.0, D=0, \texttt{MPC\_Z\_VEL\_I\_ACC}=1.0, tilt limit 0.6\,rad) reduced the lateral time constant
 to \SI{0.25}{s} (quadsim \SI{0.22}{s}) and doubled the SITL success to 4 of 6 layouts; the remaining failures are layout~1
@@ -175,7 +190,7 @@ to \SI{0.25}{s} (quadsim \SI{0.22}{s}) and doubled the SITL success to 4 of 6 la
 comes from PX4's attitude and rate chain and is not represented in training. With one SITL flight per layout these rates
 are indicative only; the lesson for deployment is that velocity-interface policies must be trained with the target
 autopilot's velocity-loop dynamics (identified, or randomized over a range that contains them).
-\begin{figure}[h]\centering
+\begin{figure}[!htbp]\centering
 \includegraphics[width=\linewidth]{sitl_nav_layouts.png}
 \caption{PX4 SITL navigation flights in layout coordinates (grey: obstacles, light grey: collision margin of the
 \SI{0.35}{m} vehicle radius; dashed: goal region). With PX4's default velocity controller (orange) avoidance arrives late
@@ -183,7 +198,7 @@ and the vehicle cuts into obstacle margins; with the velocity loop matched to th
 reach the goal.}
 \label{fig:sitl-nav}
 \end{figure}
-\begin{table}[h]\centering\small
+\begin{table}[!htbp]\centering\small
 \resizebox{\linewidth}{!}{\input{generated/sitl_nav.tex}}
 \caption{Navigation layouts: quadsim success / collision rate (32 envs per layout) and the outcome of the PX4 SITL flight
 with PX4's default and with a quadsim-matched velocity controller. Source: \texttt{docs/results/sitl\_tasks.json}.}
@@ -198,6 +213,8 @@ controls (estimate-referenced) their performance matches quadsim; the bridge's s
 white), GNSS delay mis-configuration in SITL, the thrust-map nonlinearity (heave limit cycle; fixed by the curve map),
 PX4's roll/pitch-asymmetric rate loop (allocation geometry), up to \SI{20}{ms} observation age, and -- the
 largest -- PX4's slower velocity loop for the velocity-interface navigation policy.
+\item Training on the SITL-identified distribution is not automatically better: v1 worsened the heave mode, v2 fixed it
+with trade-offs (multi-seed evidence, \cref{tab:hover-v1}); the deployment-side fix (thrust-curve map) is the most robust.
 \item Not done: hardware flights, depth/RGB policies in SITL (needs a rendered camera in gz), retraining the
-navigation policy with a randomized velocity loop.
+navigation policy with a randomized velocity loop, tracking/waypoint policies on the new distributions.
 \end{itemize}

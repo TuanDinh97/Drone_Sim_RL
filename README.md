@@ -30,20 +30,19 @@ touching the simulation core, and evaluate them reproducibly against classical b
 
 | What | Result | Evidence |
 |---|---|---|
-| Core refactor (interfaces as classes, vehicle registry, terms) | **59/59** reference metrics bit-identical (PPO + cascade + SE(3) + potential field) | `scripts/validation/regression_evals.sh`, `docs/results/framework/regression.json` |
+| Core refactor (interfaces as classes, vehicle registry, terms) | **59/59** reference metrics bit-identical (PPO + cascade + SE(3) + potential field), after the refactor and with the final code | `scripts/validation/regression_evals.sh`, `docs/results/framework/regression.json` |
 | Hover benchmark, nominal / mean of 4 OOD conditions (success) | PPO 99.9 / 87.6 %, **SAC 99.9 / 91.3 %**, BC-distilled 99.9 / 91.7 %, cascade 89.8 / 79.2 % | `docs/results/framework/bench_hover_algos.json` |
 | Off-policy SAC / TD3 (new, asymmetric critics) vs the earlier skrl SAC on hover | **99.9 % / 99.6 %** vs 0 % success (TD3's first configuration: 0 %) | `docs/results/framework/offpolicy_hover.json` |
 | Hexarotor from the generic frame generator, PPO (CTBR / 6-D motor actions) vs cascade | **99.8 % / 100 %** (1.2 / 1.4 cm) vs 96.5 % | `docs/results/framework/vehicles_interfaces.json` |
 | Safe RL: waypoint racing with speed ≤ 2 m/s, budget 0.1 s/episode | PPO-Lagrangian **0.082 s** over-speed, 87.7 % success; unconstrained PPO 5.31 s, 99.4 % | `docs/results/framework/safe_rl.json` |
-| Drone racing (2 laps, 7 gates, 5-inch racer), unseen random circuits | PPO **95.2 %**, 2.44 s per lap (11.8 m/s); fixed ellipse 99.6 %; **figure-8 0 %** (trained on one turning direction); gate-aligned cascade 0.7 % | `docs/results/framework/bench_race.json` |
+| Drone racing (2 laps, 7 gates, 5-inch racer), unseen random circuits | PPO **95.2 %**, 2.44 s per lap (11.8 m/s); fixed ellipse 99.6 %; **figure-8 0 %** (trained on one turning direction) → **54 %** when trained on both directions; gate-aligned cascade 0.7 % | `docs/results/framework/bench_race.json` |
 | Multi-agent swap (4 drones, shared policy, centralized critic) | PPO 87.5 % group success, 0.4 % collisions, 2.0 s; tuned potential field 100 %, 6.9 s; straight lines 18 %, 45 % collisions | `docs/results/framework/bench_swarm.json` |
 | RL → BC distillation (hover) | BC student 99.9 %, 1.4 cm (teacher 99.9 %, 1.4 cm) | `docs/results/framework/imitation.json` |
 | Language-conditioned navigation (map + instruction), BC → DAgger | 81 % → **100 %** (expert 100 %); unseen phrasings 60 % with a bag-of-words encoder, **99.8 %** with a frozen pretrained CLIP text tower; without the instruction 12 % | same |
 | Behaviour cloning with the last action as input | 15.8 % (copycat failure) vs 81 % without it | same |
 | Vision-language BC (RGB camera + instruction, no map) → 1 DAgger round | 82 % → **100 %** (train and unseen phrasings) | same |
-| LeRobot v3.0 export of the RGB dataset | 300 episodes / 42 199 frames, images bit-identical after reload | `datasets/lerobot/langnav_rgb/quadsim_export.json` |
-| LeRobot v3.0 export (lerobot 0.4.4 loader) | 200 episodes / 26 722 frames, exact state/action/task match | `datasets/lerobot/*/quadsim_export.json` |
-| Extension examples (vehicle YAML / plugin, GNSS sensor, landing task, reward + curriculum, acceleration interface, ARS algorithm, VLA adapter) | executed in the simulator | `logs/validation/examples_check.json` |
+| LeRobot v3.0 export, verified by reloading with lerobot 0.4.4 | map dataset 200 episodes / 26 722 frames, RGB dataset 300 episodes / 42 199 frames: state, action, task and images exact | `docs/results/framework/imitation.json` |
+| Extension examples (vehicle YAML / plugin, GNSS and 3-D LiDAR sensors, landing task, reward + curriculum, acceleration interface, ARS algorithm, VLA adapter) | **11/11** execute; trained plug-ins: acceleration interface 99.8 %, landing 94.1 % (first reward 0 %, fixed), ARS 46.5 % | `docs/results/framework/examples_check.json`, `vehicles_interfaces.json` |
 
 ## Verified platform results (simulation and PX4 SITL)
 

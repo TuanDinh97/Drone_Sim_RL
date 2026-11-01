@@ -131,6 +131,9 @@ interface, a new algorithm) run through the unmodified scripts.
 \item \textbf{Racing (\cref{tab:fw_race}).} PPO completes two laps on 95\,\% of unseen random circuits at
 \SI{11.8}{m/s} mean speed (\SI{2.4}{s} per lap), transfers to a fixed reference circuit and to wind, but fails
 completely on the figure-8: the training circuits only turn counter-clockwise, the figure-8 alternates directions.
+Retraining with half of the circuits mirrored (both turning directions, same budget) raises the figure-8 completion
+from 0 to 54\,\% while keeping 93--98\,\% elsewhere --- the benchmark located the gap, a one-line change of the training
+distribution closed most of it.
 The classical cascade with gate-aligned waypoints passes about 6 of 14 gates in the episode (15\,s per lap, 40\,\%
 crashes); its first version (straight to the gate centre) crashed into the frames in 99\,\% of the episodes.
 \item \textbf{Multi-agent (\cref{tab:fw_swarm}).} The shared PPO policy coordinates four agents through the

@@ -518,7 +518,9 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
   | cascade (gate-aligned waypoints) success / gates passed | 0.7 % / 5.7 of 14 (40 % crash, 15 s per lap) | 0 % / 6.8 | 0 % / 5.9 | 0.7 % / 5.8 |
   PPO flies at 11.8 m/s mean speed. The figure-8 failure is a generalization gap the benchmark exposes: the training
   circuits only turn counter-clockwise, the figure-8 alternates turning directions. Follow-up `Quadsim-Race-v1`
-  (circuits of both directions) — results below. The first cascade racing baseline (straight to the gate centre)
+  (half of the random circuits mirrored = clockwise; same budget, 28 min): random 92.8 %, ellipse 97.8 %, wind 94.2 %
+  and **figure-8 0 % → 54.3 %** (3.70 s per lap; the remaining failures are crashes, 45.7 %). Training on both turning
+  directions removes most of the gap; turning-direction changes within a lap and the self-crossing remain harder. The first cascade racing baseline (straight to the gate centre)
   crashed into the frames in 99 % of the episodes; the gate-aligned version (approach point 1.5 m in front of the gate,
   then along the normal) is the one reported.
 - Multi-agent swap (`Quadsim-Swarm-v0`: 4 x500 agents per group, velocity interface, shared policy, centralized critic,
@@ -541,7 +543,7 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
   scripted expert 100 %; 2000 expert episodes):
   | policy | train phrasing | held-out phrasing |
   |---|---|---|
-  | BC with last action in the input | 15.8 % (83 % flew into the target: copycat) | — |
+  | BC with last action in the input | 15.8 % (83 % flew into the target: copycat) | 20.4 % |
   | BC without the instruction tokens | 12.2 % (≈ chance of picking the pillar) | 12.2 % |
   | BC without last action | 81.0 % (0 % wrong pillar) | 34.4 % |
   | + out-of-vocabulary words ignored by the encoder | 81.0 % | 65.3 % |

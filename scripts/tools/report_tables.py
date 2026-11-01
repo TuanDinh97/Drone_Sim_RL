@@ -286,8 +286,8 @@ def _table(caption, label, cols, rows, spec=None):
     head = " & ".join(cols)
     body = "\n".join(" & ".join(r) + "\\\\" for r in rows)
     return (f"\\begin{{table}}[!htbp]\\centering\\small\\caption{{{caption}}}\\label{{{label}}}\n"
-            f"\\resizebox{{\\linewidth}}{{!}}{{\\begin{{tabular}}{{{spec}}}\\toprule\n{head}\\\\\\midrule\n{body}\n"
-            "\\bottomrule\\end{tabular}}\n\\end{table}\n\n")
+            f"\\begin{{adjustbox}}{{max width=\\linewidth}}\\begin{{tabular}}{{{spec}}}\\toprule\n{head}\\\\\\midrule\n"
+            f"{body}\n\\bottomrule\\end{{tabular}}\\end{{adjustbox}}\n\\end{{table}}\n\n")
 
 
 def framework():
@@ -408,7 +408,7 @@ def framework():
         rows = [[k.replace("_", r"\_"), "pass" if r["pass"] else "FAIL",
                  f"{100 * r['metrics']['success']:.0f}\\,\\%" if r.get("metrics", {}).get("success") is not None
                  else "--"] for k, r in ex.items()]
-        out.append(_table("Extension examples executed in the simulator (\\texttt{scripts/validation/examples\\_check.py}); "
+        out.append(_table("Extension examples executed in the simulator (\\texttt{examples\\_check.py}); "
                           "success of the classical baseline where the check is an evaluation.", "tab:fw_examples",
                           ["Example", "Result", "Baseline success"], rows, "lcc"))
     w("fw_results.tex", "".join(out))

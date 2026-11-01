@@ -40,8 +40,8 @@
   },
   "sensor_gnss": {
     "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/train.py --headless --task Quadsim-Example-Hover-GNSS-v0 --plugins examples/custom_sensor.py --num_envs 256 --max_iterations 5 --run_name excheck_sensor_gnss",
-    "wall_s": 13.085623741149902,
-    "run_dir": "logs/rsl_rl/quadsim_hover/2026-11-01_13-24-50_excheck_sensor_gnss",
+    "wall_s": 12.836663246154785,
+    "run_dir": "logs/rsl_rl/quadsim_hover/2026-11-01_16-19-57_excheck_sensor_gnss",
     "checkpoints": 2,
     "pass": true
   },
@@ -66,8 +66,8 @@
   },
   "reward_curriculum": {
     "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/train.py --headless --task Quadsim-Example-Hover-Curriculum-v0 --plugins examples/custom_reward_curriculum.py --num_envs 256 --max_iterations 5 --run_name excheck_reward_curriculum",
-    "wall_s": 13.183733224868774,
-    "run_dir": "logs/rsl_rl/quadsim_hover/2026-11-01_13-25-26_excheck_reward_curriculum",
+    "wall_s": 13.385141372680664,
+    "run_dir": "logs/rsl_rl/quadsim_hover/2026-11-01_16-20-47_excheck_reward_curriculum",
     "checkpoints": 2,
     "pass": true
   },
@@ -103,7 +103,19 @@
   },
   "sensor_lidar_nav": {
     "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/evaluate.py --headless --task Quadsim-Example-Nav-Lidar-v0 --controllers potential_field --episodes 100 --num_envs 100 --out_dir logs/validation/examples --tag excheck_sensor_lidar_nav env.curriculum=False --plugins examples/custom_sensor.py",
-    "wall_s": 5.732158422470093,
-    "pass": false
+    "wall_s": 37.21879506111145,
+    "pass": true,
+    "metrics": {
+      "crash": 0.07079646017699115,
+      "time_out": 0.9292035398230089,
+      "episode_length_s": 13.953450992044095,
+      "success": 0.49557522123893805,
+      "collision": 0.04424778761061947,
+      "min_clearance": 0.7613044048832581,
+      "time_to_goal": 9.501071180616107,
+      "path_length": 13.79967028754098,
+      "active_obstacles": 11.044247787610619,
+      "curriculum_max_obstacles": 24.0
+    }
   }
 }

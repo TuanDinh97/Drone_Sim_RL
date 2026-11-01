@@ -151,6 +151,19 @@ class WaypointSafeV1EnvCfg(WaypointSafeEnvCfg):
 
 
 @configclass
+class WaypointSafeV2EnvCfg(WaypointSafeEnvCfg):
+    """Waypoint-Safe with a constraint curriculum: 300 unconstrained iterations, then the budget shrinks
+    geometrically from 5 s (about the unconstrained policy's over-speed time) to 0.1 s over 600 iterations. (v1, a
+    warm-up followed directly by the 0.1 s budget, drove the multiplier to its maximum and the policy collapsed.)"""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.safety.warmup_steps = 300 * 32
+        self.safety.cost_limit_start = 5.0
+        self.safety.anneal_steps = 600 * 32
+
+
+@configclass
 class HoverSensorsEnvCfg(HoverEnvCfg):
     """Configuration-only task extension: extra deployable sensors (downward rangefinder at 25 Hz with 20 ms latency,
     barometer) and an energy-efficiency reward term, without touching the hover task's code."""
@@ -254,6 +267,7 @@ _TASKS = {
     "Quadsim-Waypoint-SpeedCost-v0": (WaypointEnv, WaypointSpeedCostEnvCfg, "WaypointPPORunnerCfg"),
     "Quadsim-Waypoint-Safe-v0": (WaypointEnv, WaypointSafeEnvCfg, "WaypointSafePPORunnerCfg"),
     "Quadsim-Waypoint-Safe-v1": (WaypointEnv, WaypointSafeV1EnvCfg, "WaypointSafePPORunnerCfg"),
+    "Quadsim-Waypoint-Safe-v2": (WaypointEnv, WaypointSafeV2EnvCfg, "WaypointSafePPORunnerCfg"),
     "Quadsim-Hover-Sensors-v0": (HoverEnv, HoverSensorsEnvCfg, "HoverPPORunnerCfg"),
     "Quadsim-Hover-Hexa-v0": (HoverEnv, HoverHexaEnvCfg, "HoverHexaPPORunnerCfg"),
     "Quadsim-Hover-Hexa-Motor-v0": (HoverEnv, HoverHexaMotorEnvCfg, "HoverHexaPPORunnerCfg"),

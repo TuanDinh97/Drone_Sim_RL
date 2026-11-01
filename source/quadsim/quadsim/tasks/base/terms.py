@@ -121,6 +121,10 @@ class SafetyCfg:
     warmup_steps: int = 0
     """Policy steps before the multiplier starts to move (it stays at ``lambda_init`` and the costs of that period
     are discarded): lets the policy learn the task before the constraint is enforced."""
+    cost_limit_start: float | None = None
+    """Constraint curriculum: after the warm-up the budget starts here and decreases geometrically to ``cost_limit``
+    over ``anneal_steps`` policy steps (None: constant budget)."""
+    anneal_steps: int = 0
     normalize: bool = True
     """Divide the Lagrangian reward by (1 + lambda) to keep its scale bounded."""
 
@@ -213,6 +217,14 @@ class TermManager:
         self.episode_cost += self.cost
         return self.cost
 
+    def current_cost_limit(self) -> float:
+        """Budget of the constraint at the current step (constant unless a curriculum is configured)."""
+        s = self.safety
+        if s.cost_limit_start is None or s.anneal_steps <= 0:
+            return s.cost_limit
+        f = min(max((self._steps - s.warmup_steps) / s.anneal_steps, 0.0), 1.0)
+        return s.cost_limit_start * (s.cost_limit / s.cost_limit_start) ** f
+
     def shape_reward(self, reward: torch.Tensor) -> torch.Tensor:
         """Lagrangian reward (safe RL); also performs the periodic multiplier update."""
         s = self.safety
@@ -222,7 +234,7 @@ class TermManager:
         elif self._steps % max(s.update_period_steps, 1) == 0 and self._finished_costs:
             jc = torch.cat(self._finished_costs).mean().item()
             self._finished_costs.clear()
-            err = jc - s.cost_limit
+            err = jc - self.current_cost_limit()
             self._i_term = min(max(0.0, self._i_term + s.ki * err), s.lambda_max)  # anti-windup
             d = max(0.0, jc - self._prev_cost)
             self._prev_cost = jc
@@ -264,6 +276,7 @@ class TermManager:
                     self._finished_costs.append(done.clone())
                 log["Safety/episode_cost"] = done.mean().item()
             log["Safety/lambda"] = self.lagrange
+            log["Safety/cost_limit"] = self.current_cost_limit()
             for k, v in self.cost_sums.items():
                 log[f"Episode_Cost/{k}"] = v[env_ids].mean().item()
                 v[env_ids] = 0.0

@@ -446,3 +446,16 @@ def test_lagrangian_warmup_holds_the_multiplier():
     tm._finished_costs.append(torch.ones(4))
     tm.shape_reward(torch.zeros(4))
     assert tm.lagrange > 0.0
+
+
+def test_lagrangian_budget_curriculum():
+    env = _FakeEnv(4)
+    cfg = terms.TermsCfg(costs={"c": terms.CostTermCfg(func=lambda e: torch.ones(e.num_envs))})
+    safety = terms.SafetyCfg(lagrangian=True, cost_limit=0.1, cost_limit_start=10.0, warmup_steps=10, anneal_steps=100)
+    tm = terms.TermManager(env, cfg, safety)
+    assert tm.current_cost_limit() == pytest.approx(10.0)
+    tm._steps = 60  # halfway through the curriculum: geometric mean of the two budgets
+    assert tm.current_cost_limit() == pytest.approx(1.0)
+    tm._steps = 1000
+    assert tm.current_cost_limit() == pytest.approx(0.1)
+    assert terms.TermManager(env, cfg, terms.SafetyCfg(lagrangian=True, cost_limit=0.1)).current_cost_limit() == 0.1

@@ -7,6 +7,10 @@ import gymnasium as gym
 
 from isaaclab.utils import configclass
 
+from quadsim.isaac.patches import apply_isaaclab_patches
+
+apply_isaaclab_patches()
+
 from .base import QuadrotorEnv, QuadrotorEnvCfg
 from .hover.hover_env import HoverEnv, HoverEnvCfg
 from .navigation.nav_env import NavEnv, NavEnvCfg

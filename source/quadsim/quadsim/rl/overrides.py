@@ -24,4 +24,4 @@ def apply_overrides(env_cfg, agent_cfg, overrides: list[str]):
         if not hasattr(obj, path[-1]):
             raise AttributeError(f"override '{key}': no field '{path[-1]}'")
         setattr(obj, path[-1], _parse(val))
-        print(f"[override] {key} = {getattr(obj, path[-1])!r}")
+        print(f"[override] {key} = {getattr(obj, path[-1])!r}", flush=True)

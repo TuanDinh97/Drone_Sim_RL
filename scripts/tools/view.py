@@ -22,7 +22,7 @@ parser.add_argument("--num_envs", type=int, default=16)
 parser.add_argument("--steps", type=int, default=1000)
 parser.add_argument("--video", action="store_true")
 parser.add_argument("--out", default="outputs/videos")
-parser.add_argument("--follow", action="store_true", default=True)
+parser.add_argument("--no_follow", action="store_true", help="fixed camera at the env origin instead of a chase camera")
 parser.add_argument("--seed", type=int, default=0)
 AppLauncher.add_app_launcher_args(parser)
 args, overrides = parser.parse_known_args()
@@ -44,8 +44,9 @@ def main():
     apply_overrides(cfg, agent_cfg_for(args.task), overrides)
     cfg.seed = args.seed
     cfg.debug_vis = True
+    # start with a fixed origin: following an asset during start-up reads PhysX poses before they exist
     cfg.viewer = ViewerCfg(eye=(-2.5, -2.5, 1.6), lookat=(0.0, 0.0, 0.0), resolution=(1280, 720),
-                           origin_type="asset_root" if args.follow else "env", asset_name="robot", env_index=0)
+                           origin_type="env", asset_name="robot", env_index=0)
     env = gym.make(args.task, cfg=cfg, render_mode="rgb_array" if args.video else None)
     if args.video:
         os.makedirs(args.out, exist_ok=True)
@@ -54,6 +55,8 @@ def main():
                                        video_length=args.steps, disable_logger=True)
     u = env.unwrapped
     obs, _ = env.reset()
+    if not args.no_follow and u.viewport_camera_controller is not None:
+        u.viewport_camera_controller.update_view_to_asset_root("robot")  # chase camera, now that physics is live
     if args.checkpoint:
         ckpt = args.checkpoint if args.checkpoint.endswith(".pt") else latest_checkpoint(args.checkpoint)
         pol = load_policy(ckpt, env, task=args.task)

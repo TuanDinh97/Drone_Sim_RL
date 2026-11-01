@@ -1,0 +1,478 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx,booktabs,siunitx,multirow,array,tabularx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink,capitalise]{cleveref}
+\usepackage{enumitem}
+\usepackage{caption}
+\setlist{nosep,leftmargin=*}
+\sisetup{detect-all}
+\graphicspath{{../docs/figures/}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\vect}[1]{\bm{#1}}
+\newcommand{\ok}{\textcolor{green!50!black}{\textbf{pass}}}
+\newcommand{\pend}{\textcolor{orange!80!black}{\textbf{partial}}}
+\newcommand{\no}{\textcolor{red!70!black}{\textbf{not done}}}
+
+\title{\textbf{quadsim}: A Validated Quadrotor Sim-to-Real Reinforcement-Learning Platform on NVIDIA Isaac Lab\\[4pt]
+\large Technical Report}
+\author{Drone\_Sim\_RL project}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We present \emph{quadsim}, a GPU-parallel quadrotor simulation and reinforcement-learning (RL) platform built on
+Isaac Lab~v2.3.2 and Isaac Sim~5.1. The platform couples a framework-agnostic PyTorch model of multirotor
+physics (asymmetric first-order motors, rotor and body drag, gyroscopic and reaction torques, ground effect,
+wind) with PhysX rigid-body integration, models the onboard sensing chain (IMU, barometer, state estimate,
+depth/RGB cameras, range sensing) including noise, bias and latency, and exposes hover, trajectory tracking,
+waypoint and vision-based obstacle-avoidance tasks with deployable observations only. Every component is
+validated against analytic solutions or an independent integrator: PhysX trajectories match the reference
+integrator to \SI{0.4}{mm} over \SI{1.5}{s} of open-loop flight, RTX-rendered depth matches our analytic GPU ray
+caster to \SI{7}{mm} median error, and the exported ONNX policy, driven by a NumPy deployment interface,
+reproduces simulator observations and actions to $10^{-6}$ in closed loop. PPO policies trained in minutes on an
+8\,GB consumer GPU outperform classical cascade and geometric controllers under identical noise, latency and
+randomization. We report what is verified and, explicitly, what is not (no hardware or PX4-SITL flights yet), and
+give a prioritized roadmap toward real-world deployment.
+\end{abstract}
+
+\tableofcontents
+\clearpage
+
+%==========================================================================================
+\section{Introduction and scope}
+Learning-based quadrotor control has reached champion-level performance in drone racing~\cite{kaufmann2023champion}
+and robust low-level control learned in seconds~\cite{eschmann2024learning}. Such results rest on simulators whose
+physics and sensing are close enough to reality, and on disciplined interfaces between policy and vehicle. The
+goal of this project is a \emph{research-grade} platform with these properties, prioritizing verified functionality
+over feature count.
+
+\paragraph{Hardware note.} The original brief targeted an RTX~5070 (12\,GB). The actual machine has an
+\textbf{RTX~5060 with 8\,GB} (Blackwell, sm\_120), Ubuntu~24.04, an i5-14600KF and 32\,GB RAM. All budgets
+(env counts, image sizes) were chosen for 8\,GB.
+
+\paragraph{Validation policy.} Each milestone has measurable acceptance criteria that are executed by scripts in
+\texttt{scripts/validation}; results are stored as JSON in \texttt{docs/results} and summarized in
+\texttt{docs/PROGRESS.md}. RL results distinguish \emph{training execution} from \emph{demonstrated policy
+performance}, which is always measured by a separate deterministic evaluation with confidence intervals.
+
+%==========================================================================================
+\section{Framework selection and related work}
+\textbf{Isaac Lab} offers GPU-parallel PhysX simulation, tiled RTX rendering and RL integrations. At the time of
+writing the latest releases were v2.3.2 (Isaac Sim 5.1) and v3.0.0 (Isaac Sim 6.2). We selected
+\textbf{v2.3.2 + Isaac Sim 5.1}: it is the latest stable pair, it is available as an official container
+(\texttt{nvcr.io/nvidia/isaac-lab:2.3.2}), and v3.0 introduces breaking changes (quaternion convention
+$wxyz\!\to\!xyzw$, multi-backend refactor). The physics core of quadsim is framework-agnostic to ease a later
+migration.
+
+\textbf{Existing quadrotor components.} Isaac Lab's \texttt{Isaac-Quadcopter-Direct} task applies a body wrench
+directly from actions without motor dynamics; the \texttt{isaaclab\_contrib} multirotor asset (from the Aerial
+Gym authors~\cite{kulkarni2025aerialgym}) adds a first-order thruster model with an allocation matrix. Aerial
+Gym~\cite{kulkarni2025aerialgym} and OmniDrones~\cite{xu2024omnidrones} provide broader multirotor suites on
+Isaac Gym / Isaac Sim. We reused ideas (asymmetric motor time constants, allocation matrices, depth-based navigation
+in cluttered environments) but implemented our own model to obtain (i) rotor drag, gyroscopic, reaction and
+ground-effect terms, (ii) unit-testability without a simulator, and (iii) an independent reference integrator for
+validation. The vehicle parameters follow the PX4 SITL Gazebo model of the Holybro X500 so that results can be
+cross-checked against PX4 SITL later.
+
+\textbf{Network constraint.} NVIDIA's asset CDN (Nucleus/S3) was effectively unreachable from the development
+network (the stock quadcopter task did not finish loading its USD within \SI{625}{s}), and NGC refused direct
+container pulls (HTTP~403). Consequently all assets are \emph{procedural} and the container base image is fetched
+through the user's proxy by a small registry client with digest verification.
+
+%==========================================================================================
+\section{System architecture}
+\begin{figure}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[every node/.style={font=\small},
+  box/.style={draw, rounded corners, align=center, minimum height=10mm, text width=30mm, fill=#1!12}, box/.default=gray,
+  lab/.style={font=\footnotesize, fill=white, inner sep=1pt}]
+\node[box=blue]   (pol)  at (0,0)      {Policy (PPO)\\ \footnotesize MLP / CNN, 50\,Hz};
+\node[box=orange] (ctl)  at (5.6,0)    {Onboard controller\\ \footnotesize rate / attitude / velocity, 200\,Hz};
+\node[box=orange] (mix)  at (11.2,0)    {Mixer\\ \footnotesize desaturation};
+\node[box=red]    (mot)  at (16.8,0)   {Motor model\\ \footnotesize $\tau_{\uparrow},\tau_{\downarrow}$, saturation};
+\node[box=red]    (aero) at (16.8,-2.8) {Aerodynamics\\ \footnotesize thrust, drag, gyro, ground eff., wind};
+\node[box=green]  (phx)  at (11.2,-2.8) {PhysX rigid body\\ \footnotesize 200\,Hz, contacts};
+\node[box=violet] (sen)  at (5.6,-2.8) {Sensor models\\ \footnotesize IMU, estimate, baro, cameras};
+\node[box=violet] (dly)  at (0,-2.8)   {Latency + rate\\ \footnotesize sample \& hold, delays};
+\draw[-Latex] (pol) -- node[lab, above=1mm]{$\vect a\in[-1,1]^4$} (ctl);
+\draw[-Latex] (ctl) -- node[lab, above=1mm]{$T,\ \bm\tau$} (mix);
+\draw[-Latex] (mix) -- node[lab, above=1mm]{$\omega_{\mathrm{cmd}}$} (mot);
+\draw[-Latex] (mot) -- node[lab, right=1mm]{$\omega_i$} (aero);
+\draw[-Latex] (aero) -- node[lab, above=1mm]{$\vect f_B,\ \bm\tau_B$} (phx);
+\draw[-Latex] (phx) -- node[lab, above=1mm]{state} (sen);
+\draw[-Latex] (sen) -- (dly);
+\draw[-Latex] (dly) -- node[lab, left=1mm, align=right]{obs.} (pol);
+\draw[-Latex] (dly.north east) -- node[lab, sloped, above]{gyro, estimate} (ctl.south west);
+\end{tikzpicture}}
+\caption{Per-step data flow. Orange, red and violet blocks belong to the framework-agnostic PyTorch core
+(\texttt{quadsim.core}) and are unit-tested without Isaac Sim; the green block is PhysX (Isaac Sim). Rendering
+(RTX cameras) is an alternative source of image observations.}
+\label{fig:arch}
+\end{figure}
+
+The code base is layered (\cref{fig:arch}):
+\begin{itemize}
+\item \texttt{quadsim.core} (pure PyTorch): parameters, motor/aerodynamic model, reference integrators, controllers,
+sensor and disturbance models, analytic ray casting (PyTorch and NVIDIA Warp kernels).
+\item \texttt{quadsim.isaac}: procedural USD quadrotor (explicit \texttt{MassAPI}: mass, inertia and CoM are written
+from the parameters, not derived from geometry) and version-gated runtime patches for upstream issues.
+\item \texttt{quadsim.tasks}: Isaac Lab \texttt{DirectRLEnv} base environment and tasks, PPO configurations and
+classical baselines that act through the same action interface.
+\item \texttt{quadsim.rl}, \texttt{quadsim.data}, \texttt{quadsim.deploy}: networks and policy I/O, HDF5 recording,
+export and the NumPy deployment interface.
+\end{itemize}
+Isaac Lab itself is not modified; it is installed from a pinned tag into \texttt{third\_party/}.
+
+\paragraph{Simulation timeline.} Physics runs at \SI{200}{Hz}, the policy at \SI{50}{Hz} (decimation 4). Within each
+physics step: sensors are sampled; the delayed policy command is passed to the onboard controller (which uses the
+\emph{noisy} gyro and state estimate); the mixer produces rotor-speed commands; motor states are advanced exactly;
+the aerodynamic wrench is evaluated and written to PhysX through Isaac Lab's wrench composer (body frame); PhysX
+integrates the rigid body and contacts.
+
+%==========================================================================================
+\section{Mathematical models}
+\subsection{Frames and rigid-body dynamics}
+The world frame $W$ is $z$-up (ENU-like), the body frame $B$ is FLU, and $\vect q\in S^3$ (scalar first) rotates
+$B$ into $W$ with rotation matrix $\vect R(\vect q)$. With mass $m$ and principal inertia
+$\vect J=\mathrm{diag}(J_x,J_y,J_z)$,
+\begin{align}
+\dot{\vect p} &= \vect v, &
+\dot{\vect v} &= \tfrac{1}{m}\vect R\,\vect f_B + \vect g + \tfrac{1}{m}\vect f^{\mathrm{ext}}_W,\\
+\dot{\vect q} &= \tfrac12\,\vect q\otimes\begin{bmatrix}0\\ \bm\omega\end{bmatrix}, &
+\vect J\dot{\bm\omega} &= \bm\tau_B - \bm\omega\times\vect J\bm\omega ,
+\end{align}
+with $\vect g=(0,0,-9.81)$. PhysX integrates these equations with a symplectic (semi-implicit) Euler scheme and
+gyroscopic forces enabled; the reference integrator offers RK4 and the same semi-implicit scheme.
+
+\subsection{Rotors and motors}
+Rotor $i$ at lever arm $\vect r_i$ (relative to the CoM) with spin $s_i=+1$ (CCW) or $-1$ spins at $\omega_i$:
+\begin{equation}
+\dot\omega_i = \frac{\omega_{\mathrm{cmd},i}-\omega_i}{\tau_i},\qquad
+\tau_i=\begin{cases}\tau_\uparrow & \omega_{\mathrm{cmd},i}\ge\omega_i\\ \tau_\downarrow & \text{otherwise}\end{cases},
+\qquad \omega_{\mathrm{cmd},i}\in[\omega_{\min},\omega_{\max}],
+\end{equation}
+discretized exactly under zero-order hold: $\omega_i^{+}=\omega_{\mathrm{cmd}}+(\omega_i-\omega_{\mathrm{cmd}})e^{-\Delta t/\tau_i}$.
+Thrust and reaction torque are $T_i=k_f\,\omega_i^2\,g_e(h_i)$ and
+$Q_i=-s_i\,(k_m T_i + J_r\dot\omega_i)$, the latter including the spin-up reaction of the rotor inertia $J_r$.
+
+\subsection{Aerodynamics}
+With air-relative velocity $\vect v_{\mathrm{rel}}=\vect v_B-\vect w_B$ (wind $\vect w$) and its component
+$\vect v_{\perp,i}$ orthogonal to the rotor axis at the hub ($\vect v_{\mathrm{rel}}+\bm\omega\times\vect r_i$),
+\begin{align}
+\vect f_{\mathrm{rd},i} &= -c_{\mathrm{rd}}\,\omega_i\,\vect v_{\perp,i} \quad\text{(blade flapping / induced drag)},&
+\vect m_{\mathrm{rm},i} &= -c_{\mathrm{rm}}\,s_i\,\omega_i\,\vect v_{\perp,i},\\
+\vect f_{\mathrm{body}} &= -\vect D_1\vect v_{\mathrm{rel}} - \vect D_2\,|\vect v_{\mathrm{rel}}|\odot\vect v_{\mathrm{rel}}, &
+\bm\tau_{\mathrm{gyr}} &= -\bm\omega\times\textstyle\sum_i J_r s_i\omega_i\,\vect e_z,
+\end{align}
+and the in-ground-effect gain of Cheeseman and Bennett, $g_e(h)=\left(1-(R/4h)^2\right)^{-1}$, capped at
+$h\ge R/2$. The total body wrench is
+\begin{equation}
+\vect f_B=\sum_i\big(T_i\vect e_z+\vect f_{\mathrm{rd},i}\big)+\vect f_{\mathrm{body}},\quad
+\bm\tau_B=\sum_i\big[\vect r_i\times(T_i\vect e_z+\vect f_{\mathrm{rd},i})+\vect m_{\mathrm{rm},i}+Q_i\vect e_z\big]+\bm\tau_{\mathrm{gyr}} .
+\end{equation}
+The X500 preset uses the PX4 Gazebo values ($k_f=8.549\times10^{-6}$, $k_m=0.016$, $\tau_\uparrow=12.5$\,ms,
+$\tau_\downarrow=25$\,ms, $\omega_{\max}=1000$\,rad/s, $c_{\mathrm{rd}}=8.06\times10^{-5}$); its composite mass and
+inertia (base + rotors, parallel-axis theorem) are $m=2.064$\,kg, $\vect J=\mathrm{diag}(0.0239,0.0239,0.0440)$\,kg\,m$^2$,
+hover speed $769.6$\,rad/s and thrust-to-weight 1.69. Body drag coefficients are engineering estimates (not identified).
+
+\subsection{Wind and disturbances}
+Wind is $\vect w=\bar{\vect w}+\vect w_{\mathrm{t}}+\vect w_{\mathrm{g}}$: a per-episode mean, Gauss--Markov turbulence
+$\vect w_{\mathrm t}^{+}=a\vect w_{\mathrm t}+\sigma\sqrt{1-a^2}\,\bm\eta$ with $a=e^{-\Delta t/\tau_w}$ (exact
+discretization of a Dryden-like first-order process with stationary standard deviation $\sigma$) and discrete
+$1-\cos$ gusts (MIL-F-8785C shape) with Poisson arrivals. Push disturbances apply random finite-duration forces.
+
+\subsection{Control allocation and classical controllers}
+The allocation $[F_z,\tau_x,\tau_y,\tau_z]^\top=\vect A\vect T$ with rows $(1,\,y_i,\,-x_i,\,-s_ik_m)$ is inverted with
+PX4-style sequential desaturation: roll/pitch are scaled only if their spread exceeds the actuator range, the
+collective is shifted to preserve roll/pitch authority, and yaw is added with the largest feasible scale.
+The onboard rate controller is $\bm\tau=\vect J(\vect K_p\vect e_\omega+\vect K_i\!\int\!\vect e_\omega-\vect K_d\dot{\bm\omega}_f)+\bm\omega\times\vect J\bm\omega$
+(derivative on the filtered measurement), the attitude controller is a quaternion P law on the rotation vector
+of $\vect q^{-1}\otimes\vect q_{\mathrm{sp}}$, and the position controller is a P--PI cascade producing a thrust vector
+with acceleration and tilt limits. The geometric baseline uses Lee et al.'s SE(3) law~\cite{lee2010geometric}
+$\vect f=m(-\vect K_x\vect e_x-\vect K_v\vect e_v+g\vect e_3+\ddot{\vect p}_d)$.
+
+\subsection{Sensor models}
+\textbf{IMU:} $\tilde{\bm\omega}=(\vect I+\vect M_g)\bm\omega+\vect b_g+\vect n_g$,
+$\tilde{\vect a}=(\vect I+\vect M_a)\vect R^\top(\dot{\vect v}-\vect g)+\vect b_a+\vect n_a$, where the specific force
+is obtained by finite differences of the PhysX velocity (exact for the symplectic scheme), white noise has density
+$\sigma_c$ (discrete std $\sigma_c/\sqrt{\Delta t_s}$), and biases are a per-episode turn-on value plus a Gauss--Markov drift
+with random-walk intensity $\sigma_{rw}$ (stationary std $\sigma_{rw}\sqrt{\tau/2}$). Default values are the PX4/rotors
+SITL IMU parameters. Measurements are sampled and held at the sensor rate and pass a per-episode random delay.
+\textbf{State estimate:} position (white + random-walk drift), velocity and attitude (multiplicative rotation-vector)
+noise with latency, emulating EKF/VIO/mocap outputs. \textbf{Barometer:} ISA conversion with noise and Gauss--Markov
+bias. \textbf{Depth camera:} distance-to-image-plane with stereo-like noise $\sigma(z)=\sigma_0+kz^2$, quantization,
+per-pixel dropouts, minimum/maximum range; no-return pixels read as maximum range. \textbf{Analytic ray casting:}
+exact ray--plane, ray--finite-cylinder (side and cap) and ray--oriented-box intersections, implemented in PyTorch
+and as an NVIDIA Warp kernel with $O(N R)$ memory.
+
+%==========================================================================================
+\section{Reinforcement-learning environments}
+\subsection{Observation and action design}
+The \texttt{policy} observation contains only quantities available onboard: estimated body-frame velocity, the first
+two columns of the estimated rotation matrix (continuous attitude representation), gyro rates, the previous action
+and task information expressed in the estimated body frame. The \texttt{critic} additionally receives the true state,
+normalized rotor speeds, wind, disturbance force, and normalized domain-randomization parameters
+(asymmetric actor-critic~\cite{pinto2018asymmetric}). Four action interfaces are available: individual rotor thrusts,
+collective thrust and body rates (CTBR, the default for agile tasks following~\cite{kaufmann2022benchmark}),
+collective thrust and attitude, and velocity commands (default for navigation, matching PX4 offboard velocity control).
+
+\subsection{Tasks and rewards}
+All rewards are integrated over the policy step $\Delta t$; crashes (ground contact, excessive tilt, velocity, distance,
+or obstacle collision) terminate the episode with a penalty.
+\begin{itemize}
+\item \textbf{Hover/recovery}: initial states up to $\pm1.5$\,m offset, $57^\circ$ tilt, \SI{1.5}{m/s},
+\SI{3}{rad/s}; reward $1-\tanh(\|e_p\|/0.8)+0.5\,e^{-(\|e_p\|/0.1)^2}+0.2\cos^2$-type yaw term minus velocity,
+body-rate and action-rate penalties.
+\item \textbf{Tracking}: references $\vect p_d(t)=\vect c+\sum_k\vect A_k\sin(\bm\omega_kt+\bm\phi_k)$ covering circles,
+figure-eights and random smooth curves (peak speed $\le\SI{4}{m/s}$); the policy observes the reference at
+$t+\{0,0.1,0.2,0.4,0.6,1.0\}$\,s.
+\item \textbf{Waypoints}: five random waypoints (separation $\ge1.5$\,m); progress reward
+$\|\vect p-\vect w\|_{t-1}-\|\vect p-\vect w\|_t$, reach bonus, time penalty.
+\item \textbf{Obstacle navigation}: up to 24 kinematic cylinders ($r\in[0.15,0.45]$\,m) rejection-sampled with a
+minimum gap of \SI{0.9}{m}, goal $11$--$12$\,m ahead; progress, goal, heading-alignment (camera looks where the vehicle
+flies), altitude-band and proximity terms. A curriculum increases the maximum obstacle count from 8 to 24 when the
+running success rate exceeds 70\,\%. Observation variants: 32-ray range ring, analytic depth (64$\times$48,
+HFOV $87^\circ$), RTX depth, RGB, RGB-D.
+\end{itemize}
+
+\subsection{Domain randomization}\label{sec:dr}
+Startup (written to PhysX): mass $\times[0.9,1.1]$, inertia $\times[0.85,1.15]$ per axis, CoM offset $\pm$\SI{1}{cm}.
+Per episode (model side): $k_f\times[0.9,1.1]$ per rotor, $k_m\times[0.85,1.15]$, motor time constants
+$\times[0.7,1.6]$, $\omega_{\max}\times[0.92,1]$ (battery sag), drag $\times[0.5,1.5]$, payload $-5\ldots+10\,\%$ of weight,
+sensor-noise scale $\times[0.5,1.5]$, action delay 0--2 and estimator delay 0--2 physics steps.
+
+\subsection{Learning algorithm}
+PPO~\cite{schulman2017ppo} (rsl\_rl 3.1.2) with GAE ($\gamma=0.99,\lambda=0.95$), adaptive learning rate (KL target
+0.01), 32 steps per environment, empirical observation normalization. State policies: actor MLP 256--256--128,
+critic 512--256--128 (ELU). Vision policies: a 3-layer CNN encoder (32/64/64 channels) to a 128-d feature, fused with
+the normalized state in a 256--128 actor; the critic is a state-only MLP on privileged inputs.
+
+%==========================================================================================
+\section{Validation and experiments}
+\Cref{tab:milestones} summarizes the acceptance status of every milestone; the subsections give the evidence.
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\linewidth}{lXl}
+\toprule
+Milestone & Acceptance criterion (executed) & Status\\\midrule
+M1 Isaac Sim/Lab & headless GPU boot; PhysX free fall vs symplectic Euler $<\SI{1}{mm}$ (got \SI{9.5e-7}{m}) & \ok\\
+M2 Dynamics & 46+ unit tests; PhysX vs reference $<\SI{1}{cm}$/1.5\,s; inertia exact; motor/yaw models $<3\,\%$ & \ok\\
+M3 Sensors, recording, visualization & sensor statistics; rendered vs analytic depth (median $<\SI{2}{cm}$); HDF5 round trip; GUI and video & \ok\\
+M4 State-based RL & training completes with checkpoints; evaluated vs classical baselines & \pend\\
+M5 Vision RL & depth policy trained and evaluated; RGB/RGB-D pipelines execute & \pend\\
+M6 DR \& Sim-to-Real interfaces & DR ablation; ONNX = PyTorch to $10^{-5}$; deployment-in-the-loop; ROS 2/PX4 bridge & \pend\\
+M7 Docker, benchmark, docs & container runs tests + GPU smoke test; benchmark table; README; report & \ok\\
+\bottomrule
+\end{tabularx}
+\caption{Milestone acceptance summary.}
+\label{tab:milestones}
+\end{table}
+
+\subsection{M1: simulator foundation}
+Sixty-four rigid bodies in free fall for \SI{0.5}{s} at $\Delta t=\SI{2.5}{ms}$ end at
+$|z-z_{\mathrm{symplectic}}|=\SI{9.5e-7}{m}$ (float32 resolution) and $|z-z_{\mathrm{analytic}}|=\SI{6.1}{mm}$, which is exactly the
+expected first-order bias $g\,t\,\Delta t/2$; this identifies PhysX's integrator as symplectic Euler, which the reference
+simulator reproduces. The same test passes inside the Docker container.
+
+\subsection{M2: quadrotor dynamics}
+Unit tests (CPU, no simulator) verify quaternion algebra, FLU sign conventions of roll/pitch/yaw torques, the exact
+motor step response ($63.2\,\%$ after $\tau$, separate rise/fall constants, discretization invariance), rotor and body drag,
+ground effect and gyroscopic torque, analytic free fall, constant-torque yaw, conservation of angular momentum and energy
+for a tumbling body (Dzhanibekov effect), first-order convergence of the semi-implicit integrator to RK4, closed-loop
+position steps with the full cascade ($<\SI{5}{cm}$), recovery of the Crazyflie from $46^\circ$ tilt and
+\SI{3.7}{rad/s}, SE(3) circle tracking ($<\SI{10}{cm}$ RMSE), and allocation/desaturation properties.
+\Cref{tab:m2} lists the Isaac Sim integration tests; \cref{fig:m2} shows the open-loop comparison.
+
+\begin{table}[h]\centering\small
+\input{generated/m2.tex}
+\caption{PhysX integration of the quadrotor model vs analytic models and the independent reference integrator
+(\texttt{scripts/validation/m2\_dynamics\_validation.py}). Sensor noise, latency and randomization disabled.}
+\label{tab:m2}
+\end{table}
+\begin{figure}[h]\centering
+\includegraphics[width=\linewidth]{m2_dynamics_x500.pdf}
+\caption{X500: open-loop multisine rotor excitation (left), position error of PhysX vs the reference integrator (middle;
+semi-implicit reference = same discretization, RK4 = integration error of PhysX at \SI{200}{Hz}) and thrust-step
+response (right).}
+\label{fig:m2}
+\end{figure}
+
+\subsection{M3: sensors, recording and visualization}
+Statistical unit tests confirm the IMU white-noise standard deviation at \SI{200}{Hz} ($\sigma_c\sqrt{f}$, within
+$5\,\%$), turn-on bias, exact latency, zero specific force in free fall and the correct gravity direction when tilted,
+ISA barometric conversion (\SI{100}{m}~$\to$~\SI{100129}{Pa}), Gauss--Markov stationary statistics, depth-noise
+statistics, exact ray--primitive intersections and agreement of the Warp ray-casting kernel with the PyTorch
+implementation. A recording plot revealed a bug (no-return depth pixels received $\sigma\propto z^2$ noise); it was fixed
+and a regression test added.
+
+\textbf{Rendered vs analytic depth.} For 64 random poses among 24 obstacles (96$\times$72, HFOV $87^\circ$, noise off),
+RTX-rendered and analytic depth agree as in \cref{tab:depth}. Residuals concentrate on silhouette pixels (anti-aliasing)
+and cylinder tessellation. The comparison also exposed that the initial camera mount saw the X500's front rotor discs
+(3\,\% of the image); the default mount was moved to $(0.15,0,-0.06)$\,m, which has no self-occlusion at zero pitch.
+
+\begin{table}[h]\centering\small
+\input{generated/depth.tex}
+\caption{RTX TiledCamera depth vs analytic ray-cast depth (\texttt{scripts/validation/m3\_depth\_consistency.py}).
+Self-occluded pixels (vehicle rotors, rendered $<\SI{0.4}{m}$, analytic $>\SI{0.45}{m}$) are excluded from the error
+metrics and reported separately.}
+\label{tab:depth}
+\end{table}
+\begin{figure}[h]\centering
+\includegraphics[width=\linewidth]{m3_depth_consistency_pitch0.pdf}
+\caption{Rendered depth (top), analytic ray-cast depth (middle) and absolute difference clipped at \SI{10}{cm} (bottom).}
+\end{figure}
+
+\textbf{Recording.} The synchronized HDF5 recorder was verified by round trips for a state task (tracking, SE(3)
+baseline) and a rendered-depth task (navigation, potential-field baseline): dataset shapes, monotonic timestamps with
+constant $\Delta t$, exact equality of the last sample with the live simulator, and the embedded configuration.
+\textbf{Visualization.} Headless MP4 recording and the interactive GUI viewer (chase camera, target and reference markers)
+work after patching an upstream Isaac Lab issue (\cref{sec:patch}).
+
+\subsubsection{Upstream issue found and patched}\label{sec:patch}
+With any rendered viewport (GUI, \texttt{--video}), every RigidObject failed to initialize with
+``Failed to get rigid body transforms from backend'' --- reproduced with a plain Isaac Lab cuboid. Cause:
+\texttt{WrenchComposer.\_\_init\_\_} uses \texttt{hasattr(asset.data, "body\_link\_pos\_w")}; \texttt{hasattr}
+evaluates the property, which queries PhysX before its GPU buffers exist during the PLAY callback, and the raised
+\texttt{Exception} is not an \texttt{AttributeError}. quadsim applies a version-gated patch that checks the attribute
+on the class (no PhysX query), leaving Isaac Lab's sources untouched. Isaac Lab's viewport chase camera has a similar
+start-up read, which the viewer avoids by enabling asset following only after the first reset.
+
+\subsection{M4: state-based reinforcement learning}
+All policies use CTBR actions at \SI{50}{Hz}, the full randomization of \cref{sec:dr}, sensor noise and latency.
+Evaluation uses the deterministic policy and identical seeds (hence identical initial states and randomization) for all
+controllers; $\pm$ denotes a 95\,\% confidence interval of the mean.
+
+\textbf{Hover and recovery.} Training: 4096 environments, 600 PPO iterations (\SI{79}{M} transitions, $\approx$\SI{10}{min}
+on the RTX~5060). Success requires $\|e_p\|<\SI{10}{cm}$ and $\|v\|<\SI{0.2}{m/s}$ at the end of the \SI{8}{s} episode.
+The policy also generalizes to wind (0--3\,m/s mean, turbulence, gusts) and push disturbances that were \emph{not}
+present during training (\cref{tab:hover}). The policy's yaw accuracy ($4.4^\circ$) is worse than the baseline's because of
+the weak yaw reward weight.
+\begin{table}[h]\centering\small
+\resizebox{\linewidth}{!}{\input{generated/hover.tex}}
+\caption{Hover/recovery from up to $57^\circ$ tilt, \SI{3}{rad/s}, \SI{1.5}{m/s} and \SI{1.5}{m} offset (1000 episodes per row).}
+\label{tab:hover}
+\end{table}
+
+\textbf{Trajectory tracking.} Training: 4096 environments, 1500 iterations (\SI{197}{M} transitions). The aggressive
+reference set contains accelerations up to $\approx$\SI{15}{m/s^2}, partly beyond the X500's sustainable
+\SI{13}{m/s^2} (thrust-to-weight 1.69) and beyond the baselines' tilt limits; the moderate set ($\le$\SI{2}{m/s},
+$\le$\SI{0.35}{Hz}) is feasible for all controllers. The first SE(3) baseline, which mapped Lee's torque-level attitude
+law onto rate set-points at the \SI{50}{Hz} policy rate, was unstable (53\,\% crashes, row $\dagger$); the redesigned
+baseline uses Lee's position law with the onboard attitude/rate loops.
+\begin{table}[h]\centering\small
+\resizebox{\linewidth}{!}{\input{generated/track.tex}}
+\caption{Trajectory tracking (500 episodes of \SI{10}{s} per row). Maximum errors include the initial transient
+(start offset up to \SI{0.3}{m}).}
+\label{tab:track}
+\end{table}
+
+%WAYPOINT%
+
+%NAV%
+
+%DRABLATION%
+
+\subsection{M6: export and deployment pipeline}
+The exported ONNX graph (normalizer + actor + clamp) matches PyTorch to $3.6\times10^{-7}$. In the
+deployment-in-the-loop test the simulator is flown by the ONNX policy whose observation is rebuilt every step by the
+NumPy \texttt{ObservationBuilder} from onboard quantities only. Over 512 hover episodes the maximum observation error is
+$9.5\times10^{-7}$, the maximum action error $1.0\times10^{-6}$, and the success rate (99.8\,\%) and final error
+(\SI{1.29}{cm}) equal those of the PyTorch policy. Frame conversions to PX4 (NED/FRD) are unit-tested, including the
+consistency of a physical body vector through both quaternion conventions.
+
+%SAC%
+
+%BENCH%
+
+
+%==========================================================================================
+\section{Limitations}
+The following limitations are explicit; none of them is hidden by the results above.
+\begin{itemize}
+\item \textbf{No real-world or PX4-SITL flight.} All results are in simulation. The ROS~2 / PX4 bridge is written and
+syntax-checked; its numerical core is validated in the simulator loop, but the node itself has not been run against PX4.
+\item \textbf{Model fidelity.} Motor and aerodynamic parameters come from the PX4 Gazebo X500 model and the Crazyflie
+literature, not from identification of a physical vehicle; body-drag coefficients are engineering estimates. Rotor
+aerodynamics use the standard quasi-static $T=k_f\omega^2$ model (no inflow/advance-ratio dependence, no blade-element
+or vortex-ring-state effects); the ground effect is applied per rotor but ceiling/wall effects are not modelled.
+Battery dynamics are represented only by a per-episode $\omega_{\max}$ scale.
+\item \textbf{PhysX discretization.} PhysX integrates at \SI{200}{Hz} with a first-order scheme; relative to an RK4
+reference this causes \SIrange{3}{9}{mm} position error over \SI{1.5}{s} of open-loop flight (Table~\ref{tab:m2}),
+negligible for closed-loop control but relevant for open-loop prediction studies (use the reference integrator).
+\item \textbf{Vision.} Depth policies are trained on analytic ray-cast depth of primitive obstacles with a parametric
+stereo-noise model; rendered depth agrees to \SI{7}{mm} median, but real sensor artefacts (edge holes, speckle,
+IR interference, motion blur) are not modelled. RGB/RGB-D pipelines are implemented and execute end to end, but
+procedural scenes lack the texture/lighting diversity needed for transferable RGB policies.
+\item \textbf{Evaluation statistics.} Each RL configuration was trained with a single seed (compute budget of an 8\,GB
+consumer GPU); confidence intervals quantify evaluation noise, not seed-to-seed variability. Classical baselines use
+reasonable default gains, not systematically tuned gains, so the reported margins are upper bounds of the RL advantage.
+\item \textbf{Platform issues.} Isaac Lab v2.3.2 fails to initialize rigid bodies when a viewport is rendered
+(GUI, video); quadsim applies a version-gated runtime patch (\cref{sec:patch}). Interactive GUI and 4096-environment
+training do not fit simultaneously in 8\,GB VRAM. The first launch with rendering enabled crashed once in the shader
+compiler (empty cache); later launches succeeded.
+\end{itemize}
+
+\section{Roadmap toward real-world deployment}
+Prioritized by expected impact on a successful first real flight:
+\begin{enumerate}
+\item \textbf{PX4 SITL in the loop} (x500 gz model, identical parameters): run the exported hover and tracking policies
+through \texttt{quadsim\_px4\_bridge}; compare closed-loop responses with quadsim; calibrate the thrust mapping and
+the rate-loop bandwidth. Acceptance: hover RMS error within 2$\times$ of quadsim.
+\item \textbf{System identification of the target vehicle}: mass and inertia (bifilar pendulum), $k_f$, $k_m$ and motor
+time constants (thrust stand), rotor-drag coefficient (flight logs); update the preset and center the DR ranges on the
+identified values; retrain with several seeds.
+\item \textbf{Latency identification} of the full pipeline (estimator, companion computer, uXRCE-DDS, PX4) and matching
+the delay distribution used in training; add estimator-in-the-loop training using recorded EKF2 error statistics.
+\item \textbf{Hardware hover/tracking experiments} (tethered, then free flight in a motion-capture arena) with the
+safety layer (geofence, odometry watchdog, offboard-loss failsafe), logging with the same HDF5 schema for
+sim/real comparison.
+\item \textbf{Depth-based navigation transfer}: record real depth frames, extend the depth noise model or add
+image-space randomization, distill the state/range teacher into the depth student (DAgger) to reduce sample cost,
+then test in a real obstacle course.
+\item \textbf{Platform}: multi-seed training and hyper-parameter sweeps, teacher--student distillation, recurrent
+policies for implicit system identification, migration to Isaac Lab 3.x once stable.
+\end{enumerate}
+
+\section{Reproducibility}
+\begin{itemize}
+\item Software: Isaac Sim 5.1.0 (pip), Isaac Lab v2.3.2 (\texttt{third\_party/IsaacLab}), Python 3.11, torch 2.7.0+cu128,
+warp-lang 1.11.1, rsl-rl-lib 3.1.2, skrl 1.4.3, onnxruntime 1.20.1 (all pins in \texttt{env/constraints.txt});
+native installation with \texttt{scripts/setup\_env.sh}; container \texttt{docker/Dockerfile} on
+\texttt{nvcr.io/nvidia/isaac-lab:2.3.2}.
+\item Every training run stores the exact environment and agent configuration (YAML), command line, git commit and
+diff summary next to its checkpoints; evaluation JSONs store seeds and overrides.
+\item Validation: \texttt{pytest tests/core} (unit tests), \texttt{scripts/validation/m\{1,2,3,6\}\_*.py} (milestone
+acceptance tests), \texttt{scripts/rl/evaluate.py} (policy evaluation); tables in this report are generated from
+\texttt{docs/results/*.json} by \texttt{scripts/tools/report\_tables.py}.
+\end{itemize}
+
+\begin{thebibliography}{9}\small
+\bibitem{kaufmann2023champion} E.~Kaufmann, L.~Bauersfeld, A.~Loquercio, M.~M\"uller, V.~Koltun, D.~Scaramuzza.
+Champion-level drone racing using deep reinforcement learning. \emph{Nature} 620, 2023.
+\bibitem{eschmann2024learning} J.~Eschmann, D.~Albani, G.~Loianno. Learning to fly in seconds. \emph{IEEE RA-L}, 2024.
+\bibitem{kaufmann2022benchmark} E.~Kaufmann, L.~Bauersfeld, D.~Scaramuzza. A benchmark comparison of learned control
+policies for agile quadrotor flight. \emph{ICRA}, 2022.
+\bibitem{kulkarni2025aerialgym} M.~Kulkarni, W.~Rehberg, K.~Alexis. Aerial Gym Simulator: A framework for highly parallelized
+simulation of aerial robots. \emph{IEEE RA-L}, 2025.
+\bibitem{xu2024omnidrones} B.~Xu et al. OmniDrones: An efficient and flexible platform for reinforcement learning in drone
+control. \emph{IEEE RA-L}, 2024.
+\bibitem{lee2010geometric} T.~Lee, M.~Leok, N.~H.~McClamroch. Geometric tracking control of a quadrotor UAV on SE(3).
+\emph{IEEE CDC}, 2010.
+\bibitem{pinto2018asymmetric} L.~Pinto, M.~Andrychowicz, P.~Welinder, W.~Zaremba, P.~Abbeel. Asymmetric actor critic for
+image-based robot learning. \emph{RSS}, 2018.
+\bibitem{schulman2017ppo} J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, O.~Klimov. Proximal policy optimization
+algorithms. arXiv:1707.06347, 2017.
+\bibitem{foerster2015} J.~F\"orster. System identification of the Crazyflie 2.0 nano quadrocopter. BSc thesis, ETH Zurich, 2015.
+\end{thebibliography}
+\end{document}

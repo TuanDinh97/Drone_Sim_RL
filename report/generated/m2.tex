@@ -1,0 +1,11 @@
+\begin{tabular}{lccc}\toprule
+Test & X500 & Crazyflie & Criterion\\\midrule
+PhysX mass / inertia rel. error & 0e+00 / 0e+00 & 0e+00 / 0e+00 & $<10^{-4}$\\
+Hover altitude drift over 2\,s [mm] & 0.00 & 0.00 & $<5$\\
+Thrust step: accel. RMS err / peak & 0.019\,\% & 0.026\,\% & $<2\,\%$\\
+Yaw accel. vs $\tau_z/J_z$ & 0.0036\,\% & 0.0077\,\% & $<3\,\%$\\
+Open loop 1.5\,s, pos. err vs semi-implicit ref. [mm] & 0.40 & 2.07 & $<10$\\
+Open loop, att. err vs semi-implicit ref. [deg] & 0.006 & 0.066 & $<0.5$\\
+Open loop, pos. err vs RK4 ref. [mm] (PhysX discretization) & 3.3 & 8.9 & info\\
+Closed-loop velocity cascade, PhysX vs ref. [mm] & 12.3 & 9.2 & $<30$\\
+\bottomrule\end{tabular}

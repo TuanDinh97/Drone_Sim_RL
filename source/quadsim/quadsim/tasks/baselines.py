@@ -11,13 +11,14 @@ comparisons with learned policies are fair.
 
 from __future__ import annotations
 
+import math
+
 import torch
 
 from quadsim.core import math as qm
 from quadsim.core.controllers import (
     AttitudeController,
     AttitudeGains,
-    GeometricController,
     PositionController,
     PositionGains,
     thrust_vector_to_setpoints,
@@ -83,11 +84,22 @@ class CascadeBaseline:
 
 
 class GeometricBaseline:
-    def __init__(self, env):
+    """Lee et al. SE(3) position law with full acceleration feed-forward, for a 50 Hz offboard loop.
+
+    ``f = m (-k_x e_x - k_v e_v + g e3 + a_d)`` defines the thrust vector; the desired attitude follows
+    from (f, yaw_d) and is tracked by the attitude P loop -> body-rate set-points for the onboard rate PID.
+    (A first version mapped Lee's *torque-level* attitude law to rate set-points at 50 Hz; with the
+    delays in the loop it was unstable — 53 % crashes on the tracking task — see docs/PROGRESS.md.)
+    """
+
+    def __init__(self, env, kx=(4.0, 4.0, 6.0), kv=(3.0, 3.0, 4.0), max_tilt: float = 0.7,
+                 att_gains: AttitudeGains | None = None):
         self.env = env
-        self.ctrl = GeometricController(env.params, device=env.device)
-        self.inertia = torch.tensor(env.params.inertia, device=env.device)
-        self.kp_rate = torch.tensor(env.cfg.control.rate_gains.kp, device=env.device)
+        dev = env.device
+        self.kx, self.kv = torch.tensor(kx, device=dev), torch.tensor(kv, device=dev)
+        self.max_tilt = max_tilt
+        self.att = AttitudeController(att_gains or AttitudeGains(), dev)
+        self.mass = env.params.mass
 
     def reset(self, env_ids=None):
         pass
@@ -97,13 +109,14 @@ class GeometricBaseline:
         assert env.cfg.control.mode == "ctbr"
         est = env.odom_meas
         p, q, v = est[:, :3], qm.quat_normalize(est[:, 3:7]), est[:, 7:10]
-        w = env.imu_meas[:, :3]
         pos_d, vel_d, acc_d, yaw_d = _targets(env)
-        thrust, torque = self.ctrl(p, q, v, w, pos_d, vel_d, acc_d, yaw_d)
-        # map the desired angular acceleration to a body-rate set-point for the onboard rate loop
-        ang_acc = (torque - torch.cross(w, self.inertia * w, dim=-1)) / self.inertia
-        rate_sp = w + ang_acc / self.kp_rate
-        return _ctbr_action(env, thrust, rate_sp)
+        acc = -self.kx * (p - pos_d) - self.kv * (v - vel_d) + acc_d
+        acc[:, 2] = (acc[:, 2] + 9.81).clamp(min=0.2 * 9.81)
+        max_xy = acc[:, 2:3] * math.tan(self.max_tilt)
+        n_xy = acc[:, :2].norm(dim=-1, keepdim=True)
+        acc[:, :2] = acc[:, :2] * torch.clamp(max_xy / n_xy.clamp_min(1e-9), max=1.0)
+        collective, q_sp = thrust_vector_to_setpoints(self.mass * acc, q, yaw_d)
+        return _ctbr_action(env, collective, self.att(q, q_sp))
 
 
 class PotentialFieldBaseline:

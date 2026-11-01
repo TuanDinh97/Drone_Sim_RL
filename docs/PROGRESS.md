@@ -85,6 +85,26 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
   3 rad/s and 1.5 m offset. ± = 95 % CI. Results: `docs/results/eval_hover_*.json`.
   Limitation: the PPO policy's final yaw error (4.4°) is worse than the baseline's (weak yaw reward).
 
+- Tracking: 4096 envs, 1500 iterations (197 M steps). Evaluation, 500 episodes each, same seeds
+  (`docs/results/eval_track_*.json`):
+
+  | reference set | controller | RMSE | max err | crash |
+  |---|---|---|---|---|
+  | aggressive (≤4 m/s, accel. up to ~15 m/s²) | **PPO** | **12.6 ± 1.5 cm** | 40.6 cm | 0.2 % |
+  | aggressive | cascade PID (vel+acc FF) | 46.6 ± 3.7 cm | 103 cm | 3.2 % |
+  | aggressive | SE(3) geometric (v2) | 49.2 ± 3.9 cm | 98 cm | 1.8 % |
+  | aggressive | SE(3) v1 (torque-level law mapped to rates at 50 Hz) | 114 cm | 222 cm | **53 %** |
+  | moderate (≤2 m/s, ≤0.35 Hz) | **PPO** | **5.8 ± 0.2 cm** | 29 cm | 0 % |
+  | moderate | cascade PID | 17.4 ± 1.3 cm | 50 cm | 0 % |
+  | moderate | SE(3) geometric (v2) | 22.7 ± 1.4 cm | 53 cm | 0.2 % |
+
+  The first SE(3) baseline was a design error (high-gain attitude law executed at the 50 Hz policy rate through
+  the delay chain); it was replaced by Lee's position law + onboard attitude/rate loops. Baseline gains are
+  defaults, not tuned. Part of the aggressive set exceeds the baselines' tilt limits (0.6–0.7 rad).
+- Waypoint (training) and DR ablation (no-DR hover training) in progress.
+- Off-policy SAC (skrl) trainer `scripts/rl/train_sac.py` written; first run failed only because VRAM was
+  exhausted by two concurrent trainings (to be re-run).
+
 ## Milestone 6 — Sim-to-Real interfaces 🟡
 - Export (`scripts/rl/export.py`): TorchScript + ONNX with normalizer and clamp; ONNX vs PyTorch max |Δ| = 3.6e-7 ✅.
   Machine-readable interface contract (`contract.json`, example `docs/results/contract_hover.json`).
@@ -104,6 +124,19 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
   verification and `docker load`s the image (8.41 GB compressed).
 - `docker compose run --rm test` ✅: 46 unit tests pass and the Isaac Sim GPU smoke test passes inside the container.
 
+## Upstream issue found and patched (affects GUI / video)
+- Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the
+  property → PhysX transform query before GPU buffers exist when a viewport renders → every RigidObject fails
+  ("Failed to get rigid body transforms from backend"); reproduced with a plain Isaac Lab cuboid.
+  Fix: `quadsim/isaac/patches.py` (version-gated, class-level attribute check), applied on `import quadsim.tasks`.
+  Viewer enables the chase camera only after the first reset (Isaac Lab's controller reads poses at start-up too).
+- Headless MP4 ✅ after the patch (`docs/figures/m3_video_track_frames.png`). GUI: the patched run passed asset
+  initialization but then ran out of VRAM because a 4096-env training shared the 8 GB GPU → re-test on an idle GPU.
+
+## Performance engineering
+- Analytic depth for vision RL: Warp kernel (`core/sensors/raycast_warp.py`), O(N·R) memory; 2048 envs × 3072
+  rays × 24 cylinders = 1.36 ms/frame, 169 MB; matches the PyTorch reference (unit test on CPU and CUDA).
+
 ## Open issues
-- GUI viewer / MP4 recording not yet verified (see M3).
+- GUI viewer to be re-verified with an idle GPU (see above).
 - Files created by the container in bind mounts are owned by root.

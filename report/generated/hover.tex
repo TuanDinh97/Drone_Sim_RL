@@ -1,0 +1,8 @@
+\begin{tabular}{llccccc}\toprule
+Condition & Controller & success [\%] & crash [\%] & final pos. err [cm] & final yaw err [deg] & episodes\\\midrule
+nominal & PPO (ours) & 99.9 $\pm$ 0.2 & 0.1 $\pm$ 0.2 & 1.38 $\pm$ 0.26 & 4.4 $\pm$ 0.2 & 1000\\
+nominal & Cascade PID & 88.7 $\pm$ 2.0 & 0.5 $\pm$ 0.4 & 6.10 $\pm$ 0.74 & 1.5 $\pm$ 0.3 & 1000\\
+\midrule
+wind + pushes & PPO (ours) & 97.3 $\pm$ 1.0 & 0.1 $\pm$ 0.2 & 2.86 $\pm$ 0.33 & 4.6 $\pm$ 0.2 & 1000\\
+wind + pushes & Cascade PID & 78.6 $\pm$ 2.5 & 0.7 $\pm$ 0.5 & 8.27 $\pm$ 0.94 & 1.8 $\pm$ 0.4 & 1001\\
+\bottomrule\end{tabular}

@@ -367,7 +367,12 @@ class QuadrotorEnv(DirectRLEnv):
         dirs_w = qm.quat_rotate(q[:, None, :].expand(n, r, 4), self._cam_dirs_c[None].expand(n, r, 3))
         origins = p[:, None, :].expand(n, r, 3)
         cyl, box = self.obstacle_primitives()
-        t = cast(origins, dirs_w, cyl, box, ground=True, max_range=1e3)
+        if box is None and "cuda" in str(self.device):
+            from quadsim.core.sensors.raycast_warp import cast_warp
+
+            t = cast_warp(origins, dirs_w, cyl, ground=True, max_range=1e3)  # O(N*R) memory
+        else:
+            t = cast(origins, dirs_w, cyl, box, ground=True, max_range=1e3)
         depth = t * self._cam_dirs_c[None, :, 0]  # range -> distance to image plane
         return depth.view(n, v.height, v.width)
 
@@ -525,8 +530,10 @@ class QuadrotorEnv(DirectRLEnv):
             self._markers.set_visibility(False)
 
     def _debug_vis_callback(self, event):
+        if not hasattr(self, "scene") or not hasattr(self, "_markers") or not self.sim.is_playing():
+            return  # called during start-up / shutdown
         out = self.debug_points()
-        if out is None or not hasattr(self, "_markers"):
+        if out is None:
             return
         pts, ids = out
         pts = pts + self.scene.env_origins[:, None, :]

@@ -20,7 +20,7 @@ import os
 
 import numpy as np
 
-from quadsim.deploy.closed_loop_metrics import resample, scenario_metrics
+from quadsim.deploy.closed_loop_metrics import body_rates_from_quat, resample, scenario_metrics
 from quadsim.deploy.interface import frd_to_flu, ned_to_enu, q_ned_frd_to_enu_flu
 
 MAX_RATE = np.array([6.0, 6.0, 3.0])  # contract: max_body_rate_rad_s
@@ -52,11 +52,15 @@ def evaluate_run(path: str, hover_window=(10.0, 30.0)) -> dict:
         i2 = np.nonzero(np.abs(goal[:, 2] - g0[2]) > 1e-6)[0][0]
         sched.update(t_step_x=float(s["t"][i1] - t0), t_step_z=float(s["t"][i2] - t0), t_end=float(s["t"][-1] - t0))
     # ground truth: three topics with identical stamps (gz pose callback); align on the position stamps
-    gp, ga, gr = d["gt_pos"], d["gt_att"], d["gt_rate"]
+    # (PX4's gz ground-truth angular velocity is a backward difference of Euler angles: body rates are recomputed from
+    # the ground-truth attitude by central differences instead)
+    gp, ga = d["gt_pos"], d["gt_att"]
     tg = gp[:, 1] - t0
-    q_true = _q_wxyz_norm(resample(ga[:, 1] - t0, q_ned_frd_to_enu_flu(_q_wxyz_norm(ga[:, 2:6])), tg))
+    ta = ga[:, 1] - t0
+    q_flu = q_ned_frd_to_enu_flu(_q_wxyz_norm(ga[:, 2:6]))
+    q_true = _q_wxyz_norm(resample(ta, q_flu, tg))
     true = {"t": tg, "pos": ned_to_enu(gp[:, 2:5]), "q": q_true,
-            "rate": resample(gr[:, 1] - t0, frd_to_flu(gr[:, 2:5]), tg)}
+            "rate": resample(ta, body_rates_from_quat(ta, q_flu), tg)}
     o = d["odom"]  # cols: rx, stamp, stamp_sample, pos3, q4, vel3, angvel3, pose_frame, vel_frame, reset
     to = o[:, 2] - t0
     est = {"t": to, "pos": ned_to_enu(o[:, 3:6]), "q": q_ned_frd_to_enu_flu(_q_wxyz_norm(o[:, 6:10])),

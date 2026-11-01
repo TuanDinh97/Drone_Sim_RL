@@ -1,7 +1,7 @@
 """ros2 launch quadsim_px4_bridge policy.launch.py policy_dir:=<run>/exported thrust_scale:=1.23 [params_file:=...]
-   [log_path:=steps.csv]
+   [log_path:=steps.csv] [task:=track] [geofence_radius_m:=3.0]
 
-Empty ``policy_dir`` / ``thrust_scale`` / ``log_path`` keep the values of ``params_file`` (default: config/hover.yaml).
+Empty arguments keep the values of ``params_file`` (default: config/hover.yaml).
 """
 
 import os
@@ -21,6 +21,10 @@ def _node(context):
         overrides["thrust_scale"] = float(s)
     if lp := LaunchConfiguration("log_path").perform(context):
         overrides["log_path"] = lp
+    if task := LaunchConfiguration("task").perform(context):
+        overrides["task"] = task
+    if fence := LaunchConfiguration("geofence_radius_m").perform(context):
+        overrides["geofence_radius_m"] = float(fence)
     params = [LaunchConfiguration("params_file").perform(context)] + ([overrides] if overrides else [])
     return [Node(package="quadsim_px4_bridge", executable="policy_node", name="quadsim_policy",
                  parameters=params, output="screen")]
@@ -33,5 +37,7 @@ def generate_launch_description():
         DeclareLaunchArgument("policy_dir", default_value=""),
         DeclareLaunchArgument("thrust_scale", default_value=""),
         DeclareLaunchArgument("log_path", default_value=""),
+        DeclareLaunchArgument("task", default_value=""),
+        DeclareLaunchArgument("geofence_radius_m", default_value=""),
         OpaqueFunction(function=_node),
     ])

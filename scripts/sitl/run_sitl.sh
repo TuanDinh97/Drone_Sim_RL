@@ -8,6 +8,8 @@
 #        POLICY_DIR  exported policy (policy.onnx + contract.json)
 #        PX4_PARAMS  extra PX4 parameters "NAME=VALUE ...", applied after boot (e.g. rate-loop gains)
 #        BRIDGE_SCRIPT  run this policy-node file instead of the installed bridge (e.g. an older version)
+#        TASK        bridge task (hover | track | waypoint | nav; default hover), FENCE geofence radius [m]
+#        SCAN_LAYOUTS / SCAN_INDEX  nav: start scripts/sitl/virtual_scan.py on this layout
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 TP="${TP:-$REPO/third_party}"
@@ -49,6 +51,9 @@ done
 grep -q "Startup script returned successfully" "$BASE.px4.log" || { echo "PX4 failed to start"; tail "$BASE.px4.log"; exit 1; }
 px4cmd() { (cd "$PX4_BUILD/rootfs" && "../bin/px4-$1" "${@:2}"); }
 px4cmd param set NAV_DLL_ACT 0  # no GCS in headless SITL (offboard-loss failsafe stays active)
+# gz's GNSS has no latency, but EKF2 assumes 110 ms (EKF2_GPS_DELAY default, right for real receivers): the estimate
+# then leads the truth by ~0.1 s in motion (docs/PROGRESS.md). Match the simulated sensor (override via PX4_PARAMS).
+px4cmd param set EKF2_GPS_DELAY "${SITL_GPS_DELAY_MS:-0}"
 for kv in ${PX4_PARAMS:-}; do px4cmd param set "${kv%%=*}" "${kv#*=}"; done
 
 set +u; source /opt/ros/jazzy/setup.bash; source "$WS/install/setup.bash"; set -u
@@ -57,9 +62,14 @@ if [ -n "${BRIDGE_SCRIPT:-}" ]; then
   start "$BASE.bridge.log" python3 "$BRIDGE_SCRIPT" --ros-args -r __node:=quadsim_policy -p policy_dir:="$POLICY_DIR"
 else
   start "$BASE.bridge.log" ros2 launch quadsim_px4_bridge policy.launch.py policy_dir:="$POLICY_DIR" \
-    thrust_scale:=1.0 log_path:="$BASE.bridge_steps.csv"
+    thrust_scale:=1.0 log_path:="$BASE.bridge_steps.csv" task:="${TASK:-hover}" geofence_radius_m:="${FENCE:-3.0}"
 fi
-python3 "$REPO/scripts/sitl/sitl_scenario.py" --out "$OUT" --px4_build "$PX4_BUILD" "$@" 2>&1 | tee "$BASE.scenario.log"
+# the scenario's JSON carries the error status; never skip the log collection below
+if [ -n "${SCAN_LAYOUTS:-}" ]; then
+  start "$BASE.scan.log" python3 "$REPO/scripts/sitl/virtual_scan.py" --ros-args -p layout_file:="$SCAN_LAYOUTS" \
+    -p layout_index:="${SCAN_INDEX:-0}"
+fi
+python3 "$REPO/scripts/sitl/sitl_scenario.py" --out "$OUT" --px4_build "$PX4_BUILD" "$@" 2>&1 | tee "$BASE.scenario.log" || true
 px4cmd param show-for-airframe >"$BASE.px4_params.txt" 2>&1 || true
 (cd "$PX4_BUILD/rootfs" && timeout 5 ../bin/px4-shutdown >/dev/null 2>&1) || true
 sleep 3  # logger closes the .ulg

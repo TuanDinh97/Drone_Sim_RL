@@ -137,6 +137,22 @@ def rate_oscillation(t, w, t0: float, t1: float, band=(2.0, 8.0)) -> dict:
             "band_power_frac": float(p[in_band].sum() / max(p[f > 0.2].sum(), 1e-30))}
 
 
+def body_rates_from_quat(t, q):
+    """Body angular velocity from sampled attitude (wxyz, body->world): ``w = 2 vec(q_k-1^* q_k+1) / (t_k+1 - t_k-1)``
+    (central difference, no half-sample lag; end points one-sided)."""
+    t, q = np.asarray(t, dtype=np.float64), np.asarray(q, dtype=np.float64)
+    q = q / np.linalg.norm(q, axis=-1, keepdims=True)
+    i0 = np.r_[0, np.arange(len(t) - 2), len(t) - 2]
+    i1 = np.r_[1, np.arange(2, len(t)), len(t) - 1]
+    a, b = q[i0], q[i1]
+    aw, av = a[:, :1], -a[:, 1:]  # conjugate of a
+    bw, bv = b[:, :1], b[:, 1:]
+    dw = aw * bw - (av * bv).sum(-1, keepdims=True)
+    dv = aw * bv + bw * av + np.cross(av, bv)
+    dv = np.where(dw < 0, -dv, dv)  # shortest rotation
+    return 2.0 * dv / (t[i1] - t[i0])[:, None]
+
+
 def roll_pitch(q):
     """Roll and pitch [rad] of wxyz quaternions (z-up world, FLU body; ZYX Euler)."""
     q = np.asarray(q, dtype=np.float64)
@@ -185,3 +201,33 @@ def scenario_metrics(sched: dict, true: dict, est: dict, cmd: dict, band: float 
         for i, ax in enumerate(("roll", "pitch")):
             out[f"rate_fopdt_{ax}_{src}"] = fit_fopdt(cmd["t"], cmd["rate"][:, i], t_r, r[:, i])
     return out
+
+
+def tracking_metrics(t, pos, ref_pos, t0: float, t1: float) -> dict:
+    """Position tracking error w.r.t. a reference sampled at the same times: RMSE (3-D, xy, z), max, mean."""
+    m = _window(t, t0, t1)
+    e = np.asarray(pos)[m] - np.asarray(ref_pos)[m]
+    e3 = np.linalg.norm(e, axis=-1)
+    return {"rmse": float(np.sqrt(np.mean(e3 ** 2))), "rmse_xy": float(np.sqrt(np.mean((e[:, :2] ** 2).sum(-1)))),
+            "rmse_z": float(np.sqrt(np.mean(e[:, 2] ** 2))), "max": float(e3.max()), "mean": float(e3.mean()),
+            "duration_s": float(t1 - t0)}
+
+
+def waypoint_metrics(t, pos, waypoints, reach_radius: float, t0: float = 0.0) -> dict:
+    """Replays the waypoint logic (``WaypointSequence``) on a trajectory: reach times, completion, path length."""
+    from .interface import WaypointSequence
+
+    t, pos = np.asarray(t), np.asarray(pos)
+    seq = WaypointSequence(waypoints, reach_radius)
+    reach_t, m = [], t >= t0
+    for ti, p in zip(t[m], pos[m]):
+        if seq.update(p):
+            reach_t.append(float(ti - t0))
+        if seq.done:
+            break
+    seg = pos[m]
+    if seq.done:
+        seg = seg[: np.searchsorted(t[m], t0 + reach_t[-1]) + 1]
+    return {"success": bool(seq.done), "reached": len(reach_t), "num_waypoints": len(seq.wps),
+            "time_to_finish": reach_t[-1] if seq.done else float("nan"), "reach_times": reach_t,
+            "path_length": float(np.linalg.norm(np.diff(seg, axis=0), axis=-1).sum())}

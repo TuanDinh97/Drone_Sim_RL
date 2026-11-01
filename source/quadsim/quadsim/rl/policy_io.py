@@ -32,8 +32,21 @@ def load_policy(checkpoint: str, env, task: str | None = None, agent_cfg=None):
         task = task or getattr(getattr(env, "spec", None), "id", None)
         agent_cfg = agent_cfg_for(task)
     runner, _ = build_runner(env, agent_cfg, None, str(env.unwrapped.device))
-    runner.load(checkpoint, load_optimizer=False)
     pol = runner.alg.policy
+    sd = torch.load(checkpoint, map_location=str(env.unwrapped.device), weights_only=False)["model_state_dict"]
+    own = pol.state_dict()
+    critic_mismatch = any(k.startswith("critic") and k in own and own[k].shape != v.shape for k, v in sd.items())
+    if critic_mismatch:
+        # evaluating in an env whose privileged (critic) observation differs from training, e.g. a v0 policy in a v1
+        # env: only the actor (+ its normalizer) is needed for inference
+        actor = {k: v for k, v in sd.items() if not k.startswith("critic")}
+        missing = [k for k in own if not k.startswith("critic") and k not in actor]
+        if missing:
+            raise RuntimeError(f"actor parameters missing in {checkpoint}: {missing}")
+        pol.load_state_dict(actor, strict=False)
+        print(f"[policy_io] critic shape differs from {checkpoint}: loaded the actor only", flush=True)
+    else:
+        runner.load(checkpoint, load_optimizer=False)
     pol.eval()
 
     def act(obs: dict) -> torch.Tensor:

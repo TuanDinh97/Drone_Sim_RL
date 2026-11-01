@@ -91,8 +91,8 @@ def test_log_row_follows_log_columns():
         [1.0, 3.0, 4.0, 6.0, 0.5, 0.5, 7.0, 9.0, 2.0, 0.1, 0.4]
 
 
-TRACK_CONTRACT = {**CONTRACT, "observation": {"layout": [["lin_vel_b_est", 3, ""], ["rot_mat_cols01", 6, ""],
-                                                        ["gyro_b", 3, ""], ["last_action", 4, ""], ["task", 21, ""]]}}
+TRACK_CONTRACT = {**CONTRACT, "observation": {
+    "layout": CONTRACT["observation"]["layout"][:4] + [["task", 21, ""]]}}
 
 
 def test_track_task_time_starts_at_handover():

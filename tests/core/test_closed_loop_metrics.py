@@ -117,3 +117,32 @@ def test_rate_oscillation_detects_limit_cycle():
     assert r["band_power_frac"] > 0.9
     quiet = rate_oscillation(t, rng.normal(scale=0.01, size=len(t)), 5.0, 25.0)
     assert quiet["band_power_frac"] < 0.5
+
+
+def test_tracking_and_waypoint_metrics():
+    from quadsim.deploy.closed_loop_metrics import tracking_metrics, waypoint_metrics
+
+    t = np.linspace(0, 10, 1001)
+    ref = np.stack([np.cos(t), np.sin(t), np.full_like(t, 2.0)], -1)
+    pos = ref + np.array([0.0, 0.0, 0.05])
+    m = tracking_metrics(t, pos, ref, 0.0, 10.0)
+    assert abs(m["rmse"] - 0.05) < 1e-12 and abs(m["rmse_z"] - 0.05) < 1e-12 and m["rmse_xy"] < 1e-12
+    # straight flight at 1 m/s through waypoints at x = 1, 2, 3 (reach radius 0.3 -> reached 0.3 m early)
+    pos = np.stack([t, np.zeros_like(t), np.full_like(t, 2.0)], -1)
+    w = waypoint_metrics(t, pos, [[1, 0, 2], [2, 0, 2], [3, 0, 2]], 0.3)
+    assert w["success"] and w["reached"] == 3 and np.allclose(w["reach_times"], [0.71, 1.71, 2.71], atol=0.011)
+    assert abs(w["path_length"] - 2.71) < 0.011
+    w = waypoint_metrics(t, pos, [[1, 0, 2], [1, 5, 2]], 0.3)
+    assert not w["success"] and w["reached"] == 1 and math.isnan(w["time_to_finish"])
+
+
+def test_body_rates_from_quat_constant_rotation():
+    from quadsim.deploy.closed_loop_metrics import body_rates_from_quat
+
+    t = np.arange(0, 2, 0.02)
+    w = np.array([0.3, -0.5, 1.2])  # constant body rate -> q(t) = exp(w t / 2)
+    ang = np.linalg.norm(w) * t
+    axis = w / np.linalg.norm(w)
+    q = np.concatenate([np.cos(ang / 2)[:, None], np.sin(ang / 2)[:, None] * axis], -1)
+    q[::7] *= -1  # sign flips of the double cover must not matter
+    assert np.allclose(body_rates_from_quat(t, q), w, atol=1e-3)

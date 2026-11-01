@@ -160,8 +160,8 @@ class ObservationBuilder:
 
         rel0 = clip(q_rotate(q_inv, np.asarray(wp_current) - pos_w))
         rel1 = clip(q_rotate(q_inv, np.asarray(wp_next) - np.asarray(wp_current)))
-        return np.concatenate([rel0, rel1, np.asarray(remaining_frac, dtype=np.float64).reshape(rel0.shape[:-1] + (1,))],
-                              -1)
+        rem = np.asarray(remaining_frac, dtype=np.float64).reshape(rel0.shape[:-1] + (1,))
+        return np.concatenate([rel0, rel1, rem], -1)
 
     @staticmethod
     def nav_task(pos_w, q_wb, goal, range_ring=None, range_max=8.0):
@@ -199,8 +199,8 @@ class SinusoidReference:
 
     @classmethod
     def shape(cls, kind: str, radius: float, freq_hz: float, z_amp: float = 0.0, start=(0.0, 0.0, 2.0)):
-        """Circle / figure-8 of ``TrackingEnv._sample_reference`` (vertical motion on the last harmonic), shifted so that
-        ``p(0) = start``."""
+        """Circle / figure-8 of ``TrackingEnv._sample_reference`` (vertical motion on the last harmonic), shifted
+        so that ``p(0) = start``."""
         w = 2.0 * np.pi * freq_hz
         amp, freq, phase = np.zeros((3, 3)), np.zeros((3, 3)), np.zeros((3, 3))
         if kind == "circle":
@@ -245,7 +245,8 @@ class WaypointSequence:
 
 def ring_from_scan(ranges, angle_min: float, angle_increment: float, num_rays: int = 32, range_max: float = 8.0):
     """LaserScan (angles CCW about +z of a yaw-aligned FLU frame) -> the training range ring: rays at azimuths
-    ``2 pi k / num_rays`` (``lidar_ray_dirs``), nearest beam, non-finite / out-of-range returns read as ``range_max``."""
+    ``2 pi k / num_rays`` (``lidar_ray_dirs``), nearest beam, non-finite / out-of-range returns read as
+    ``range_max``."""
     r = np.asarray(ranges, dtype=np.float64)
     beam_az = angle_min + angle_increment * np.arange(len(r))
     az = 2.0 * np.pi * np.arange(num_rays) / num_rays

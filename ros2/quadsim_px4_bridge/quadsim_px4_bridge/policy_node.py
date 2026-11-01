@@ -43,8 +43,9 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 
-from quadsim.deploy.interface import (SinusoidReference, ThrustCurve, px4_topic, px4_vehicle_odometry_to_sim,
-                                     ring_from_scan)
+from quadsim.deploy.interface import (
+    SinusoidReference, ThrustCurve, px4_topic, px4_vehicle_odometry_to_sim, ring_from_scan,
+)
 from quadsim.deploy.offboard import LOG_COLUMNS, HoverTask, NavTask, OffboardPolicy, TrackTask, WaypointTask
 
 TASK_PARAMS = ("goal_enu", "goal_yaw_enu", "track_shape", "track_radius", "track_freq_hz", "track_z_amp",

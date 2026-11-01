@@ -1,9 +1,15 @@
 """PX4 SITL scenario for a quadsim policy running in ``quadsim_px4_bridge`` (ROS 2, system Python of ROS).
 
 Sequence: wait for PX4 pre-flight checks -> arm + PX4 take-off -> PX4 Hold -> (calibrate ``thrust_scale`` from
-PX4's hover-thrust estimate, docs/SIM2REAL.md) -> set the bridge goal to the current pose -> OFFBOARD (policy
-flies) -> hold ``--hold`` s -> goal +1 m x (ENU) for ``--step`` s -> goal +1 m z for ``--step`` s -> PX4 Hold ->
-land. The same schedule is flown in quadsim by scripts/sitl/quadsim_scenario.py.
+PX4's hover-thrust estimate, docs/SIM2REAL.md) -> define the task from the current pose -> OFFBOARD (policy
+flies) -> task -> PX4 Hold -> land. Tasks (``--task``, must match the bridge's policy):
+  hover    : hold ``--hold`` s -> goal +1 m x (ENU) for ``--step`` s -> goal +1 m z for ``--step`` s
+             (quadsim counterpart: scripts/sitl/quadsim_scenario.py)
+  track    : ``--track_shape`` circle | figure8 reference starting at the hand-over pose, ``--duration`` s
+  waypoint : ``--waypoints`` (ENU, absolute), until all are reached (estimate) or ``--duration`` s
+  nav      : layout ``--layout_index`` of ``--layouts`` (virtual obstacles, scripts/sitl/virtual_scan.py), mapped
+             rigidly onto the hand-over pose; until goal / collision (ground truth) or ``--duration`` s
+(quadsim counterpart of track / waypoint: scripts/sitl/quadsim_task_scenario.py).
 
 Recorded (all stamps in the uXRCE-DDS agent's time base = this machine's clock, seconds):
 odometry (EKF2), simulator ground truth (requires the SITL instrumentation of ros2/px4_sitl/setup_px4_sitl.sh),
@@ -33,7 +39,8 @@ from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 
-from quadsim.deploy.interface import ThrustCurve, px4_odometry_to_sim, px4_topic, yaw_of
+from quadsim.deploy.interface import ThrustCurve, WaypointSequence, px4_odometry_to_sim, px4_topic, yaw_of
+from quadsim.deploy.virtual_sensors import clearance, transform_layout
 
 NAV_OFFBOARD, NAV_LOITER, NAV_TAKEOFF = 14, 4, 17
 ARMED = 2
@@ -63,6 +70,8 @@ class Scenario(Node):
         sub(VehicleRatesSetpoint, topic("/fmu/in/vehicle_rates_setpoint", VehicleRatesSetpoint), self.on_rates, qos)
         self.pub_cmd = self.create_publisher(VehicleCommand, topic("/fmu/in/vehicle_command", VehicleCommand), qos)
         self.param_cli = self.create_client(SetParameters, f"/{args.bridge_node}/set_parameters")
+        self.scan_cli = self.create_client(SetParameters, "/quadsim_virtual_scan/set_parameters")
+        self.gt_now = None
 
     # ------------------------------------------------------------------ recording
     def _put(self, key, row):
@@ -83,6 +92,7 @@ class Scenario(Node):
         self._put("ack", [time.time(), m.command, m.result])
 
     def on_gt_pos(self, m):
+        self.gt_now = np.array([m.y, m.x, -m.z])  # ENU
         self._put("gt_pos", [time.time(), m.timestamp_sample * 1e-6, m.x, m.y, m.z, m.vx, m.vy, m.vz])
 
     def on_gt_att(self, m):
@@ -106,25 +116,28 @@ class Scenario(Node):
     def set_mode(self, main, sub=0):
         self.command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, main, sub)
 
-    def set_bridge(self, **kv):
+    def set_bridge(self, _client=None, **kv):
         req = SetParameters.Request()
         for k, v in kv.items():
-            if isinstance(v, (list, tuple)):
+            if isinstance(v, str):
+                val = ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=v)
+            elif isinstance(v, (list, tuple)):
                 val = ParameterValue(type=ParameterType.PARAMETER_DOUBLE_ARRAY,
                                      double_array_value=[float(x) for x in v])
             else:
                 val = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=float(v))
             req.parameters.append(Parameter(name=k, value=val))
-        if not self.param_cli.wait_for_service(timeout_sec=10.0):
-            raise RuntimeError(f"bridge node /{self.args.bridge_node} not available")
-        fut = self.param_cli.call_async(req)
+        cli = _client or self.param_cli
+        if not cli.wait_for_service(timeout_sec=10.0):
+            raise RuntimeError(f"parameter service {cli.srv_name} not available")
+        fut = cli.call_async(req)
         t0 = time.time()
         while not fut.done() and time.time() - t0 < 5.0:
             time.sleep(0.01)
         res = fut.result()
         if res is None or not all(r.successful for r in res.results):
-            raise RuntimeError(f"setting bridge parameters {kv} failed: {res}")
-        if "goal_enu" in kv:
+            raise RuntimeError(f"setting parameters {kv} failed: {res}")
+        if "goal_enu" in kv and _client is None:
             self._put("goal", [time.time(), *kv["goal_enu"]])
 
     # ------------------------------------------------------------------ helpers
@@ -187,9 +200,30 @@ def run(node: Scenario, args) -> dict:
     pos, yaw = node.enu_pose()
     g0 = [round(float(x), 2) for x in pos]
     meta["goal0_enu"], meta["goal_yaw_enu"] = g0, yaw
-    node.set_bridge(goal_enu=g0, goal_yaw_enu=yaw, thrust_scale=ts, thrust_curve=list(args.thrust_curve))
-    log(f"thrust_scale={ts:.4f} goal={g0} yaw={yaw:.3f} -> OFFBOARD")
-    time.sleep(1.0)  # heartbeat streaming with the new goal
+    meta["task"] = args.task
+    task_params = {}
+    if args.task == "hover":
+        task_params = dict(goal_enu=g0, goal_yaw_enu=yaw)
+    elif args.task == "track":
+        task_params = dict(track_shape=args.track_shape, track_radius=args.track_radius, track_freq_hz=args.track_freq,
+                           track_z_amp=args.track_z_amp, track_start_enu=g0)
+    elif args.task == "waypoint":
+        wps = [float(x) for w in args.waypoints.split(";") for x in w.split(",")]
+        task_params = dict(waypoints_enu=wps)
+    elif args.task == "nav":
+        L = json.load(open(args.layouts))["layouts"][args.layout_index]
+        st = np.asarray(L["start"])
+        tf = [float(pos[0] - st[0]), float(pos[1] - st[1]), float(yaw - L["yaw"])]  # layout -> vehicle pose
+        goal = transform_layout(np.asarray([L["goal"]]), st[:2], tf)[0]
+        cyl = transform_layout(np.asarray(L["cylinders"]), st[:2], tf)
+        meta["nav"] = {"layout_index": args.layout_index, "transform": tf, "goal_enu": goal.tolist(),
+                       "cylinders": cyl.tolist(), "start_layout": L["start"]}
+        node.set_bridge(_client=node.scan_cli, transform=tf)
+        task_params = dict(goal_enu=goal.tolist())
+    meta["task_params"] = task_params
+    node.set_bridge(thrust_scale=ts, thrust_curve=list(args.thrust_curve), **task_params)
+    log(f"task={args.task} thrust_scale={ts:.4f} start={g0} yaw={yaw:.3f} -> OFFBOARD")
+    time.sleep(1.0)  # heartbeat streaming with the new task definition
     for _ in range(25):
         node.set_mode(6)
         time.sleep(0.2)
@@ -197,9 +231,14 @@ def run(node: Scenario, args) -> dict:
             break
     node.wait(lambda: node.nav() == NAV_OFFBOARD, 3, "OFFBOARD")
     t0 = ev["offboard"] = time.time()
-    schedule = [(args.hold, [0.0, 0.0, 0.0])]
-    if args.step > 0:
-        schedule += [(args.step, [1.0, 0.0, 0.0]), (args.step, [1.0, 0.0, 1.0])]
+    if args.task == "hover":
+        schedule = [(args.hold, [0.0, 0.0, 0.0])]
+        if args.step > 0:
+            schedule += [(args.step, [1.0, 0.0, 0.0]), (args.step, [1.0, 0.0, 1.0])]
+    else:
+        schedule = [(args.duration, None)]
+    seq = WaypointSequence(np.asarray(task_params.get("waypoints_enu", [0, 0, 0])).reshape(-1, 3),
+                           args.reach_radius)
     t = 0.0
     for i, (dur, off) in enumerate(schedule):
         if i > 0:
@@ -207,6 +246,18 @@ def run(node: Scenario, args) -> dict:
             ev[f"goal_{i}"] = time.time()
         t += dur
         while time.time() - t0 < t:
+            if args.task == "waypoint" and seq.update(node.enu_pose()[0]) and seq.done:
+                ev["course_done"] = time.time()
+                time.sleep(args.after)
+                break
+            if args.task == "nav" and node.gt_now is not None:
+                if np.linalg.norm(node.gt_now - np.asarray(meta["nav"]["goal_enu"])) < args.goal_radius:
+                    ev["goal_reached"] = time.time()
+                    break
+                if clearance(node.gt_now, np.asarray(meta["nav"]["cylinders"])) < args.vehicle_radius:
+                    ev["collision"] = time.time()
+                    log("collision (virtual obstacle, ground truth)")
+                    break
             if node.nav() != NAV_OFFBOARD:
                 ev["left_offboard"] = time.time()
                 meta["left_offboard_nav_state"] = int(node.nav())
@@ -257,6 +308,20 @@ def main():
                    help="bridge thrust curve coefficients (default linear; gz x500: 0.0225 0.255 0.7225)")
     p.add_argument("--px4_build", default="", help="PX4 build dir (for px4-listener / px4-param)")
     p.add_argument("--bridge_node", default="quadsim_policy")
+    p.add_argument("--task", default="hover", choices=["hover", "track", "waypoint", "nav"])
+    p.add_argument("--layouts", default="", help="nav: layouts JSON (quadsim_task_scenario.py --make_layouts)")
+    p.add_argument("--layout_index", type=int, default=0)
+    p.add_argument("--goal_radius", type=float, default=0.5, help="nav: NavEnv goal_radius")
+    p.add_argument("--vehicle_radius", type=float, default=0.35, help="nav: NavEnv vehicle_radius")
+    p.add_argument("--duration", type=float, default=20.0, help="track / waypoint: offboard time limit [s]")
+    p.add_argument("--after", type=float, default=2.0, help="waypoint: s flown after the last waypoint")
+    p.add_argument("--track_shape", default="circle", choices=["circle", "figure8"])
+    p.add_argument("--track_radius", type=float, default=1.0)
+    p.add_argument("--track_freq", type=float, default=0.2, help="Hz")
+    p.add_argument("--track_z_amp", type=float, default=0.0)
+    p.add_argument("--waypoints", default="2.5,1,2;-0.5,3,2.8;-3,0.5,1.5;-0.5,-3,2.2;3,-1.5,1.8",
+                   help="x,y,z;x,y,z;... ENU [m] (absolute, EKF origin)")
+    p.add_argument("--reach_radius", type=float, default=0.3, help="waypoint: must equal the policy's (contract)")
     p.add_argument("--fence_test", type=float, default=0.0,
                    help="after the schedule move the goal this far [m] (beyond the bridge geofence), time the failsafe")
     args = p.parse_args()
@@ -279,7 +344,9 @@ def main():
     with open(os.path.splitext(args.out)[0] + ".json", "w") as f:
         json.dump(meta, f, indent=2)
     print(f"[sitl] wrote {args.out} error={err}", flush=True)
-    ex.shutdown()
+    ex.shutdown(timeout_sec=2.0)  # stop the spin thread before rclpy shuts down (avoids an abort at exit)
+    spin.join(timeout=2.0)
+    node.destroy_node()
     rclpy.try_shutdown()
 
 

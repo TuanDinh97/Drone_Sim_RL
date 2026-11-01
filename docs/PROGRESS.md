@@ -473,7 +473,7 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
 | F2 | Algorithms + benchmark: one `--algo` CLI, GPU-native SAC/TD3 with asymmetric critic, suites with ID/OOD splits, hardware-aware `num_envs` | SAC competitive with PPO on hover; suite runs end to end and reports the generalization gap | ✅ SAC 99.9 %, TD3 99.6 % (2nd config; 1st: 0 %) |
 | F3 | Research tasks: drone racing, multi-agent swap, constrained RL (PPO-Lagrangian) | each trains and is evaluated against a baseline; constraint within budget | ✅ safe RL; racing / swarm see below |
 | F4 | IL / VLA: episode-structured demos (+ instructions), BC / DAgger, language-conditioned task, LeRobot export, VLA adapter | BC from an RL expert matches it; language-conditioned BC grounds instructions; export reloads with LeRobot's loader | ✅ (see below) |
-| F5 | Usability: examples, tutorials, troubleshooting, tests, docs, report | every example executes in the simulator; tests pass | ✅ 124 unit tests; examples 9/10 + VLA (see below) |
+| F5 | Usability: examples, tutorials, troubleshooting, tests, docs, report | every example executes in the simulator; tests pass | ✅ 124 unit tests; examples 11/11 (see below) |
 
 ### F1 — extension core ✅
 - Audit findings: control modes were `if/else` branches of `QuadrotorEnv._controller`; vehicles were two Python presets
@@ -569,6 +569,9 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
   which one DAgger round removed. (Unlike the map-based variant, the bag-of-words encoder generalized to the held-out
   phrasings here; with 300 episodes the 82 vs 90 % difference between phrasings is not interpretable as a language
   effect, since the wrong-pillar rate is 0 in both.)
+- LeRobot v3.0 export of the map dataset (lerobot 0.4.4 in `third_party/lerobot-venv`, reloaded with
+  `LeRobotDataset`): 200 episodes, 26 722 frames, state/action max error 0, all 32 instruction strings preserved
+  → `pass`.
 - LeRobot export of the RGB dataset (300 episodes, 42 199 frames with images): images bit-identical after reloading
   with `LeRobotDataset`, state/action error 0, tasks preserved → `pass`.
 - Defects found while building the expert (its success rose from 72 % — generic cascade, first sampler — to 100 %
@@ -578,8 +581,6 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
   near a distractor counted as a choice) → 0.2 s dwell condition;
   (iii) demo collection stopped at a global episode count, which drops the long episodes still running → per-env quota
   (measured bias on the existing dataset: mean length 145.2 vs 145.9 steps, negligible; fixed anyway).
-- LeRobot v3.0 export (lerobot 0.4.4 in `third_party/lerobot-venv`, reloaded with `LeRobotDataset`): 200 episodes,
-  26 722 frames, state/action max error 0, all 32 instruction strings preserved → `pass`.
 
 ### F5 — usability ✅
 - `examples/` (custom vehicle YAML + plugin, GNSS sensor term, 3-D LiDAR term, landing task, reward + curriculum,

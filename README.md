@@ -71,11 +71,12 @@ SITL also found four bridge bugs (incl. a missing failsafe path), a heave limit 
 (fixed by an exact thrust-curve map), EKF2's correlated estimate error, PX4's slower rate and velocity loops and a SITL
 GNSS-delay mis-configuration; all are quantified in `docs/PROGRESS.md` and the report.
 
-Negative / neutral results are reported too: domain randomization gave lower errors but no significant
-success gain on hover under harsh conditions; the off-policy SAC baseline learns but was not competitive within
-the compute budget; the first navigation reward produced a fast but collision-prone policy (53 % success); the first
-SE(3) baseline design was unstable at 50 Hz; the depth policy (61–67 %) remains well below the range policy
-(see `docs/PROGRESS.md`). RGB/RGB-D pipelines execute end to end but no RGB policy performance is claimed.
+Negative / neutral results are reported too: domain randomization gave lower errors but no significant success gain
+on hover under harsh conditions; the first off-policy SAC baseline (skrl) learned but reached 0 % success (superseded
+by the framework's SAC, 99.9 %); the first navigation reward produced a fast but collision-prone policy (53 %
+success); the first SE(3) baseline design was unstable at 50 Hz; the depth policy (61–67 %) remains well below the
+range policy (see `docs/PROGRESS.md`). RGB/RGB-D obstacle navigation runs end to end, but no RGB navigation (RL)
+performance is claimed; the RGB results above are imitation-learned, language-conditioned navigation.
 
 
 ## Platform features (physics, sensing, original tasks)
@@ -115,7 +116,7 @@ classical baselines under identical seeds.
 | `Quadsim-Hover-v2` | v1 + v0-level white estimate noise + collective-rate penalty (no SITL heave limit cycle, see PROGRESS) | CTBR | as v0 |
 | `Quadsim-Hover-Hexa-v0` / `-Hexa-Motor-v0` | hover with a 6-rotor vehicle (generated frame); 6-D motor actions | CTBR / motor | state |
 | `Quadsim-Hover-Sensors-v0` | hover + rangefinder (25 Hz, 20 ms) + barometer terms + energy reward (configuration only) | CTBR | state + sensors |
-| `Quadsim-Race-v0` (+ `-Ellipse`, `-Figure8`) | 2 laps through 7 gates, random circuits (fixed circuits for OOD tests), 5-inch racer | CTBR | state + next two gates |
+| `Quadsim-Race-v0` / `-v1` (+ `-Ellipse`, `-Figure8`) | 2 laps through 7 gates, random counter-clockwise circuits (v1: both turning directions; fixed circuits for OOD tests), 5-inch racer | CTBR | state + next two gates |
 | `Quadsim-Swarm-v0` | 4-agent antipodal swap, shared policy, centralized critic | velocity | state + goal + neighbours |
 | `Quadsim-Waypoint-SpeedCost-v0` / `-Safe-v0` | waypoint racing with a speed constraint (cost only / PPO-Lagrangian) | CTBR | as waypoint |
 | `Quadsim-LangNav-v0` (+ `-Heldout`, `-RGB`, `-RGB-Heldout`) | fly to the pillar named in a natural-language instruction | velocity | state + instruction tokens + landmark map or RGB |

@@ -2,8 +2,9 @@
 
 All commands run from the repository root with the `quadsim` environment
 (`~/miniconda3/envs/quadsim/bin/python`, abbreviated `python`) and `export OMNI_KIT_ACCEPT_EULA=YES`. Add
-`--headless` to every simulator script unless you want the GUI. Every example below is executed by
-`scripts/validation/examples_check.sh` (pass flags in `logs/validation/examples_check.json`).
+`--headless` to every simulator script unless you want the GUI. The extension examples used below (`examples/`)
+are executed in the simulator by `scripts/validation/examples_check.py` (pass flags in
+`logs/validation/examples_check.json`, curated copy `docs/results/framework/examples_check.json`).
 
 ## 1. Train, evaluate, export
 

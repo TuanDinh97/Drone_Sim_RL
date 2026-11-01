@@ -59,7 +59,7 @@ delayed policy command → **action interface** on the onboard flight controller
 | `ALGORITHMS` | `train.py --algo`, `evaluate.py --algo` | `Algorithm`: `default_cfg`, `train`, `load_policy` | `ppo` (rsl_rl), `sac`, `td3`, `bc`, `vla` (+ `ars` example) |
 | `BASELINES` | `evaluate.py --controllers` | `ctrl(env)() -> actions` | `cascade`, `geometric`, `potential_field`, `swarm_potential`, `langnav_expert` |
 | `BENCHMARKS` | `scripts/benchmark/run.py --suite` | `Suite(task, conditions, metrics, ...)` | `hover`, `track`, `waypoint`, `nav_range`, `race`, `swarm`, `langnav` |
-| Gymnasium registry | `--task` | Isaac Lab DirectRLEnv + cfg entry points | 26 built-in `Quadsim-*` tasks (+ 4 in `examples/`) |
+| Gymnasium registry | `--task` | Isaac Lab DirectRLEnv + cfg entry points | 27 built-in `Quadsim-*` tasks (+ 4 in `examples/`) |
 
 Configuration-level extension (no registry needed), `cfg.terms` (`quadsim.tasks.base.terms`), with the Isaac Lab
 term convention `func(env, **params)`:
@@ -135,7 +135,7 @@ thrust-map gain; `WindCfg` / `PushCfg` disturbances; action and estimate latency
 | `Quadsim-Track-v0/v1` | trajectory tracking | ctbr | state + reference preview |
 | `Quadsim-Waypoint-v0/v1`, `-SpeedCost-v0`, `-Safe-v0` | waypoint racing, constrained RL | ctbr | state + next waypoints |
 | `Quadsim-Nav-{Range,Depth,Depth-Render,RGB,RGBD}-v0` | obstacle avoidance | velocity | state + range ring / image |
-| `Quadsim-Race-v0` (+ `-Ellipse`, `-Figure8`) | drone racing through gates, multi-lap | ctbr (racer5) | state + next two gates |
+| `Quadsim-Race-v0/v1` (+ `-Ellipse`, `-Figure8`) | drone racing through gates, multi-lap (v1: both turning directions) | ctbr (racer5) | state + next two gates |
 | `Quadsim-Swarm-v0` | cooperative multi-agent position swap | velocity | state + goal + neighbours |
 | `Quadsim-LangNav-v0` (+ `-Heldout`, `-RGB`, `-RGB-Heldout`) | language-conditioned navigation (IL / VLA) | velocity | state + instruction tokens (+ landmark map or RGB) |
 

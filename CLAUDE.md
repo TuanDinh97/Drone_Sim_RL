@@ -9,7 +9,11 @@ All seven milestones meet their acceptance criteria (details and caveats in docs
 nav range `*_nav_range_v2_s42`, nav depth `*_nav_depth_v2_s42` (model_900). The hover policy flies PX4 v1.16.2
 SITL (gz x500) through `ros2/quadsim_px4_bridge` (docs/PROGRESS.md "PX4 SITL cross-check"; PX4 + ROS 2 workspace in
 `third_party/`, built by `ros2/px4_sitl/setup_px4_sitl.sh`, runs via `scripts/sitl/run_sitl.sh`).
-Next steps: docs/ROADMAP.md ("Beyond the current scope").
+Session 3 (same day): tracking, waypoint and range-navigation policies exported and flown in SITL
+(`scripts/sitl/{sitl_scenario,quadsim_task_scenario,compare_tasks}.py`, results `docs/results/sitl_*.json`); hover
+policies trained with 3 seeds each on v0, v1 and v2 distributions (`Quadsim-Hover-v{1,2}`, runs `*_v1_s*`, `*_v2_s*`,
+`*_ctbr_s{1,2}`), summary `docs/results/hover_v1.json`. Report section `report/sitl.tex`.
+Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at the end of docs/PROGRESS.md.
 
 ## Environment (verified)
 - Machine: Ubuntu 24.04, **RTX 5060 8 GB** (not the 12 GB RTX 5070 of the original brief), i5-14600KF, 32 GB RAM.
@@ -33,6 +37,12 @@ Next steps: docs/ROADMAP.md ("Beyond the current scope").
   `gz` cannot start PX4's world); a surviving `gz sim` server is silently re-used by the next PX4 → kill PX4 by process group;
   PX4 ≥ 1.16 versioned topics (`/fmu/out/vehicle_status_v1`); x500 airframe needs `NAV_DLL_ACT=0` to arm without a GCS;
   rclpy's `MultiThreadedExecutor` dropped ~35 % of 300 msg/s in the recorder → use `SingleThreadedExecutor`.
+- SITL measurement: set `EKF2_GPS_DELAY=0` (gz GNSS has no latency; the 110 ms default makes EKF2 lead the truth by
+  0.1 s — never copy to hardware); PX4's gz ground-truth velocity / angular velocity are backward differences (the latter
+  of Euler angles) → differentiate the ground-truth position / quaternion centrally. Only one PX4 SITL at a time
+  (`run_sitl.sh` refuses to start otherwise); queue SITL jobs.
+- `git worktree`: training writes `./logs/rsl_rl` relative to the cwd → in a worktree, symlink `logs/*`, `datasets`,
+  `outputs` to the main checkout so runs survive the worktree.
 - The conda env's editable `quadsim` install points at the main checkout: in a worktree prefix `PYTHONPATH=$PWD/source/quadsim`.
 
 ## Layout

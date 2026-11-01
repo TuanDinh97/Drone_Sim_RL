@@ -1,0 +1,10 @@
+\begin{tabular}{llcc}\toprule
+Task & Metric & quadsim & PX4 SITL\\\midrule
+Tracking, circle (r 1 m, 0.2 Hz) & RMSE truth [cm] & 1.8 $\pm$ 0.4 & 6.3 $\pm$ 0.7\\
+ & RMSE w.r.t. estimate [cm] & 2.5 $\pm$ 0.1 & 2.2 $\pm$ 0.2\\
+Tracking, figure-8 (r 1.5 m, 0.15 Hz) & RMSE truth [cm] & 2.7 $\pm$ 0.2 & 9.2 $\pm$ 0.4\\
+ & RMSE w.r.t. estimate [cm] & 3.0 $\pm$ 0.1 & 3.4 $\pm$ 0.4\\
+Waypoints (5) & course completed & 1.00 & 1.00\\
+ & time to finish [s] & 5.13 $\pm$ 0.02 & 6.74 $\pm$ 0.27\\
+ & estimate error during course, RMS [cm] & -- & 15.2 $\pm$ 0.7\\
+\bottomrule\end{tabular}

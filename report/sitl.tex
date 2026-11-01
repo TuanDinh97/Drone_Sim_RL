@@ -12,19 +12,23 @@ the same unit-tested functions (\texttt{quadsim.deploy.closed\_loop\_metrics}) f
 
 \subsection{Setup and deployment pipeline}
 \begin{figure}[h]\centering
-\begin{tikzpicture}[node distance=4mm and 7mm, every node/.style={font=\footnotesize},
-  box/.style={draw, rounded corners=2pt, align=center, minimum height=9mm, inner sep=3pt},
-  arr/.style={-{Stealth[length=2mm]}, semithick}]
-\node[box, fill=blue!6] (gz) {Gazebo Harmonic\\x500 (lockstep)};
+\begin{tikzpicture}[node distance=6mm and 13mm, every node/.style={font=\footnotesize},
+  box/.style={draw, rounded corners=2pt, align=center, minimum height=11mm, inner sep=3pt},
+  arr/.style={-{Stealth[length=2mm]}, semithick}, lab/.style={font=\scriptsize, fill=white, inner sep=1pt}]
+\node[box, fill=blue!6] (gz) {Gazebo Harmonic\\x500, lockstep};
 \node[box, fill=blue!6, right=of gz] (px4) {PX4 v1.16.2\\EKF2, rate / velocity\\control, allocator};
 \node[box, fill=orange!8, right=of px4] (dds) {uXRCE-DDS\\agent};
-\node[box, fill=green!8, right=of dds] (bridge) {\texttt{quadsim\_px4\_bridge}\\\texttt{OffboardPolicy} + ONNX\\50\,Hz};
+\node[box, fill=green!8, right=of dds] (bridge) {\texttt{quadsim\_px4\_bridge}\\\texttt{OffboardPolicy}\\+ ONNX, 50\,Hz};
 \node[box, fill=gray!8, below=of bridge] (scan) {virtual 2-D LiDAR\\(navigation)};
 \node[box, fill=gray!8, below=of dds] (harness) {scenario harness\\(arm, hand-over,\\recording)};
-\draw[arr] (gz) -- (px4); \draw[arr] (px4) -- node[above]{odometry} (dds); \draw[arr] (dds) -- (bridge);
-\draw[arr] (bridge.south west) ++(0,0.1) -- ++(-0.3,-0.1) |- node[pos=0.25,left]{} (dds.south east);
-\draw[arr] (scan) -- node[right]{\texttt{LaserScan}} (bridge);
-\draw[arr] (harness) -- (dds);
+\draw[arr] ([yshift=2mm]gz.east) -- node[lab, above=1pt]{sensors} ([yshift=2mm]px4.west);
+\draw[arr] ([yshift=-2mm]px4.west) -- node[lab, below=1pt]{motors} ([yshift=-2mm]gz.east);
+\draw[arr] ([yshift=2mm]px4.east) -- node[lab, above=1pt]{odometry} ([yshift=2mm]dds.west);
+\draw[arr] ([yshift=-2mm]dds.west) -- node[lab, below=1pt]{set-points} ([yshift=-2mm]px4.east);
+\draw[arr] ([yshift=2mm]dds.east) -- ([yshift=2mm]bridge.west);
+\draw[arr] ([yshift=-2mm]bridge.west) -- ([yshift=-2mm]dds.east);
+\draw[arr] (scan) -- node[lab, right=1pt]{\texttt{LaserScan}} (bridge);
+\draw[arr, <->] (harness) -- (dds);
 \end{tikzpicture}
 \caption{SITL loop. The bridge receives \texttt{VehicleOdometry} (EKF2, NED/FRD) and publishes
 \texttt{OffboardControlMode} plus \texttt{VehicleRatesSetpoint} (CTBR policies) or \texttt{TrajectorySetpoint}
@@ -46,7 +50,10 @@ the policy takes over in OFFBOARD; after the task PX4 takes back control and lan
 $\omega=\omega_{\min}+(\omega_{\max}-\omega_{\min})u$ and the thrust is $T=4k_f\omega^2$, i.e.\ $T/T_{\max}=c(u)=(0.15+0.85u)^2$.
 The documented calibration (linear map $u=s\,C/T_{\max}$ with $s=u_h/(mg/T_{\max})$ from PX4's hover-thrust estimate $u_h$)
 is exact only at hover; there the true local gain exceeds the linear map's by
-$\frac{c'(u_h)}{c(u_h)/u_h}=\frac{2\cdot0.85\,u_h}{0.15+0.85u_h}=1.61$ ($u_h=0.7295$). The bridge therefore also supports an
+\begin{equation}
+\frac{c'(u_h)}{c(u_h)/u_h}=\frac{2\cdot0.85\,u_h}{0.15+0.85\,u_h}=1.61\qquad(u_h=0.7295).
+\end{equation}
+The bridge therefore also supports an
 exact curve map $u=c^{-1}(s\,C/T_{\max})$ with $s=c(u_h)/(mg/T_{\max})$ (\texttt{ThrustCurve}); the calibrated
 $s=1.0016$ shows that the gz model and the quadsim preset agree on hover thrust within \SI{0.2}{\percent}.
 
@@ -82,7 +89,7 @@ white (\SI{1}{cm} position, \SI{3}{cm/s} velocity, \SI{10}{mrad} attitude). In m
 assumes a latency the gz GNSS does not have. Matching it (0\,ms) removed the lead and halved the truth-referenced
 tracking error (14$\to$\SI{7}{cm}). These statistics define the EKF-like model of the v1 training distribution.
 \begin{table}[h]\centering\small
-\input{generated/sitl_estimator.tex}
+\resizebox{\linewidth}{!}{\input{generated/sitl_estimator.tex}}
 \caption{PX4 EKF2 error vs gz ground truth (\texttt{scripts/sitl/estimator\_stats.py}, \texttt{docs/results/sitl\_estimator.json}).}
 \label{tab:sitl-est}
 \end{table}
@@ -93,8 +100,9 @@ The scenario of \cref{tab:sitl-hover} holds the hand-over pose for \SI{30}{s} (R
 \begin{table}[h]\centering\small
 \resizebox{\linewidth}{!}{\input{generated/sitl_hover.tex}}
 \caption{Hover policy (v0, seed 42), quadsim vs PX4 SITL (number of SITL runs in brackets; $\pm$ = std over envs / runs).
-``w.r.t. estimate'' measures what the policy regulates; truth-referenced numbers include EKF2's error. Source:
-\texttt{docs/results/sitl\_comparison.json}.}
+``w.r.t. estimate'' measures what the policy regulates; truth-referenced numbers include EKF2's error. These SITL runs
+used PX4's default \texttt{EKF2\_GPS\_DELAY}=\SI{110}{ms}, which slows the $x$ step (see (ii)); later runs use 0\,ms.
+Source: \texttt{docs/results/sitl\_comparison.json}.}
 \label{tab:sitl-hover}
 \end{table}
 \begin{figure}[h]\centering
@@ -107,8 +115,9 @@ Bottom: roll-rate command and response (quadsim commands chatter because of the 
 Findings:
 (i) \emph{Control performance transfers}: referenced to the estimate, SITL holds the pose to \SIrange{0.8}{1.0}{cm} RMS
 (quadsim \SI{1.9}{cm}) and the $z$ step rises and settles as in quadsim; the smoother EKF2 estimate produces much quieter
-commands than quadsim's white-noise odometry. (ii) The $x$ step settles slower in SITL (\SI{1.86}{s} vs \SI{1.07}{s}; the
-position dips back to $\approx$\SI{0.9}{m}); the cause is not isolated (the pitch loop is not slower, see (iv)). (iii) \emph{Heave limit cycle}: with the
+commands than quadsim's white-noise odometry. (ii) With PX4's default \texttt{EKF2\_GPS\_DELAY} the $x$ step settled slower (\SI{1.86}{s}, the position dipping back
+to $\approx$\SI{0.9}{m}); with the GNSS delay matched to gz the same policy settles in \SIrange{1.01}{1.04}{s} (quadsim
+\SI{1.07}{s}) -- the dip was an estimator artefact of the SITL configuration, not a control difference. (iii) \emph{Heave limit cycle}: with the
 linear thrust map, 3 of 5 runs developed a persistent \SIrange{3.75}{4}{Hz} vertical oscillation (collective std 0.30--0.36,
 vertical velocity 0.14--0.17\,m/s RMS) from the hand-over on; with the curve map 0 of 4 runs did. Quadsim shows the same
 lightly damped mode as noise-driven heave; the 1.6$\times$ local thrust gain of the linear map turns it into a limit
@@ -166,6 +175,14 @@ to \SI{0.25}{s} (quadsim \SI{0.22}{s}) and doubled the SITL success to 4 of 6 la
 comes from PX4's attitude and rate chain and is not represented in training. With one SITL flight per layout these rates
 are indicative only; the lesson for deployment is that velocity-interface policies must be trained with the target
 autopilot's velocity-loop dynamics (identified, or randomized over a range that contains them).
+\begin{figure}[h]\centering
+\includegraphics[width=\linewidth]{sitl_nav_layouts.png}
+\caption{PX4 SITL navigation flights in layout coordinates (grey: obstacles, light grey: collision margin of the
+\SI{0.35}{m} vehicle radius; dashed: goal region). With PX4's default velocity controller (orange) avoidance arrives late
+and the vehicle cuts into obstacle margins; with the velocity loop matched to the training cascade (green) 4 of 6 flights
+reach the goal.}
+\label{fig:sitl-nav}
+\end{figure}
 \begin{table}[h]\centering\small
 \resizebox{\linewidth}{!}{\input{generated/sitl_nav.tex}}
 \caption{Navigation layouts: quadsim success / collision rate (32 envs per layout) and the outcome of the PX4 SITL flight

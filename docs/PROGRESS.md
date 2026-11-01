@@ -210,7 +210,9 @@ figure `scripts/sitl/plot_comparison.py`. Raw runs (`.npz`, bridge step logs, PX
 | estimate attitude lag vs truth (roll / pitch) [ms] | 4.8 ± 4 / 4.7 ± 4 | 6.05 ± 4 / 6 ± 4.1 | 3 / 2 | 3.25 ± 0.43 / 2 | 3 / 2 | 4 / 2 |
 | odometry age at policy step: median / p95 [ms] | – | – | 11.9 ± 0.94 / 15.9 ± 1 | 7.99 ± 1.8 / 12 ± 1.7 | 12.5 ± 3.2 / 16.6 ± 3.2 | 13.8 / 17.9 |
 
-± = std over runs (SITL) or over the 64 envs (quadsim). Hover window 10–30 s after the hand-over. "w.r.t. estimate"
+± = std over runs (SITL) or over the 64 envs (quadsim). All SITL runs of this table used PX4's default
+`EKF2_GPS_DELAY` = 110 ms (see session 3: the x-step settling and truth-referenced errors in motion are affected, the
+stationary hover numbers are not). Hover window 10–30 s after the hand-over. "w.r.t. estimate"
 rows measure what the policy regulates (control performance); "truth" rows include the estimator's error. Rate
 response: output-error fit of `rate(s)/cmd(s) = K e^{-Ls}/(τs+1)` over the whole flight (closed-loop data; VAF =
 variance accounted for); SITL truth rate = gz ground truth at 50 Hz. Columns: linear map = `thrust_scale` only
@@ -258,10 +260,11 @@ Findings
    (±0.174, ±0.174) m, so the allocator under-actuates roll. **Verified:** with `CA_ROTOR*` = gz geometry, roll delay
    20 ms (quiet run) / 10 ms (oscillating run) vs 24–32 / 22 ms with the default geometry under the same conditions;
    pitch unchanged. Fitted delays depend on the excitation (closed-loop identification, read as ±10 ms).
-5. **x step settles slower in SITL** (1.86 ± 0.02 s vs 1.07 s w.r.t. the estimate, all SITL configurations): after a
-   faster rise the position dips back to ≈ 0.9 m at ≈ 1.5 s before settling (figure, top left); quadsim settles
-   monotonically. Cause not isolated (the pitch loop is not slower; candidates: EKF2's velocity dynamics during
-   accelerations, PX4's rate-loop damping / filters, the different τ).
+5. **x step settled slower in these runs** (1.86 ± 0.02 s vs 1.07 s w.r.t. the estimate): after a faster rise the
+   position dipped back to ≈ 0.9 m at ≈ 1.5 s. **Resolved in session 3:** the cause was the SITL GNSS-delay
+   mis-configuration (`EKF2_GPS_DELAY` 110 ms vs a latency-free gz GNSS, estimate leading the truth by 0.11 s in motion);
+   the same policy with `EKF2_GPS_DELAY=0` settles in 1.01–1.04 s (quadsim 1.07 s). All runs of this section used the
+   110 ms default; their stationary hover numbers are unaffected.
 6. **Hover collective and command chatter in quadsim.** In nominal quadsim the policy hovers with mean a0 ≈ 0.150
    instead of the static hover action 0.184 (−2.9 % commanded thrust). Replaying its command sequence through the x500
    motor model offline shows that the asymmetric motor lag (τ_up 12.5 ms < τ_down 25 ms) rectifies the chattering
@@ -320,7 +323,10 @@ sim-to-sim gaps found in SITL into improvements of the training environment. Wor
 | hover eval, 1000 ep. (PPO / cascade) | 99.9 % 1.38 cm / 88.7 % 6.1 cm | **bit-identical** (also after this session's code changes) | ✅ |
 | tracking eval, 500 ep. | 12.6 ± 1.5 cm | 12.2 cm | ✅ within CI (original used 250 envs, re-run 500 → other samples; `evaluate.py` now records `num_envs`) |
 | waypoint eval, 500 ep. | 99.4 ± 0.7 % | 98.8 % | ✅ within CI (same reason) |
-| camera tasks, recording, resume, rendered depth | pass | REVERIFY2_PLACEHOLDER | |
+| camera tasks (rendered depth, RGB, RGB-D), 16 envs | pass | finite obs, image shapes 1/3/4×48×64 | ✅ |
+| HDF5 recording round trip (tracking, geometric controller) | pass | pass | ✅ |
+| rendered vs analytic depth (pitch 0°) | 7.2 mm median | 6.6 mm median, pass | ✅ |
+| checkpoint resume (`train.py --resume`) | — | continues at the saved iteration (2 → 5) | ✅ |
 
 ### Deployment of all tasks ✅
 - Tracking, waypoint and range-navigation policies exported (contract now has `task_params`: horizon, reach radius,

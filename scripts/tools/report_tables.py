@@ -184,7 +184,8 @@ def sitl():
                 ("Velocity error correlation time [s]", f3(h["vel_corr_s"], 1, 2)),
                 ("Roll / pitch error std [mrad]", f3(h["att_std_rad"], 1000, 2))]
         for lab, m in e["motion"].items():
-            rows.append((f"In motion ({lab.replace('_', '\\_')}): position lag x / y [ms], error RMS [cm]",
+            gd = "110" if "110" in lab else "0"
+            rows.append((f"Circle flight, \\texttt{{EKF2\\_GPS\\_DELAY}}={gd}\\,ms: lag x / y [ms], RMS error [cm]",
                          f"{1e3 * m['pos_lag_x_s']:.0f} / {1e3 * m['pos_lag_y_s']:.0f}, {100 * m['pos_err_rms']:.1f}"))
         n = len(e["hover_runs"])
         w("sitl_estimator.tex", "\\begin{tabular}{lc}\\toprule\nQuantity & PX4 EKF2 in SITL\\\\\\midrule\n" +

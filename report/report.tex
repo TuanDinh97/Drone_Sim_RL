@@ -45,8 +45,15 @@ reproduces simulator observations and actions to $10^{-6}$ in closed loop. PPO p
 randomization (hover 99.9 vs 88.7\,\% success, tracking 12.6 vs 46.6\,cm RMSE); a 360$^\circ$ range-sensing navigation
 policy reaches 83\,\% success in a dense forest, and a depth-camera policy trained on analytic depth transfers
 without degradation to RTX-rendered depth (61 vs 67\,\% success). Negative results (no significant success gain from
-domain randomization on hover, an under-trained SAC baseline) are reported alongside. We report what is verified and, explicitly, what is not (no hardware or PX4-SITL flights yet), and
-give a prioritized roadmap toward real-world deployment.
+domain randomization on hover, an under-trained SAC baseline) are reported alongside. Finally, the exported
+policies were flown as PX4~v1.16 offboard controllers in software-in-the-loop simulation (Gazebo x500) through a ROS~2
+bridge: hover, tracking and waypoint policies transfer at the control level (hover \SIrange{0.8}{1.0}{cm}, tracking
+2--3\,cm RMS w.r.t.\ the onboard estimate, as in quadsim), while the cross-check exposed four bridge defects, a heave
+limit cycle caused by the thrust-map nonlinearity (removed by an exact thrust-curve map), PX4 EKF2's correlated
+estimate error, an allocation-geometry asymmetry of the rate loop, and a velocity-loop mismatch that limits the
+velocity-interface navigation policy (2/6 vs 87\,\% success; 4/6 after matching PX4's velocity loop). We report what is
+verified and, explicitly, what is not (no hardware flight yet), and give a prioritized roadmap toward real-world
+deployment.
 \end{abstract}
 
 \tableofcontents
@@ -282,17 +289,20 @@ the normalized state in a 256--128 actor; the critic is a state-only MLP on priv
 \toprule
 Milestone & Acceptance criterion (executed) & Status\\\midrule
 M1 Isaac Sim/Lab & headless GPU boot; PhysX free fall vs symplectic Euler $<\SI{1}{mm}$ (got \SI{9.5e-7}{m}) & \ok\\
-M2 Dynamics & 48 unit tests (all modules); PhysX vs reference $<\SI{1}{cm}$/1.5\,s; inertia exact; motor/yaw models $<3\,\%$ & \ok\\
+M2 Dynamics & unit tests (all modules); PhysX vs reference $<\SI{1}{cm}$/1.5\,s; inertia exact; motor/yaw models $<3\,\%$ & \ok\\
 M3 Sensors, recording, visualization & sensor statistics; rendered vs analytic depth (median $<\SI{2}{cm}$); HDF5 round trip; GUI and video & \ok\\
 M4 State-based RL & training completes with checkpoints; evaluated vs classical baselines & \ok\\
 M5 Vision RL & depth policy trained and evaluated (incl.\ rendered depth); RGB/RGB-D pipelines execute & \ok$^*$\\
 M6 DR \& Sim-to-Real interfaces & DR ablation; ONNX = PyTorch to $10^{-5}$; deployment-in-the-loop; ROS 2/PX4 bridge & \ok$^\dagger$\\
 M7 Docker, benchmark, docs & container runs tests + GPU smoke test; benchmark table; README; report & \ok\\
+PX4 SITL & policies fly PX4 v1.16 SITL as offboard controllers; quadsim-vs-SITL comparison of hover, steps, tracking,
+waypoints, navigation; bridge safety gating verified & \ok$^\ddagger$\\
 \bottomrule
 \end{tabularx}
 \caption{Milestone acceptance summary. $^*$Criteria met; the depth policy's success (61--67\,\%) is moderate and
-no RGB(-D) policy performance is claimed. $^\dagger$The PX4 bridge is not executed against PX4; DR showed no significant
-success gain on hover.}
+no RGB(-D) policy performance is claimed. $^\dagger$DR showed no significant success gain on hover; the bridge was
+validated in PX4 SITL afterwards. $^\ddagger$Hover, tracking and waypoint transfer at the control level; the velocity
+navigation policy needs a matched velocity loop (\cref{sec:sitl}).}
 \label{tab:milestones}
 \end{table}
 
@@ -516,8 +526,11 @@ camera, target/reference markers) and headless MP4 recording of trained policies
 \section{Limitations}
 The following limitations are explicit; none of them is hidden by the results above.
 \begin{itemize}
-\item \textbf{No real-world or PX4-SITL flight.} All results are in simulation. The ROS~2 / PX4 bridge is written and
-syntax-checked; its numerical core is validated in the simulator loop, but the node itself has not been run against PX4.
+\item \textbf{No real-world flight.} All results are in simulation, including PX4 SITL (\cref{sec:sitl}); SITL shares the
+quadsim motor and drag parameters, so it does not validate the motor model. In SITL, navigation obstacles are virtual
+(no contact physics), the waypoint course is 25--35\,\% slower than in quadsim for a reason not yet isolated, depth/RGB
+policies have not been flown (no rendered gz camera matched to the training camera), and run counts are small
+(2--6 flights per configuration).
 \item \textbf{Model fidelity.} Motor and aerodynamic parameters come from the PX4 Gazebo X500 model and the Crazyflie
 literature, not from identification of a physical vehicle; body-drag coefficients are engineering estimates. Rotor
 aerodynamics use the standard quasi-static $T=k_f\omega^2$ model (no inflow/advance-ratio dependence, no blade-element
@@ -530,8 +543,9 @@ negligible for closed-loop control but relevant for open-loop prediction studies
 stereo-noise model; rendered depth agrees to \SI{7}{mm} median, but real sensor artefacts (edge holes, speckle,
 IR interference, motion blur) are not modelled. RGB/RGB-D pipelines are implemented and execute end to end, but
 procedural scenes lack the texture/lighting diversity needed for transferable RGB policies.
-\item \textbf{Evaluation statistics.} Each RL configuration was trained with a single seed (compute budget of an 8\,GB
-consumer GPU); confidence intervals quantify evaluation noise, not seed-to-seed variability. Classical baselines use
+\item \textbf{Evaluation statistics.} The hover policies were trained with three seeds per training distribution
+(\cref{sec:v1}); the other tasks use a single seed (compute budget of an 8\,GB consumer GPU), so their confidence
+intervals quantify evaluation noise, not seed-to-seed variability. Classical baselines use
 reasonable default gains, not systematically tuned gains, so the reported margins are upper bounds of the RL advantage.
 \item \textbf{Platform issues.} Isaac Lab v2.3.2 fails to initialize rigid bodies when a viewport is rendered
 (GUI, video); quadsim applies a version-gated runtime patch (\cref{sec:patch}). Interactive GUI and 4096-environment
@@ -542,9 +556,10 @@ compiler (empty cache); later launches succeeded.
 \section{Roadmap toward real-world deployment}\label{sec:roadmap}
 Prioritized by expected impact on a successful first real flight:
 \begin{enumerate}
-\item \textbf{PX4 SITL in the loop} (x500 gz model, identical parameters): run the exported hover and tracking policies
-through \texttt{quadsim\_px4\_bridge}; compare closed-loop responses with quadsim; calibrate the thrust mapping and
-the rate-loop bandwidth. Acceptance: hover RMS error within 2$\times$ of quadsim.
+\item \textbf{PX4 SITL in the loop} -- done (\cref{sec:sitl}). Follow-ups: train velocity-interface policies with an
+identified or randomized autopilot velocity loop; flight-test the thrust-curve map on hardware; retrain tracking and
+waypoint policies on the sim-to-real distribution; a rendered gz camera matched to the training camera for depth policies;
+HITL with the companion computer to measure the real latency chain.
 \item \textbf{System identification of the target vehicle}: mass and inertia (bifilar pendulum), $k_f$, $k_m$ and motor
 time constants (thrust stand), rotor-drag coefficient (flight logs); update the preset and center the DR ranges on the
 identified values; retrain with several seeds.
@@ -571,6 +586,10 @@ diff summary next to its checkpoints; evaluation JSONs store seeds and overrides
 \item Validation: \texttt{pytest tests/core} (unit tests), \texttt{scripts/validation/m\{1,2,3,6\}\_*.py} (milestone
 acceptance tests), \texttt{scripts/rl/evaluate.py} (policy evaluation); tables in this report are generated from
 \texttt{docs/results/*.json} by \texttt{scripts/tools/report\_tables.py}.
+\item PX4 SITL: \texttt{ros2/px4\_sitl/setup\_px4\_sitl.sh} (PX4 v1.16.2, ROS~2 Jazzy, Gazebo Harmonic, px4\_msgs from
+the same PX4 tree), \texttt{scripts/sitl/run\_sitl.sh} (one experiment from fresh PX4 parameters to landing),
+\texttt{scripts/sitl/\{compare,compare\_tasks,estimator\_stats,hover\_v1\_summary\}.py} (metrics); the raw
+recordings (ROS-side \texttt{.npz}, bridge step logs, PX4 \texttt{.ulg}) are kept in \texttt{logs/sitl/}.
 \end{itemize}
 
 \begin{thebibliography}{9}\small

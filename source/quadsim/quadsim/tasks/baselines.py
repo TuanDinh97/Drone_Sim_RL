@@ -65,6 +65,9 @@ class CascadeBaseline:
 
     def __call__(self) -> torch.Tensor:
         env = self.env
+        new = env.episode_length_buf == 0  # first step of an episode: clear the velocity integrator
+        if new.any():
+            self.reset(new.nonzero().squeeze(-1))
         est = env.odom_meas
         p, q, v = est[:, :3], qm.quat_normalize(est[:, 3:7]), est[:, 7:10]
         pos_d, vel_d, acc_d, yaw_d = _targets(env)

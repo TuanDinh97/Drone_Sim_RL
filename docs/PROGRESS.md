@@ -101,9 +101,31 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
   The first SE(3) baseline was a design error (high-gain attitude law executed at the 50 Hz policy rate through
   the delay chain); it was replaced by Lee's position law + onboard attitude/rate loops. Baseline gains are
   defaults, not tuned. Part of the aggressive set exceeds the baselines' tilt limits (0.6–0.7 rad).
-- Waypoint (training) and DR ablation (no-DR hover training) in progress.
-- Off-policy SAC (skrl) trainer `scripts/rl/train_sac.py` written; first run failed only because VRAM was
-  exhausted by two concurrent trainings (to be re-run).
+- Waypoint: 4096 envs, 1500 iterations. 500 episodes (`docs/results/eval_waypoint_nominal.json`):
+  PPO **99.4 % success**, 5 waypoints in **6.6 s**, 0.6 % crash; cascade 92.8 %, 10.4 s, 2.2 % crash.
+- DR ablation (hover; identical policy trained without DR/noise/latency; 1000 episodes per row;
+  `docs/results/eval_dr_ablation_*.json`):
+
+  | eval condition | with DR | without DR |
+  |---|---|---|
+  | ideal (no DR/noise/delay) | 100 %, 0.22 cm, yaw 3.7° | 100 %, 0.28 cm, yaw 9.8° |
+  | training randomization | 99.9 %, 1.38 cm | 99.9 %, 2.05 cm |
+  | harsh OOD (mass ×0.8–1.25, motor τ ×1.5–2.5, k_f ×0.8–1, noise ×1.5–2, 10–20 ms delay, wind) | 78.5 ± 2.5 %, crash 3.9 %, 16.4 cm | 77.2 ± 2.6 %, crash 4.9 %, 18.6 cm |
+
+  Honest reading: DR lowers errors everywhere but the harsh-condition success difference is **not significant**;
+  CTBR + onboard rate loop already absorbs much parameter variation. Single seed per arm.
+- SAC (skrl 1.4.3, `scripts/rl/train_sac.py`), hover, 256 envs, 30 k vectorized steps (7.7 M transitions, 21 min):
+  pipeline ✅ executes and learns (episode return −11.2 → +1.7, still rising), but the policy is **not competitive**:
+  0 % crash, 0 % success, 1.13 m final error (PPO reaches return ≈ 11). Under-trained (UTD ratio 1/256), untuned.
+
+## Milestone 5 — Vision / navigation RL 🟡 (in progress)
+- Nav-Range v1 (reward as designed: proximity weight 0.2, crash 10, γ = 0.99), 4096 envs, 1500 it.: deterministic
+  eval at full density (500 episodes): **52.9 % success, 46.3 % collision**, 3.7 s to goal — the policy flies at
+  the 3 m/s limit and accepts collisions (proximity term ≈ −0.005 / episode, 2 s effective horizon).
+- Potential-field baseline (same range ring): 39.3 % success, 4.4 % collision, 52 % time-outs (local minima).
+- v2 reward (proximity 2.0, crash 20, γ = 0.995): Nav-Range v2 at iteration ~650 already 76–82 % training success.
+  Nav-Depth v2 (CNN on 64×48 analytic depth, 2048 envs) queued; first attempt OOM'd in the PPO update
+  (16 k images/mini-batch while an eval shared the GPU) → vision runner uses 16 mini-batches.
 
 ## Milestone 6 — Sim-to-Real interfaces 🟡
 - Export (`scripts/rl/export.py`): TorchScript + ONNX with normalizer and clamp; ONNX vs PyTorch max |Δ| = 3.6e-7 ✅.

@@ -79,3 +79,9 @@ class NavVisionPPORunnerCfg(QuadPPORunnerCfg):
         critic_hidden_dims=[512, 256, 128],
         activation="elu",
     )
+
+    def __post_init__(self):
+        if hasattr(super(), "__post_init__"):
+            super().__post_init__()
+        # CNN back-prop on 2048 envs x 32 steps: 16 mini-batches of 4096 images keep activations < 0.5 GB (8 GB GPU)
+        self.algorithm.num_mini_batches = 16

@@ -1,0 +1,114 @@
+{
+  "task": "Quadsim-Hover-v0",
+  "checkpoint": {
+    "policy_DR": "logs/rsl_rl/quadsim_hover/2026-11-01_02-30-46_ctbr_s42",
+    "policy_noDR": "logs/rsl_rl/quadsim_hover/2026-11-01_03-07-02_noDR_s42"
+  },
+  "seed": 1234,
+  "overrides": [
+    "env.randomization.enabled=False",
+    "env.sensors.noise_enabled=False",
+    "env.control.action_delay_steps=(0,0)"
+  ],
+  "episodes_requested": 1000,
+  "controllers": {
+    "policy_DR": {
+      "crash": {
+        "mean": 0.0,
+        "std": 0.0,
+        "ci95": 0.0,
+        "median": 0.0,
+        "n": 1000
+      },
+      "time_out": {
+        "mean": 1.0,
+        "std": 0.0,
+        "ci95": 0.0,
+        "median": 1.0,
+        "n": 1000
+      },
+      "episode_length_s": {
+        "mean": 7.980000019073486,
+        "std": 0.0,
+        "ci95": 0.0,
+        "median": 7.980000019073486,
+        "n": 1000
+      },
+      "final_pos_err": {
+        "mean": 0.0022338473194395193,
+        "std": 0.0008044701540356719,
+        "ci95": 4.986157672903271e-05,
+        "median": 0.0022047803504392505,
+        "n": 1000
+      },
+      "final_yaw_err": {
+        "mean": 0.06401759719848633,
+        "std": 0.038032851078033426,
+        "ci95": 0.002357300532204889,
+        "median": 0.06279826164245605,
+        "n": 1000
+      },
+      "success": {
+        "mean": 1.0,
+        "std": 0.0,
+        "ci95": 0.0,
+        "median": 1.0,
+        "n": 1000
+      },
+      "_meta": {
+        "episodes": 1000,
+        "wall_s": 18.14302349090576,
+        "steps": 798
+      }
+    },
+    "policy_noDR": {
+      "crash": {
+        "mean": 0.0,
+        "std": 0.0,
+        "ci95": 0.0,
+        "median": 0.0,
+        "n": 1000
+      },
+      "time_out": {
+        "mean": 1.0,
+        "std": 0.0,
+        "ci95": 0.0,
+        "median": 1.0,
+        "n": 1000
+      },
+      "episode_length_s": {
+        "mean": 7.980000019073486,
+        "std": 0.0,
+        "ci95": 0.0,
+        "median": 7.980000019073486,
+        "n": 1000
+      },
+      "final_pos_err": {
+        "mean": 0.002764768028166145,
+        "std": 0.00030581593174872524,
+        "ci95": 1.8954667826214405e-05,
+        "median": 0.0027522777672857046,
+        "n": 1000
+      },
+      "final_yaw_err": {
+        "mean": 0.1718147027492523,
+        "std": 0.045339789558551453,
+        "ci95": 0.0028101892712997594,
+        "median": 0.16917824745178223,
+        "n": 1000
+      },
+      "success": {
+        "mean": 1.0,
+        "std": 0.0,
+        "ci95": 0.0,
+        "median": 1.0,
+        "n": 1000
+      },
+      "_meta": {
+        "episodes": 1000,
+        "wall_s": 18.071616888046265,
+        "steps": 798
+      }
+    }
+  }
+}

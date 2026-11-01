@@ -16,7 +16,7 @@ Read `docs/PROGRESS.md` (verified state, open issues) and `docs/ROADMAP.md` (nex
 - Standalone scripts using a raw `SimulationContext` must set `SimulationContext.instance()._disable_app_control_on_stop_handle = True`
   before `app.close()`, otherwise close() blocks forever. Envs: `env.close()` handles it.
 - Exit codes of Isaac scripts are unreliable (close() may swallow exceptions) → validation scripts write JSON with `pass` flags; check those.
-- `pkill -f <pattern>` can kill your own shell if the pattern appears in the command line; kill by PID.
+- `pkill -f`/`pgrep -f <pattern>` match your own shell when the pattern appears in the command line (wait loops never end, kills hit yourself). Use a regex char class: `pgrep -f "[r]un_name foo"`, or kill by PID.
 - rsl_rl 3.1.2's `RslRlVecEnvWrapper.get_observations()` calls `_get_observations()` only (not `_get_states()`): return
   all obs groups (`policy`, `critic`, `image`) from `_get_observations()`.
 - `DirectRLEnv.physics_dt` is a read-only property.

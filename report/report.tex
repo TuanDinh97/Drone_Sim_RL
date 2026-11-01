@@ -267,7 +267,7 @@ the normalized state in a 256--128 actor; the critic is a state-only MLP on priv
 \toprule
 Milestone & Acceptance criterion (executed) & Status\\\midrule
 M1 Isaac Sim/Lab & headless GPU boot; PhysX free fall vs symplectic Euler $<\SI{1}{mm}$ (got \SI{9.5e-7}{m}) & \ok\\
-M2 Dynamics & 46+ unit tests; PhysX vs reference $<\SI{1}{cm}$/1.5\,s; inertia exact; motor/yaw models $<3\,\%$ & \ok\\
+M2 Dynamics & 48 unit tests (all modules); PhysX vs reference $<\SI{1}{cm}$/1.5\,s; inertia exact; motor/yaw models $<3\,\%$ & \ok\\
 M3 Sensors, recording, visualization & sensor statistics; rendered vs analytic depth (median $<\SI{2}{cm}$); HDF5 round trip; GUI and video & \ok\\
 M4 State-based RL & training completes with checkpoints; evaluated vs classical baselines & \pend\\
 M5 Vision RL & depth policy trained and evaluated; RGB/RGB-D pipelines execute & \pend\\
@@ -377,11 +377,37 @@ baseline uses Lee's position law with the onboard attitude/rate loops.
 \label{tab:track}
 \end{table}
 
-%WAYPOINT%
+\textbf{Waypoint navigation.} Training: 4096 environments, 1500 iterations. Five random waypoints (separation
+$\ge\SI{1.5}{m}$, \SI{0.3}{m} acceptance radius) must be passed in order within \SI{15}{s}. The cascade baseline
+flies to each waypoint with its velocity limits (\SI{5}{m/s} horizontal), facing the waypoint.
+\begin{table}[h]\centering\small
+\resizebox{\linewidth}{!}{\input{generated/waypoint.tex}}
+\caption{Waypoint navigation (500 episodes). Time is measured over successful episodes only.}
+\label{tab:wp}
+\end{table}
 
 %NAV%
 
-%DRABLATION%
+\subsection{Domain-randomization ablation}
+An identical hover policy was trained without any randomization, sensor noise or latency (\emph{w/o DR}) and compared
+with the default policy (\emph{with DR}) under three evaluation conditions: \emph{ideal} (the no-DR training
+distribution), \emph{randomized} (the DR training distribution) and \emph{harsh} (outside both training distributions:
+mass $\times[0.8,1.25]$, motor time constants $\times[1.5,2.5]$, thrust coefficients $\times[0.8,1.0]$, sensor noise
+$\times[1.5,2]$, 10--20\,ms action delay, wind and gusts).
+\begin{table}[h]\centering\small
+\resizebox{\linewidth}{!}{\input{generated/dr.tex}}
+\caption{DR ablation on the hover task (1000 episodes per row, identical seeds).}
+\label{tab:dr}
+\end{table}
+The DR policy has lower position error in every condition (e.g. \SI{1.38}{} vs \SI{2.05}{cm} under the training
+randomization, \SI{16.4}{} vs \SI{18.6}{cm} under harsh conditions) and fewer crashes under harsh conditions
+(3.9 vs 4.9\,\%), but the success-rate difference under harsh conditions (78.5 vs 77.2\,\%) is within the 95\,\%
+confidence interval. We therefore do \emph{not} claim a significant robustness gain from DR for this task. A plausible
+explanation is the CTBR interface: the onboard rate loop closes around the (real) gyro and absorbs much of the
+inertial and actuator variation, a robustness property reported for CTBR policies in~\cite{kaufmann2022benchmark}.
+The yaw error of the DR policy is 2--3$\times$ lower in all conditions; with one seed per arm this may be a
+training-run effect rather than a DR effect. Multi-seed ablations, and ablations with the direct motor interface where
+DR is expected to matter more, are planned (\cref{sec:roadmap}).
 
 \subsection{M6: export and deployment pipeline}
 The exported ONNX graph (normalizer + actor + clamp) matches PyTorch to $3.6\times10^{-7}$. In the
@@ -423,7 +449,7 @@ training do not fit simultaneously in 8\,GB VRAM. The first launch with renderin
 compiler (empty cache); later launches succeeded.
 \end{itemize}
 
-\section{Roadmap toward real-world deployment}
+\section{Roadmap toward real-world deployment}\label{sec:roadmap}
 Prioritized by expected impact on a successful first real flight:
 \begin{enumerate}
 \item \textbf{PX4 SITL in the loop} (x500 gz model, identical parameters): run the exported hover and tracking policies

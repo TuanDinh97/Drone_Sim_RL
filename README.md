@@ -77,7 +77,7 @@ proxy), fetch the base image with `python3 scripts/tools/pull_image_via_proxy.py
 
 ## Quick start
 ```bash
-python -m pytest tests/core -q                                         # 49 CPU/GPU unit tests (~15 s)
+python -m pytest tests/core -q                                         # 48 unit tests (~15 s)
 python scripts/validation/m2_dynamics_validation.py --headless        # PhysX vs reference dynamics
 python scripts/rl/train.py --task Quadsim-Hover-v0 --headless         # ~10 min on an RTX 5060
 python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers policy cascade \

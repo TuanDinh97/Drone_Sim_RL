@@ -1,0 +1,24 @@
+{
+  "task": "Quadsim-Hover-v0",
+  "algorithm": "SAC (skrl 1.4.3)",
+  "num_envs": 256,
+  "timesteps": 30000,
+  "env_transitions": 7680000,
+  "train_wall_s": 1281.514327287674,
+  "log_dir": "logs/skrl/Quadsim-Hover-v0_sac/2026-11-01_03-30-15",
+  "crash": 0.0,
+  "time_out": 1.0,
+  "episode_length_s": 7.980002403259277,
+  "final_pos_err": 1.1263508796691895,
+  "final_yaw_err": 0.8937283754348755,
+  "success": 0.0,
+  "episodes": 1024,
+  "learning_curve_total_reward_mean": {
+    "200": -11.18,
+    "7600": -1.31,
+    "15200": 0.1,
+    "22600": 1.08,
+    "30000": 1.68
+  },
+  "note": "return still increasing at the end of the budget; PPO reaches ~11 on the same reward. Gradient updates = 30000 (UTD ratio 1/256)."
+}

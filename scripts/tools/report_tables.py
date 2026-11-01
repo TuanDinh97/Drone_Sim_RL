@@ -107,11 +107,13 @@ def evals():
     w("waypoint.tex", "\\begin{tabular}{llccccc}\\toprule\nCondition & Controller & success [\\%] & waypoints [\\%] & time [s] & crash [\\%] & episodes\\\\"
       "\\midrule\n" + body + "\n\\bottomrule\\end{tabular}\n")
     nc = [("success", 1, True, 1), ("collision", 1, True, 1), ("time_to_goal", 1, False, 2), ("min_clearance", 100, False, 0)]
-    files = [(f.split("eval_nav_")[1][:-5].replace("_", " "), os.path.basename(f)) for f in sorted(glob.glob(f"{R}/eval_nav_*.json"))]
+    files = [(json.load(open(f)).get("label", os.path.basename(f)), os.path.basename(f))
+             for f in sorted(glob.glob(f"{R}/eval_nav_*.json"))]
     body = eval_table(files, nc, "nav")
     w("nav.tex", "\\begin{tabular}{llccccc}\\toprule\nPolicy input / eval & Controller & success [\\%] & collision [\\%] & time [s] & "
       "min clear. [cm] & episodes\\\\\\midrule\n" + body + "\n\\bottomrule\\end{tabular}\n")
-    files = [(f.split("eval_dr_ablation_")[1][:-5].replace("_", " "), os.path.basename(f)) for f in sorted(glob.glob(f"{R}/eval_dr_ablation_*.json"))]
+    files = [(f.split("eval_dr_ablation_")[1][:-5].split("_", 1)[1].replace("_", " "), os.path.basename(f))
+             for f in sorted(glob.glob(f"{R}/eval_dr_ablation_*.json"))]
     body = eval_table(files, hover_cols, "dr")
     w("dr.tex", "\\begin{tabular}{llccccc}\\toprule\nEval. condition & Policy & success [\\%] & crash [\\%] & final pos. err [cm] & "
       "final yaw err [deg] & episodes\\\\\\midrule\n" + body + "\n\\bottomrule\\end{tabular}\n")

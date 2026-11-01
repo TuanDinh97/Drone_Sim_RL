@@ -1,4 +1,11 @@
 \begin{tabular}{llccccc}\toprule
 Eval. condition & Policy & success [\%] & crash [\%] & final pos. err [cm] & final yaw err [deg] & episodes\\\midrule
-
+ideal & PPO with DR & 100.0 $\pm$ 0.0 & 0.0 $\pm$ 0.0 & 0.22 $\pm$ 0.00 & 3.7 $\pm$ 0.1 & 1000\\
+ideal & PPO w/o DR & 100.0 $\pm$ 0.0 & 0.0 $\pm$ 0.0 & 0.28 $\pm$ 0.00 & 9.8 $\pm$ 0.2 & 1000\\
+\midrule
+randomized & PPO with DR & 99.9 $\pm$ 0.2 & 0.1 $\pm$ 0.2 & 1.38 $\pm$ 0.26 & 4.4 $\pm$ 0.2 & 1000\\
+randomized & PPO w/o DR & 99.9 $\pm$ 0.2 & 0.1 $\pm$ 0.2 & 2.05 $\pm$ 0.29 & 10.1 $\pm$ 0.2 & 1000\\
+\midrule
+harsh & PPO with DR & 78.5 $\pm$ 2.5 & 3.9 $\pm$ 1.2 & 16.37 $\pm$ 2.39 & 19.9 $\pm$ 2.4 & 1011\\
+harsh & PPO w/o DR & 77.2 $\pm$ 2.6 & 4.9 $\pm$ 1.3 & 18.58 $\pm$ 2.46 & 23.1 $\pm$ 2.0 & 1009\\
 \bottomrule\end{tabular}

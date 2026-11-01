@@ -61,6 +61,11 @@ def main():
     apply_overrides(env_cfg, agent_cfg, overrides)
     if args.num_envs is None and not any(o.startswith("env.scene.num_envs") for o in overrides):
         env_cfg.scene.num_envs = auto_num_envs(env_cfg)
+    if getattr(env_cfg, "robot", None) is not None and hasattr(env_cfg, "dynamics"):
+        from quadsim.core.vehicles import get_vehicle
+
+        # the spawn params were built from the class default before overrides / __post_init__ changed the preset
+        env_cfg.robot.spawn.params = get_vehicle(env_cfg.dynamics.preset)  # record the vehicle actually simulated
     agent_cfg.seed = args.seed
     env_cfg.seed = args.seed
     agent_cfg.device = args.device

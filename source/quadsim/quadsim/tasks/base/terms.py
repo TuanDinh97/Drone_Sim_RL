@@ -118,6 +118,9 @@ class SafetyCfg:
     lambda_max: float = 100.0
     update_period_steps: int = 32
     """Policy steps between multiplier updates (one rsl_rl rollout by default)."""
+    warmup_steps: int = 0
+    """Policy steps before the multiplier starts to move (it stays at ``lambda_init`` and the costs of that period
+    are discarded): lets the policy learn the task before the constraint is enforced."""
     normalize: bool = True
     """Divide the Lagrangian reward by (1 + lambda) to keep its scale bounded."""
 
@@ -214,7 +217,9 @@ class TermManager:
         """Lagrangian reward (safe RL); also performs the periodic multiplier update."""
         s = self.safety
         self._steps += 1
-        if self._steps % max(s.update_period_steps, 1) == 0 and self._finished_costs:
+        if self._steps <= s.warmup_steps:
+            self._finished_costs.clear()
+        elif self._steps % max(s.update_period_steps, 1) == 0 and self._finished_costs:
             jc = torch.cat(self._finished_costs).mean().item()
             self._finished_costs.clear()
             err = jc - s.cost_limit

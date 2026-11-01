@@ -432,3 +432,17 @@ def test_reevaluate_rebuilds_commands_from_old_result_files(tmp_path):
                              "episodes_requested": 300, "num_envs": 64, "controllers": {"policy": {}}}))
     s = " ".join(re_.command(str(g))[0])
     assert "--algo vla" in s and "--enable_cameras" in s and "--num_envs 64" in s
+
+
+def test_lagrangian_warmup_holds_the_multiplier():
+    env = _FakeEnv(4)
+    cfg = terms.TermsCfg(costs={"c": terms.CostTermCfg(func=lambda e: torch.ones(e.num_envs))})
+    safety = terms.SafetyCfg(lagrangian=True, cost_limit=0.1, ki=0.5, update_period_steps=1, warmup_steps=5)
+    tm = terms.TermManager(env, cfg, safety)
+    for _ in range(5):  # violations during the warm-up do not move lambda
+        tm._finished_costs.append(torch.ones(4))
+        tm.shape_reward(torch.zeros(4))
+    assert tm.lagrange == 0.0 and not tm._finished_costs
+    tm._finished_costs.append(torch.ones(4))
+    tm.shape_reward(torch.zeros(4))
+    assert tm.lagrange > 0.0

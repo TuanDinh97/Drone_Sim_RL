@@ -36,7 +36,7 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
 
   Artifacts: `docs/results/m2_dynamics_{x500,crazyflie}.json`, `docs/figures/m2_dynamics_*.pdf`.
 
-## Milestone 3 — Sensors, visualization, recording ✅ except GUI/video 🟡 (2026-11-01)
+## Milestone 3 — Sensors, visualization, recording ✅ (2026-11-01)
 - Sensor models (`quadsim.core.sensors`): IMU (white noise density, turn-on bias, Gauss–Markov bias drift,
   scale/misalignment, sample-and-hold rate, latency), barometer (ISA), magnetometer, GPS, odometry/state-estimate
   model (noise, VIO-like drift, delay; profiles perfect/mocap/vio/gps_ins), depth-camera noise (stereo σ∝z²,
@@ -59,8 +59,9 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
   (shapes, monotonic time, dt, last-sample equality, embedded config) for tracking (state) and rendered-depth nav
   (images as uint16 mm). Plotting: `scripts/data/plot_recording.py` → `docs/figures/m3_recording_*.png`.
 - Visualization: procedural target/reference markers, chase camera, `scripts/tools/view.py` (GUI / MP4).
-  🟡 Not yet verified: GUI window launch and headless MP4 (first attempt failed during `sim.reset()` while a
-  training job shared the GPU; to be re-tested).
+  ✅ Headless MP4 of trained hover and depth-navigation policies (`outputs/videos/`, frames in
+  `docs/figures/video_*_frames.png`) and interactive GUI (full `isaaclab.python.kit`, 500 steps, no errors) after
+  the upstream patch below, on an idle GPU.
 - Known transient: the very first launch with `--enable_cameras` crashed once in `libslang.so` while compiling
   shaders (empty shader cache); every later launch succeeded.
 
@@ -118,14 +119,26 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
   pipeline ✅ executes and learns (episode return −11.2 → +1.7, still rising), but the policy is **not competitive**:
   0 % crash, 0 % success, 1.13 m final error (PPO reaches return ≈ 11). Under-trained (UTD ratio 1/256), untuned.
 
-## Milestone 5 — Vision / navigation RL 🟡 (in progress)
-- Nav-Range v1 (reward as designed: proximity weight 0.2, crash 10, γ = 0.99), 4096 envs, 1500 it.: deterministic
-  eval at full density (500 episodes): **52.9 % success, 46.3 % collision**, 3.7 s to goal — the policy flies at
-  the 3 m/s limit and accepts collisions (proximity term ≈ −0.005 / episode, 2 s effective horizon).
-- Potential-field baseline (same range ring): 39.3 % success, 4.4 % collision, 52 % time-outs (local minima).
-- v2 reward (proximity 2.0, crash 20, γ = 0.995): Nav-Range v2 at iteration ~650 already 76–82 % training success.
-  Nav-Depth v2 (CNN on 64×48 analytic depth, 2048 envs) queued; first attempt OOM'd in the PPO update
-  (16 k images/mini-batch while an eval shared the GPU) → vision runner uses 16 mini-batches.
+## Milestone 5 — Vision / navigation RL ✅ (criteria met; moderate depth-policy performance)
+Full-density evaluation (curriculum off, 4–24 obstacles, mean ≈ 12; 500 episodes unless noted;
+`docs/results/eval_nav_*.json`):
+
+| policy input | controller | success | collision | time to goal |
+|---|---|---|---|---|
+| range ring (360°, 32 rays) | potential field (paired run / independent run) | 49.8 % / 39.3 % | 5.2 % / 4.4 % | 10.2 s |
+| range ring | PPO, reward v1 (prox. 0.2, crash 10, γ 0.99) | 52.9 % | 46.3 % | 3.7 s |
+| range ring | **PPO, reward v2** (prox. 2.0, crash 20, γ 0.995) | **83.0 ± 3.3 %** | 16.6 % | 4.2 s |
+| depth 64×48, analytic (training sensor) | PPO v2, CNN, 900 it. | 61.1 ± 4.3 % | 36.9 % | 4.3 s |
+| depth, **zero-shot on RTX-rendered depth** (300 ep.) | same policy | 66.7 ± 5.3 % | 32.7 % | 4.2 s |
+
+- Reward v1 → v2 is a documented reward iteration (v1 policy flew at the speed limit and accepted collisions).
+- The potential field rarely collides but is trapped in local minima (42–52 % time-outs). Its two runs differ by more
+  than the per-run CI: layouts are not paired across runs (shared RNG stream consumed differently).
+- Depth policy: analytic → rendered depth shows no degradation (within CI) — supports training on the 12× faster
+  analytic sensor. Its gap to the 360° range policy is plausibly the 87° field of view without memory (unverified).
+- Depth run stopped at iteration 900 of 1500 (curriculum reached 24 obstacles at it. 501; success flat over the
+  last 300 it.) for time reasons; more training may help.
+- RGB-D: rendered RGB + depth → CNN PPO executes end to end (10-iteration run, 64 envs). No performance claim.
 
 ## Milestone 6 — Sim-to-Real interfaces 🟡
 - Export (`scripts/rl/export.py`): TorchScript + ONNX with normalizer and clamp; ONNX vs PyTorch max |Δ| = 3.6e-7 ✅.
@@ -139,12 +152,17 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
 - ROS 2 package `ros2/quadsim_px4_bridge` (offboard node, launch, config): 🟡 written and syntax-checked only;
   **not executed against PX4 SITL or hardware**.
 
-## Milestone 7 — Docker ✅ (partial)
+## Milestone 7 — Docker, benchmark, documentation ✅
 - `docker/Dockerfile` on the official `nvcr.io/nvidia/isaac-lab:2.3.2`; compose services test/train/gui/tensorboard.
 - NGC refuses direct connections from this network (HTTP 403); the Docker daemon ignores the shell proxy.
   `scripts/tools/pull_image_via_proxy.py` pulls via the registry API through the user's proxy with sha256
   verification and `docker load`s the image (8.41 GB compressed).
-- `docker compose run --rm test` ✅: 46 unit tests pass and the Isaac Sim GPU smoke test passes inside the container.
+- `docker compose run --rm test` ✅: unit tests and the Isaac Sim GPU smoke test pass inside the container.
+- Benchmark (idle GPU, env stepping only; `docs/results/benchmark.jsonl`): Hover 16 k / 63 k / 237 k / 439 k env-steps/s
+  at 256 / 1024 / 4096 / 8192 envs (3.9 GB at 8192); Nav-Depth (analytic) 83 k @ 2048 (4.4 GB); RTX-rendered depth
+  6.8 k @ 256 (5.6 GB); RGB-D 3.8 k @ 128.
+- M2 regression re-run with the upstream patch active: all pass.
+- README, `docs/SIM2REAL.md`, LaTeX report `report/report.pdf` (14 pages; tables generated from `docs/results`).
 
 ## Upstream issue found and patched (affects GUI / video)
 - Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the
@@ -159,6 +177,9 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
 - Analytic depth for vision RL: Warp kernel (`core/sensors/raycast_warp.py`), O(N·R) memory; 2048 envs × 3072
   rays × 24 cylinders = 1.36 ms/frame, 169 MB; matches the PyTorch reference (unit test on CPU and CUDA).
 
-## Open issues
-- GUI viewer to be re-verified with an idle GPU (see above).
+## Open issues / next steps
+- Not done: PX4 SITL / hardware flights, real-vehicle system identification, multi-seed statistics, tuned baselines,
+  RGB policy training with texture/lighting randomization (see `docs/ROADMAP.md`).
+- GUI and a 4096-env training run cannot share the 8 GB GPU.
+- Files created by the container in bind mounts are owned by root.
 - Files created by the container in bind mounts are owned by root.

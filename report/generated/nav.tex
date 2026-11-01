@@ -1,6 +1,14 @@
 \begin{tabular}{llccccc}\toprule
 Policy input / eval & Controller & success [\%] & collision [\%] & time [s] & min clear. [cm] & episodes\\\midrule
-range ring (classical) & Potential field & 39.3 $\pm$ 4.0 & 4.4 $\pm$ 1.7 & 9.86 $\pm$ 0.39 & 71 $\pm$ 2 & 570\\
+range ring (paired run) & Potential field & 49.8 $\pm$ 4.4 & 5.2 $\pm$ 1.9 & 10.18 $\pm$ 0.41 & 70 $\pm$ 2 & 500\\
 \midrule
 range ring, reward v1 & PPO (ours) & 52.9 $\pm$ 4.4 & 46.3 $\pm$ 4.4 & 3.67 $\pm$ 0.06 & 45 $\pm$ 2 & 501\\
+\midrule
+range ring, reward v2 & PPO (ours) & 83.0 $\pm$ 3.3 & 16.6 $\pm$ 3.3 & 4.24 $\pm$ 0.05 & 53 $\pm$ 2 & 500\\
+\midrule
+depth 64x48 (analytic, train dist.) & PPO (ours) & 61.1 $\pm$ 4.3 & 36.9 $\pm$ 4.2 & 4.25 $\pm$ 0.05 & 50 $\pm$ 2 & 501\\
+\midrule
+depth, zero-shot on RTX-rendered & PPO (ours) & 66.7 $\pm$ 5.3 & 32.7 $\pm$ 5.3 & 4.22 $\pm$ 0.04 & 50 $\pm$ 3 & 300\\
+\midrule
+range ring (independent run) & Potential field & 39.3 $\pm$ 4.0 & 4.4 $\pm$ 1.7 & 9.86 $\pm$ 0.39 & 71 $\pm$ 2 & 570\\
 \bottomrule\end{tabular}

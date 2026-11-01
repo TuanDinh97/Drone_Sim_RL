@@ -7,11 +7,11 @@ Ordered by dependency; each milestone has explicit acceptance criteria that are 
 |---|---|---|---|
 | 1 | Isaac Sim/Lab foundation | headless boot; PhysX free fall matches symplectic Euler < 1e-3 m | ✅ |
 | 2 | Quadrotor dynamics | unit tests pass; PhysX vs reference open-loop < 1 cm / 1.5 s; inertia exact; motor/yaw models < 3 % | ✅ |
-| 3 | Sensors, visualization, recording | IMU static/dynamic statistics match configured noise (Allan-type check); analytic depth vs rendered depth agree (median abs err < 2 cm); synchronized HDF5 recording round-trips; GUI launch script works | 🟡 (GUI/video pending) |
-| 4 | State-based RL (hover, tracking, waypoints) | training runs to completion with checkpoints & resume; evaluated policy success/error metrics reported vs classical baselines (cascade PID / SE(3)) | ⬜ |
-| 5 | Vision RL (depth / RGB / RGB-D) | depth-based obstacle-avoidance policy trained (raycast depth, many envs) and evaluated in rendered-depth envs; RGB/RGB-D pipelines execute end to end | ⬜ |
-| 6 | Domain randomization & Sim-to-Real interfaces | DR ablation (policy trained with vs without DR evaluated on perturbed dynamics); ONNX export reproduces PyTorch outputs < 1e-5; ROS 2 / PX4 interface package with frame conversions unit-tested | ⬜ |
-| 7 | Docker, benchmarks, documentation, report | Docker image builds and runs the unit tests headless; throughput/VRAM benchmark table; README; LaTeX report compiled | ⬜ |
+| 3 | Sensors, visualization, recording | IMU static/dynamic statistics match configured noise (Allan-type check); analytic depth vs rendered depth agree (median abs err < 2 cm); synchronized HDF5 recording round-trips; GUI launch script works | ✅ |
+| 4 | State-based RL (hover, tracking, waypoints) | training runs to completion with checkpoints & resume; evaluated policy success/error metrics reported vs classical baselines (cascade PID / SE(3)) | ✅ hover, tracking, waypoints |
+| 5 | Vision RL (depth / RGB / RGB-D) | depth-based obstacle-avoidance policy trained (raycast depth, many envs) and evaluated in rendered-depth envs; RGB/RGB-D pipelines execute end to end | ✅ (depth policy 61–67 % success; RGB perf. not claimed) |
+| 6 | Domain randomization & Sim-to-Real interfaces | DR ablation (policy trained with vs without DR evaluated on perturbed dynamics); ONNX export reproduces PyTorch outputs < 1e-5; ROS 2 / PX4 interface package with frame conversions unit-tested | ✅ (bridge not run against PX4) |
+| 7 | Docker, benchmarks, documentation, report | Docker image builds and runs the unit tests headless; throughput/VRAM benchmark table; README; LaTeX report compiled | ✅ |
 
 ## Beyond the current scope (future work, prioritized)
 1. Real-flight system identification (thrust stand, k_f, k_m, τ; bifilar pendulum inertia) for the target vehicle; update presets.

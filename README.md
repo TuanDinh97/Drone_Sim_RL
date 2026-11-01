@@ -10,7 +10,29 @@ the simulator bit-for-bit (to 1e-6) through a framework-free deployment interfac
 > Hardware used: Ubuntu 24.04, RTX 5060 **8 GB**, i5-14600KF. Nothing has been flown on a real vehicle yet
 > (see [`docs/SIM2REAL.md`](docs/SIM2REAL.md)). The full technical report is [`report/report.pdf`](report/report.pdf).
 
-<!-- RESULTS_TABLE -->
+## Verified results (simulation, RTX 5060 8 GB)
+
+| What | Result | Evidence |
+|---|---|---|
+| PhysX vs independent reference integrator, 1.5 s open-loop flight (X500) | **0.4 mm** position error | `scripts/validation/m2_dynamics_validation.py` |
+| Thrust step / yaw torque vs model | 0.02 % / 0.004 % error | same |
+| RTX-rendered depth vs analytic GPU ray casting | **7 mm** median, 99.6 % hit agreement | `scripts/validation/m3_depth_consistency.py` |
+| Exported ONNX policy + NumPy deploy interface in closed loop | obs/action error **1e-6**, identical success | `scripts/validation/m6_deploy_consistency.py` |
+| Hover/recovery (57° tilt, 3 rad/s), PPO vs cascade PID | **99.9 %** vs 88.7 % success; 1.4 vs 6.1 cm | `docs/results/eval_hover_nominal.json` |
+| Same under unseen wind, gusts and pushes | **97.3 %** vs 78.6 % | `docs/results/eval_hover_wind_push.json` |
+| Trajectory tracking ≤4 m/s, PPO vs cascade vs SE(3) | **12.6** vs 46.6 vs 49.2 cm RMSE | `docs/results/eval_track_nominal.json` |
+| Waypoint course (5 waypoints), PPO vs cascade | **99.4 %** in 6.6 s vs 92.8 % in 10.4 s | `docs/results/eval_waypoint_nominal.json` |
+| Training throughput (hover, 4096 envs) | ~190 k env-steps/s, 3.9 GB VRAM | training logs |
+| Obstacle navigation, 360° range ring (PPO, reward v2) vs potential field | **83.0 %** vs 39–50 % success (17 % vs 5 % collisions) | `docs/results/eval_nav_*.json` |
+| Depth-camera navigation (CNN on 64×48 analytic depth) → zero-shot on RTX-rendered depth | 61.1 % → **66.7 %** (no degradation) | same |
+| Env throughput, hover / analytic depth / rendered depth | 439 k @ 8192 envs / 83 k @ 2048 / 6.8 k @ 256 env-steps/s | `docs/results/benchmark.jsonl` |
+
+Negative / neutral results are reported too: domain randomization gave lower errors but no significant
+success gain on hover under harsh conditions; the off-policy SAC baseline learns but was not competitive within
+the compute budget; the first navigation reward produced a fast but collision-prone policy (53 % success); the first
+SE(3) baseline design was unstable at 50 Hz; the depth policy (61–67 %) remains well below the range policy
+(see `docs/PROGRESS.md`). RGB/RGB-D pipelines execute end to end but no RGB policy performance is claimed.
+
 
 ## Features
 

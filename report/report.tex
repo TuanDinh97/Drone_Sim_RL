@@ -13,6 +13,7 @@
 \usepackage{caption}
 \setlist{nosep,leftmargin=*}
 \sisetup{detect-all}
+\setlength{\emergencystretch}{3em}
 \graphicspath{{../docs/figures/}}
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\vect}[1]{\bm{#1}}
@@ -38,9 +39,12 @@ waypoint and vision-based obstacle-avoidance tasks with deployable observations 
 validated against analytic solutions or an independent integrator: PhysX trajectories match the reference
 integrator to \SI{0.4}{mm} over \SI{1.5}{s} of open-loop flight, RTX-rendered depth matches our analytic GPU ray
 caster to \SI{7}{mm} median error, and the exported ONNX policy, driven by a NumPy deployment interface,
-reproduces simulator observations and actions to $10^{-6}$ in closed loop. PPO policies trained in minutes on an
+reproduces simulator observations and actions to $10^{-6}$ in closed loop. PPO policies trained in 10--40 minutes on an
 8\,GB consumer GPU outperform classical cascade and geometric controllers under identical noise, latency and
-randomization. We report what is verified and, explicitly, what is not (no hardware or PX4-SITL flights yet), and
+randomization (hover 99.9 vs 88.7\,\% success, tracking 12.6 vs 46.6\,cm RMSE); a 360$^\circ$ range-sensing navigation
+policy reaches 83\,\% success in a dense forest, and a depth-camera policy trained on analytic depth transfers
+without degradation to RTX-rendered depth (61 vs 67\,\% success). Negative results (no significant success gain from
+domain randomization on hover, an under-trained SAC baseline) are reported alongside. We report what is verified and, explicitly, what is not (no hardware or PX4-SITL flights yet), and
 give a prioritized roadmap toward real-world deployment.
 \end{abstract}
 
@@ -231,7 +235,7 @@ All rewards are integrated over the policy step $\Delta t$; crashes (ground cont
 or obstacle collision) terminate the episode with a penalty.
 \begin{itemize}
 \item \textbf{Hover/recovery}: initial states up to $\pm1.5$\,m offset, $57^\circ$ tilt, \SI{1.5}{m/s},
-\SI{3}{rad/s}; reward $1-\tanh(\|e_p\|/0.8)+0.5\,e^{-(\|e_p\|/0.1)^2}+0.2\cos^2$-type yaw term minus velocity,
+\SI{3}{rad/s}; reward $1-\tanh(\|e_p\|/0.8)+0.5\,e^{-(\|e_p\|/0.1)^2}+0.2\cos^2(e_\psi/2)$ minus velocity,
 body-rate and action-rate penalties.
 \item \textbf{Tracking}: references $\vect p_d(t)=\vect c+\sum_k\vect A_k\sin(\bm\omega_kt+\bm\phi_k)$ covering circles,
 figure-eights and random smooth curves (peak speed $\le\SI{4}{m/s}$); the policy observes the reference at
@@ -269,13 +273,15 @@ Milestone & Acceptance criterion (executed) & Status\\\midrule
 M1 Isaac Sim/Lab & headless GPU boot; PhysX free fall vs symplectic Euler $<\SI{1}{mm}$ (got \SI{9.5e-7}{m}) & \ok\\
 M2 Dynamics & 48 unit tests (all modules); PhysX vs reference $<\SI{1}{cm}$/1.5\,s; inertia exact; motor/yaw models $<3\,\%$ & \ok\\
 M3 Sensors, recording, visualization & sensor statistics; rendered vs analytic depth (median $<\SI{2}{cm}$); HDF5 round trip; GUI and video & \ok\\
-M4 State-based RL & training completes with checkpoints; evaluated vs classical baselines & \pend\\
-M5 Vision RL & depth policy trained and evaluated; RGB/RGB-D pipelines execute & \pend\\
-M6 DR \& Sim-to-Real interfaces & DR ablation; ONNX = PyTorch to $10^{-5}$; deployment-in-the-loop; ROS 2/PX4 bridge & \pend\\
+M4 State-based RL & training completes with checkpoints; evaluated vs classical baselines & \ok\\
+M5 Vision RL & depth policy trained and evaluated (incl.\ rendered depth); RGB/RGB-D pipelines execute & \ok$^*$\\
+M6 DR \& Sim-to-Real interfaces & DR ablation; ONNX = PyTorch to $10^{-5}$; deployment-in-the-loop; ROS 2/PX4 bridge & \ok$^\dagger$\\
 M7 Docker, benchmark, docs & container runs tests + GPU smoke test; benchmark table; README; report & \ok\\
 \bottomrule
 \end{tabularx}
-\caption{Milestone acceptance summary.}
+\caption{Milestone acceptance summary. $^*$Criteria met; the depth policy's success (61--67\,\%) is moderate and
+no RGB(-D) policy performance is claimed. $^\dagger$The PX4 bridge is not executed against PX4; DR showed no significant
+success gain on hover.}
 \label{tab:milestones}
 \end{table}
 
@@ -295,7 +301,7 @@ position steps with the full cascade ($<\SI{5}{cm}$), recovery of the Crazyflie 
 \Cref{tab:m2} lists the Isaac Sim integration tests; \cref{fig:m2} shows the open-loop comparison.
 
 \begin{table}[h]\centering\small
-\input{generated/m2.tex}
+\resizebox{\linewidth}{!}{\input{generated/m2.tex}}
 \caption{PhysX integration of the quadrotor model vs analytic models and the independent reference integrator
 (\texttt{scripts/validation/m2\_dynamics\_validation.py}). Sensor noise, latency and randomization disabled.}
 \label{tab:m2}
@@ -386,7 +392,56 @@ flies to each waypoint with its velocity limits (\SI{5}{m/s} horizontal), facing
 \label{tab:wp}
 \end{table}
 
-%NAV%
+\subsection{M5: obstacle-avoidance navigation (range and depth)}
+The navigation task is the hardest: up to 24 cylinders in an $8\times8$\,m field with \SI{0.9}{m} minimum surface
+gap for a vehicle of \SI{0.35}{m} collision radius, velocity-command actions and a forward-facing camera
+($87^\circ$ HFOV) for the depth policy. Evaluation uses the full density (curriculum off, 4--24 active obstacles,
+mean $\approx$12).
+
+\textbf{Reward iteration (documented).} The first reward (proximity weight 0.2, collision $-10$, $\gamma=0.99$)
+produced a policy that flies at the \SI{3}{m/s} limit and accepts collisions (52.9\,\% success, 46.3\,\% collision):
+the proximity term contributed $\approx-0.005$ per episode and the \SI{2}{s} effective horizon favoured speed.
+Reward v2 (proximity 2.0, collision $-20$, $\gamma=0.995$, everything else unchanged) was used for both the range and
+the depth policies. The classical potential-field baseline (same range ring) rarely collides but gets trapped in
+local minima.
+
+\begin{table}[h]\centering\small
+\resizebox{\linewidth}{!}{\input{generated/nav.tex}}
+\caption{Obstacle navigation at full density (curriculum off). The depth policy (trained 900 iterations on analytic
+depth) is evaluated both on its training sensor and zero-shot on RTX-rendered depth. Minimum clearance is measured
+from the vehicle centre to the nearest cylinder surface (collision below \SI{35}{cm}).}
+\label{tab:nav}
+\end{table}
+Findings (\cref{tab:nav}):
+\begin{itemize}
+\item \textbf{Reward v2} raised the range-ring policy from 52.9 to \textbf{83.0\,\%} success and cut collisions from
+46.3 to 16.6\,\% at nearly the same speed (\SI{4.2}{s} to the goal).
+\item \textbf{Classical baseline.} The potential field rarely collides (4--5\,\%) but is trapped in local minima in
+42--52\,\% of the episodes and is $2.4\times$ slower. Two independent evaluation runs gave 49.8 and 39.3\,\% success;
+this spread exceeds the per-run CI because obstacle layouts are drawn from a random stream that the controllers consume
+differently, so episodes are not paired across runs and the CIs underestimate the between-run variance.
+\item \textbf{Depth policy.} With the forward-looking camera only ($87^\circ$ HFOV, no memory), the CNN policy reaches
+61.1\,\% success on its training sensor, below the $360^\circ$ range policy (83.0\,\%). A plausible but
+\emph{unverified} explanation is that a memoryless policy cannot account for obstacles that have left the camera's
+field of view; a recurrent policy or a wider camera are the natural next experiments.
+\item \textbf{Analytic vs rendered depth.} Evaluated zero-shot with RTX-rendered depth, the depth policy achieves
+66.7\,\% success / 32.7\,\% collisions, i.e.\ \emph{no degradation} relative to the analytic depth it was trained on
+(differences within the CIs). Together with the pixel-level agreement of \cref{tab:depth}, this justifies training
+depth policies with the fast analytic sensor (83\,k vs 6.8\,k env-steps/s, \cref{tab:bench}).
+\item \textbf{RGB / RGB-D.} The rendered RGB and RGB-D environments, image augmentation and the CNN actor-critic
+execute end to end (10-iteration PPO run with 64 environments). No RGB(-D) policy performance is claimed.
+\end{itemize}
+
+\begin{figure}[h]\centering
+\includegraphics[width=\linewidth]{training_curves.pdf}
+\caption{Training curves (episode-end metrics of the stochastic training policy, smoothed). The two hover curves
+are each measured on their own training distribution (the no-DR policy trains without noise) and are not directly
+comparable; see \cref{tab:dr} for the controlled comparison. Navigation success is measured at the current
+curriculum density: the maximum obstacle count rises from 8 to 24, reached at iteration 112 (range v1), 124 (range v2)
+and 501 (depth v2); the early decline of the depth curve reflects the densifying forest. The depth run was stopped at
+iteration 900 (400 iterations at full density, success flat over the last 300) for compute-time reasons.}
+\label{fig:curves}
+\end{figure}
 
 \subsection{Domain-randomization ablation}
 An identical hover policy was trained without any randomization, sensor noise or latency (\emph{w/o DR}) and compared
@@ -417,9 +472,30 @@ $9.5\times10^{-7}$, the maximum action error $1.0\times10^{-6}$, and the success
 (\SI{1.29}{cm}) equal those of the PyTorch policy. Frame conversions to PX4 (NED/FRD) are unit-tested, including the
 consistency of a physical body vector through both quaternion conventions.
 
-%SAC%
+\subsection{Off-policy baseline: SAC}
+To support algorithms beyond PPO, an off-policy Soft Actor-Critic trainer (skrl~1.4.3) runs on the same
+environments (\texttt{scripts/rl/train\_sac.py}). On the hover task with 256 environments and 30\,000 vectorized steps
+(7.7\,M transitions, 30\,k gradient updates, \SI{21}{min}) the episode return rose monotonically from $-11.2$ to $+1.7$
+(still increasing; PPO reaches $\approx 11$ on the same reward). The deterministic policy never crashed but ended
+\SI{1.13}{m} from the target on average (0\,\% success over 1024 episodes). SAC is therefore \emph{executing and
+learning} but \emph{not competitive} within this budget; a higher update-to-data ratio and tuning are required.
 
-%BENCH%
+\subsection{M7: throughput, memory and containerization}
+\Cref{tab:bench} lists environment-stepping throughput (no learning) on the idle RTX~5060 (8\,GB); VRAM is the whole
+process including Isaac Sim. State-based tasks scale almost linearly up to 8192 environments
+(\SI{0.44}{M}~env-steps/s, \SI{1.76}{M} physics steps/s at \SI{200}{Hz}). Analytic depth (Warp kernel, 3072 rays per
+environment) costs only $\approx$1.6$\times$ relative to the state task at 2048 environments, whereas RTX-rendered
+cameras are limited to a few thousand env-steps/s. End-to-end training throughput (with PPO updates) was
+$\approx$190\,k (hover, 4096 envs), 117\,k (range navigation) and 16\,k env-steps/s (depth CNN, 2048 envs).
+\begin{table}[h]\centering\small
+\input{generated/bench.tex}
+\caption{Environment throughput and process VRAM (\texttt{scripts/tools/benchmark.py}).}
+\label{tab:bench}
+\end{table}
+The Docker image (\texttt{docker/Dockerfile}, based on \texttt{nvcr.io/nvidia/isaac-lab:2.3.2}) builds, and the
+containerized test service passes all unit tests and the Isaac Sim GPU smoke test. Interactive GUI visualization (chase
+camera, target/reference markers) and headless MP4 recording of trained policies were verified after the patch of
+\cref{sec:patch}.
 
 
 %==========================================================================================
@@ -474,8 +550,8 @@ policies for implicit system identification, migration to Isaac Lab 3.x once sta
 \begin{itemize}
 \item Software: Isaac Sim 5.1.0 (pip), Isaac Lab v2.3.2 (\texttt{third\_party/IsaacLab}), Python 3.11, torch 2.7.0+cu128,
 warp-lang 1.11.1, rsl-rl-lib 3.1.2, skrl 1.4.3, onnxruntime 1.20.1 (all pins in \texttt{env/constraints.txt});
-native installation with \texttt{scripts/setup\_env.sh}; container \texttt{docker/Dockerfile} on
-\texttt{nvcr.io/nvidia/isaac-lab:2.3.2}.
+native installation with \texttt{scripts/setup\_env.sh}; container \texttt{docker/Dockerfile} on the
+official image \path{nvcr.io/nvidia/isaac-lab:2.3.2}.
 \item Every training run stores the exact environment and agent configuration (YAML), command line, git commit and
 diff summary next to its checkpoints; evaluation JSONs store seeds and overrides.
 \item Validation: \texttt{pytest tests/core} (unit tests), \texttt{scripts/validation/m\{1,2,3,6\}\_*.py} (milestone

@@ -3,6 +3,12 @@
 Quadrotor Sim-to-Real RL research platform on **Isaac Lab v2.3.2 + Isaac Sim 5.1.0**.
 Read `docs/PROGRESS.md` (verified state, open issues) and `docs/ROADMAP.md` (next steps) before working.
 
+## Current state (2026-11-01)
+All seven milestones meet their acceptance criteria (details and caveats in docs/PROGRESS.md). Trained runs live in
+`logs/rsl_rl/` (git-ignored): hover `*_ctbr_s42`, tracking `*_track_ctbr_s42`, waypoint `*_waypoint_ctbr_s42`,
+nav range `*_nav_range_v2_s42`, nav depth `*_nav_depth_v2_s42` (model_900). Next steps: docs/ROADMAP.md
+("Beyond the current scope"), starting with PX4 SITL in the loop.
+
 ## Environment (verified)
 - Machine: Ubuntu 24.04, **RTX 5060 8 GB** (not the 12 GB RTX 5070 of the original brief), i5-14600KF, 32 GB RAM.
 - Conda env **`quadsim`** (Python 3.11): `~/miniconda3/envs/quadsim/bin/python`. Do not use `env_isaaclab` (user's old, broken env).

@@ -177,8 +177,10 @@ is logged as `Safety/lambda`. (This is the reward-penalty form without a separat
 ## Evaluation and benchmarking
 
 `scripts/rl/evaluate.py` runs complete episodes for any mix of controllers under identical seeds and reports
-mean / std / 95 % CI per metric; the metrics are defined by each task (`_task_episode_metrics`) plus `crash`,
-`time_out`, `episode_length_s` and `cost`. `scripts/benchmark/run.py` runs a suite: each condition in a fresh
+mean / std / 95 % CI per metric (plus a Wilson interval for rates); the metrics are defined by each task
+(`_task_episode_metrics`) plus `crash`, `time_out`, `episode_length_s` and `cost`. Every environment contributes
+its first `ceil(episodes / num_envs)` episodes: stopping at a global episode count instead would drop the
+episodes still running at that moment (the long ones) and bias rates toward outcomes that end episodes early. `scripts/benchmark/run.py` runs a suite: each condition in a fresh
 simulator process, every controller with the same seed, a table per metric, and the generalization gap
 (id − mean ood) of the primary metric. Training performance (`id`) and generalization (`ood`: perturbed
 dynamics, wind, sensor noise, latency, unseen layouts or phrasings) are always reported separately.

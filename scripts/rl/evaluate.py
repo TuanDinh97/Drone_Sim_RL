@@ -1,8 +1,10 @@
 """Evaluate RL policies and classical baselines on a task under identical conditions.
 
 Runs complete episodes (no truncated first episodes), collects per-episode metrics from the env and
-reports mean / std / 95 % CI. Several controllers can be compared in one call; each uses the same seed,
-so they face the same sequence of initial states and randomizations.
+reports mean / std / 95 % CI. Every environment contributes the same number of episodes, its first
+k = ceil(episodes / num_envs): stopping at a global episode count would drop the episodes still running at that
+moment - the long ones - and bias the sample toward short episodes. Several controllers can be compared in one
+call; each uses the same seed, so they face the same sequence of initial states and randomizations.
 
 Examples:
     python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers cascade \
@@ -61,8 +63,14 @@ def summarize(records):
         if len(v) == 0:
             out[k] = {"mean": float("nan"), "n": 0}
             continue
-        out[k] = {"mean": float(v.mean()), "std": float(v.std()), "ci95": float(1.96 * v.std() / math.sqrt(len(v))),
+        sd = float(v.std(ddof=1)) if len(v) > 1 else 0.0
+        out[k] = {"mean": float(v.mean()), "std": sd, "ci95": float(1.96 * sd / math.sqrt(len(v))),
                   "median": float(np.median(v)), "n": int(len(v))}
+        if np.isin(v, (0.0, 1.0)).all():  # rate: Wilson score interval (meaningful at 0 % and 100 %)
+            n, p, z = len(v), float(v.mean()), 1.96
+            c = (p + z * z / (2 * n)) / (1 + z * z / n)
+            h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+            out[k]["wilson95"] = [max(0.0, c - h), min(1.0, c + h)]
     return out
 
 
@@ -84,19 +92,27 @@ def run_controller(name, env):
     obs, _ = env.reset()
     u.episode_metric_buffer.clear()
     u.collect_episode_metrics = True
-    done_count = 0
+    k = max(1, math.ceil(args.episodes / u.num_envs))  # episodes per env (quota)
+    counts = torch.zeros(u.num_envs, dtype=torch.long)
+    recs, seen = [], 0
     t0 = time.time()
-    max_steps = int(math.ceil(args.episodes / u.num_envs) + 2) * int(u.max_episode_length)
+    max_steps = (k + 2) * int(u.max_episode_length)
     steps = 0
-    while done_count < args.episodes and steps < max_steps:
+    while bool((counts < k).any()) and steps < max_steps:
         with torch.no_grad():
             obs, rew, term, trunc, _ = env.step(act(obs))
-        done_count = sum(len(r["env_id"]) for r in u.episode_metric_buffer)
+        for r in u.episode_metric_buffer[seen:]:  # keep each env's first k episodes only
+            keep = counts[r["env_id"]] < k
+            counts[r["env_id"]] += 1
+            if keep.any():
+                recs.append({key: v[keep] for key, v in r.items()})
+        seen = len(u.episode_metric_buffer)
         steps += 1
     u.collect_episode_metrics = False
-    recs = list(u.episode_metric_buffer)
+    u.episode_metric_buffer.clear()
     res = summarize(recs)
-    res["_meta"] = {"episodes": done_count, "wall_s": time.time() - t0, "steps": steps}
+    res["_meta"] = {"episodes": int(counts.clamp(max=k).sum()), "episodes_per_env": k, "wall_s": time.time() - t0,
+                    "steps": steps}
     return res
 
 

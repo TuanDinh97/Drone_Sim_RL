@@ -221,9 +221,31 @@ class RaceEnv(QuadrotorEnv):
         yaw = torch.atan2(dy, dx) + rot + jit_y
         return pos, yaw
 
+    def _degenerate_tracks(self, pos_g, yaw_g):
+        """Random circuits with overlapping gate frames (centres closer than the frame width) or with the start point
+        inside a gate frame (crash on the first step)."""
+        cfg = self.cfg
+        g = pos_g.shape[1]
+        d = (pos_g[:, :, None] - pos_g[:, None]).norm(dim=-1) + torch.eye(g, device=pos_g.device) * 1e3
+        z = torch.zeros_like(yaw_g)
+        n = torch.stack([torch.cos(yaw_g), torch.sin(yaw_g), z], -1)
+        lat = torch.stack([-torch.sin(yaw_g), torch.cos(yaw_g), z], -1)
+        rel = (pos_g[:, 0] - n[:, 0] * cfg.start_distance)[:, None] - pos_g  # start point (see below) to each gate
+        x = (rel * n).sum(-1)
+        m = torch.maximum((rel * lat).sum(-1).abs(), rel[..., 2].abs())
+        r = cfg.vehicle_radius
+        in_frame = (x.abs() < r) & (m > cfg.gate_inner / 2 - r) & (m < cfg.gate_outer / 2 + r)
+        return (d.amin((1, 2)) < cfg.gate_outer) | in_frame.any(-1)
+
     def _sample_initial_state(self, env_ids):
         k, dev, cfg = len(env_ids), self.device, self.cfg
         pos_g, yaw_g = self._track(k)
+        if cfg.track == "random":  # resample degenerate random circuits (~6 % of the draws)
+            for _ in range(20):
+                bad = self._degenerate_tracks(pos_g, yaw_g)
+                if not bad.any():
+                    break
+                pos_g[bad], yaw_g[bad] = self._track(int(bad.sum()))
         self.gate_pos[env_ids], self.gate_yaw[env_ids] = pos_g, yaw_g
         n0 = torch.stack([torch.cos(yaw_g[:, 0]), torch.sin(yaw_g[:, 0])], -1)
         pos = pos_g[:, 0].clone()

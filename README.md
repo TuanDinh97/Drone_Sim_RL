@@ -26,6 +26,15 @@ the simulator bit-for-bit (to 1e-6) through a framework-free deployment interfac
 | Obstacle navigation, 360° range ring (PPO, reward v2) vs potential field | **83.0 %** vs 39–50 % success (17 % vs 5 % collisions) | `docs/results/eval_nav_*.json` |
 | Depth-camera navigation (CNN on 64×48 analytic depth) → zero-shot on RTX-rendered depth | 61.1 % → **66.7 %** (no degradation) | same |
 | Env throughput, hover / analytic depth / rendered depth | 439 k @ 8192 envs / 83 k @ 2048 / 6.8 k @ 256 env-steps/s | `docs/results/benchmark.jsonl` |
+| Deploy pipeline in the loop for hover / tracking / waypoint / range navigation | obs error ≤ **7.5e-6**, success as PyTorch | `scripts/validation/m6_deploy_consistency.py` |
+| **PX4 v1.16 SITL (gz x500)**: hover policy as offboard controller | 10/10 full runs; hover **0.8–1.0 cm** RMS w.r.t. the estimate (quadsim 1.9 cm) | `docs/results/sitl_comparison.json` |
+| PX4 SITL: tracking (circle / figure-8), estimate-referenced RMSE | **2.2 / 3.4 cm** (quadsim 2.5 / 3.0 cm) | `docs/results/sitl_tasks.json` |
+| PX4 SITL: waypoint course | completed in all runs, 6.7 s (quadsim 5.1 s) | same |
+| PX4 SITL: range navigation (velocity interface), default / matched PX4 velocity loop | **2/6 / 4/6** goals (quadsim 87 %) | same |
+
+SITL also found four bridge bugs (incl. a missing failsafe path), a heave limit cycle caused by the linear thrust map
+(fixed by an exact thrust-curve map), EKF2's correlated estimate error, PX4's slower rate and velocity loops and a SITL
+GNSS-delay mis-configuration; all are quantified in `docs/PROGRESS.md` and the report.
 
 Negative / neutral results are reported too: domain randomization gave lower errors but no significant
 success gain on hover under harsh conditions; the off-policy SAC baseline learns but was not competitive within
@@ -67,6 +76,7 @@ classical baselines under identical seeds.
 | `Quadsim-Nav-Depth-v0` | same, depth camera (analytic ray cast, fast) | velocity | state + 64×48 depth |
 | `Quadsim-Nav-Depth-Render-v0` | same, RTX-rendered depth | velocity | state + depth |
 | `Quadsim-Nav-RGB-v0` / `-RGBD-v0` | RTX-rendered RGB / RGB-D | velocity | state + image |
+| `Quadsim-{Hover,Track,Waypoint}-v1` | same tasks, sim-to-real distribution identified in PX4 SITL (EKF-like estimate errors, 0–20 ms latency, rate-loop and thrust-map gain randomization) | CTBR | as v0 |
 
 **Data & tooling**: synchronized HDF5 recording (truth, estimates, IMU, baro, actions, rotor speeds, wind,
 images), plotting, GUI viewer / MP4 recording with target markers, throughput benchmark.
@@ -100,13 +110,20 @@ proxy), fetch the base image with `python3 scripts/tools/pull_image_via_proxy.py
 
 ## Quick start
 ```bash
-python -m pytest tests/core -q                                         # 48 unit tests (~15 s)
+python -m pytest tests/core -q                                         # 80 unit tests (~15 s)
 python scripts/validation/m2_dynamics_validation.py --headless        # PhysX vs reference dynamics
 python scripts/rl/train.py --task Quadsim-Hover-v0 --headless         # ~10 min on an RTX 5060
 python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers policy cascade \
        --checkpoint logs/rsl_rl/quadsim_hover/<run> --episodes 1000
 python scripts/tools/view.py --task Quadsim-Hover-v0 --checkpoint logs/rsl_rl/quadsim_hover/<run>   # GUI
 python scripts/rl/export.py --headless --task Quadsim-Hover-v0 --checkpoint logs/rsl_rl/quadsim_hover/<run>
+```
+PX4 SITL (native ROS 2 Jazzy + Gazebo Harmonic, see `docs/SIM2REAL.md`):
+```bash
+bash ros2/px4_sitl/setup_px4_sitl.sh                                   # PX4 v1.16.2 SITL + px4_msgs + bridge
+POLICY_DIR=logs/rsl_rl/quadsim_hover/<run>/exported bash scripts/sitl/run_sitl.sh logs/sitl/hover.npz \
+       --thrust_curve 0.0225 0.255 0.7225                              # take-off, hand-over, hold + steps, land
+PYTHONPATH=source/quadsim python3 scripts/sitl/compare.py --sitl "logs/sitl/hover*.npz"   # metrics
 ```
 More: `scripts/data/record.py` (datasets), `scripts/tools/view.py --headless --enable_cameras --video` (MP4),
 `scripts/tools/benchmark.py`, `scripts/rl/train_queue.sh` (detached sequential training).
@@ -122,10 +139,12 @@ source/quadsim/quadsim/
   tasks/         Isaac Lab DirectRLEnv tasks (base, hover, tracking, waypoint, navigation), PPO configs, baselines
   rl/            CNN actor-critic, policy loading, CLI overrides
   data/          HDF5 recorder
-  deploy/        export (ONNX/TorchScript + contract) and NumPy deployment interface
-scripts/         validation/ (milestone acceptance tests), rl/ (train, evaluate, export), data/, tools/
+  deploy/        export (ONNX/TorchScript + contract), NumPy deployment interface, offboard step logic
+                 (OffboardPolicy), closed-loop metrics / identification, virtual sensors for SITL
+scripts/         validation/ (milestone acceptance tests), rl/ (train, evaluate, export), data/, tools/,
+                 sitl/ (PX4 SITL scenarios, quadsim counterparts, comparison, estimator identification)
 tests/core/      unit tests (no Isaac Sim needed)
-ros2/            quadsim_px4_bridge ROS 2 package
+ros2/            quadsim_px4_bridge ROS 2 package, px4_sitl/ (reproducible PX4 SITL + ROS 2 workspace setup)
 docker/          Dockerfile + compose
 docs/            PROGRESS (verified results), ROADMAP, SIM2REAL, figures, results (JSON)
 report/          LaTeX technical report

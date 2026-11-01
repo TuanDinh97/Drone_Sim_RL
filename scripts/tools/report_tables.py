@@ -135,9 +135,135 @@ def bench():
       "\n".join(rows) + "\n\\bottomrule\\end{tabular}\n")
 
 
+def _ms(st, key, scale=1.0, digits=2):
+    """mean +- std cell from a {key: {mean, std}} dict."""
+    v = st.get(key)
+    if v is None or v.get("mean") is None or v["mean"] != v["mean"]:
+        return "--"
+    m, sd = scale * v["mean"], scale * v.get("std", 0.0)
+    return f"{m:.{digits}f} $\\pm$ {sd:.{digits}f}" if sd > 0 else f"{m:.{digits}f}"
+
+
+def sitl():
+    """PX4 SITL cross-check tables (docs/results/sitl_*.json)."""
+    c = load("sitl_comparison.json")
+    if c:
+        cols = [("quadsim nominal", c["quadsim"].get("nominal", {}).get("metrics", {}))]
+        for lab, short in (("PX4 SITL, linear thrust map", "SITL linear map"), ("PX4 SITL, thrust-curve map",
+                           "SITL curve map"), ("PX4 SITL, linear + CA_ROTOR fix", "SITL linear + geometry fix")):
+            if lab in c["sitl"]:
+                cols.append((f"{short} ({c['sitl'][lab]['aggregate']['hover_true.rms_3d']['n']})",
+                             c["sitl"][lab]["aggregate"]))
+        rows = [("Hover RMS error, truth [cm]", "hover_true.rms_3d", 100, 2),
+                ("Hover RMS error w.r.t. estimate [cm]", "hover_est.rms_3d", 100, 2),
+                ("Estimate vs truth, hover RMS [cm]", "est_pos_err_rms", 100, 2),
+                ("$x$ step w.r.t. estimate: rise 10--90\\,\\% [s]", "step_x_est.rise_10_90_s", 1, 2),
+                ("$x$ step w.r.t. estimate: settling (5\\,cm) [s]", "step_x_est.settling_s", 1, 2),
+                ("$z$ step w.r.t. estimate: rise 10--90\\,\\% [s]", "step_z_est.rise_10_90_s", 1, 2),
+                ("$z$ step w.r.t. estimate: settling (5\\,cm) [s]", "step_z_est.settling_s", 1, 2),
+                ("Rate cmd$\\to$rate: delay roll [ms]", "rate_fopdt_roll_true.delay_s", 1000, 0),
+                ("Rate cmd$\\to$rate: delay pitch [ms]", "rate_fopdt_pitch_true.delay_s", 1000, 0),
+                ("Rate cmd$\\to$rate: $\\tau$ roll [ms]", "rate_fopdt_roll_true.tau_s", 1000, 0),
+                ("Rate cmd$\\to$rate: $\\tau$ pitch [ms]", "rate_fopdt_pitch_true.tau_s", 1000, 0),
+                ("Hover collective $a_0$ std", "hover_collective.rms", 1, 3),
+                ("Hover vertical velocity RMS, truth [cm/s]", "hover_heave.rms", 100, 1),
+                ("Odometry age at policy step, median [ms]", "timing.odom_age_at_step_ms.median", 1, 1)]
+        head = " & ".join(["Metric"] + [h for h, _ in cols])
+        body = "\n".join(" & ".join([lab] + [_ms(st, k, sc, dg) for _, st in cols]) + "\\\\" for lab, k, sc, dg in rows)
+        w("sitl_hover.tex", f"\\begin{{tabular}}{{l{'c' * len(cols)}}}\\toprule\n{head}\\\\\\midrule\n{body}\n"
+          "\\bottomrule\\end{tabular}\n")
+    e = load("sitl_estimator.json")
+    if e:
+        h = e["hover_mean"]
+        f3 = lambda v, s=100, d=1: " / ".join(f"{s * x:.{d}f}" for x in v)  # noqa: E731
+        rows = [("Per-flight position bias $|\\bar e_p|$ (x / y / z) [cm]", f3(h["pos_bias_abs_mean"])),
+                ("Slow position error ($<$0.5\\,Hz) std [cm]", f3(h["pos_slow_std"])),
+                ("Slow position error correlation time [s]", f3(h["pos_slow_corr_s"], 1, 1)),
+                ("Fast position error std [mm]", f3(h["pos_fast_std"], 1000, 1)),
+                ("Velocity error std [cm/s]", f3(h["vel_std"], 100, 2)),
+                ("Velocity error correlation time [s]", f3(h["vel_corr_s"], 1, 2)),
+                ("Roll / pitch error std [mrad]", f3(h["att_std_rad"], 1000, 2))]
+        for lab, m in e["motion"].items():
+            rows.append((f"In motion ({lab.replace('_', '\\_')}): position lag x / y [ms], error RMS [cm]",
+                         f"{1e3 * m['pos_lag_x_s']:.0f} / {1e3 * m['pos_lag_y_s']:.0f}, {100 * m['pos_err_rms']:.1f}"))
+        n = len(e["hover_runs"])
+        w("sitl_estimator.tex", "\\begin{tabular}{lc}\\toprule\nQuantity & PX4 EKF2 in SITL\\\\\\midrule\n" +
+          "\n".join(f"{a_} & {b_}\\\\" for a_, b_ in rows) + f"\n\\bottomrule\\end{{tabular}}\n% {n} hover runs\n")
+    t = load("sitl_tasks.json")
+    if t:
+        rows = []
+        for lab, r in t["track"].items():
+            q, si = r["quadsim"], r["sitl"]
+            rows.append(f"Tracking, {lab} & RMSE truth [cm] & {_ms(q, 'true_rmse', 100, 1)} & {_ms(si, 'true_rmse', 100, 1)}\\\\")
+            rows.append(f" & RMSE w.r.t. estimate [cm] & {_ms(q, 'est_rmse', 100, 1)} & {_ms(si, 'est_rmse', 100, 1)}\\\\")
+        if t.get("waypoint"):
+            q, si = t["waypoint"]["quadsim"], t["waypoint"]["sitl"]
+            rows.append(f"Waypoints (5) & course completed & {_ms(q, 'true_success', 1, 2)} & {_ms(si, 'est_success', 1, 2)}\\\\")
+            rows.append(f" & time to finish [s] & {_ms(q, 'true_time_to_finish', 1, 2)} & "
+                        f"{_ms(si, 'est_time_to_finish', 1, 2)}\\\\")
+            rows.append(f" & estimate error during course, RMS [cm] & -- & {_ms(si, 'est_err_rms', 100, 1)}\\\\")
+        w("sitl_tasks.tex", "\\begin{tabular}{llcc}\\toprule\nTask & Metric & quadsim & PX4 SITL\\\\\\midrule\n" +
+          "\n".join(rows) + "\n\\bottomrule\\end{tabular}\n")
+        if t.get("nav"):
+            lay = json.load(open(t["nav"]["layouts_file"]))["layouts"] if "layouts_file" in t["nav"] else None
+            rows = []
+            groups = {k: v for k, v in t.items() if k.startswith("nav")}
+            per = t["nav"]["quadsim_per_layout"]
+            sitl_by = {g: {r["layout"]: r for r in v["runs"].values()} for g, v in groups.items()}
+            for li in sorted(per, key=int):
+                ql = per[li]
+                cells = []
+                for g in groups:
+                    r = sitl_by[g].get(int(li))
+                    cells.append("--" if r is None else ("goal" if r["success"] else ("collision" if r["collision"]
+                                                                                       else "timeout")))
+                nob = len(lay[int(li)]["cylinders"]) if lay else ""
+                rows.append(f"{li} & {nob} & {100 * ql['success']:.0f} / {100 * ql['collision']:.0f} & " +
+                            " & ".join(cells) + "\\\\")
+            heads = " & ".join(t[g].get("label", g) for g in groups)
+            w("sitl_nav.tex", f"\\begin{{tabular}}{{ccc{'c' * len(groups)}}}\\toprule\nLayout & obstacles & quadsim "
+              f"success / collision [\\%] & {heads}\\\\\\midrule\n" + "\n".join(rows) + "\n\\bottomrule\\end{tabular}\n")
+
+
+def hover_v1():
+    """v0 vs v1 training distribution, mean +- std over seeds (docs/results/hover_v1.json)."""
+    d = load("hover_v1.json")
+    if not d:
+        return
+    f = d["family"]
+    fams = [k for k in ("v0", "v1", "v2") if k in f]
+    rows = [("quadsim, v0 distribution: success [\\%]", "v0env", "success", 100, 1),
+            ("quadsim, v0 distribution: final pos. error [cm]", "v0env", "final_pos_err", 100, 2),
+            ("quadsim, v1 distribution: success [\\%]", "v1env", "success", 100, 1),
+            ("quadsim, v1 distribution: final pos. error [cm]", "v1env", "final_pos_err", 100, 2),
+            ("quadsim, harsh OOD: success [\\%]", "harsh", "success", 100, 1),
+            ("quadsim, harsh OOD: crash [\\%]", "harsh", "crash", 100, 1),
+            ("scenario $g=1.0$: hover RMS w.r.t. estimate [cm]", "scen_g1.0", "hover_est_rms", 100, 2),
+            ("scenario $g=1.0$: collective std", "scen_g1.0", "collective_std", 1, 3),
+            ("scenario $g=1.6$: collective std", "scen_g1.6", "collective_std", 1, 3),
+            ("scenario $g=1.6$: vertical velocity RMS [cm/s]", "scen_g1.6", "heave_rms", 100, 1),
+            ("SITL linear map: runs with limit cycle", "sitl_linear", "limit_cycle_runs", 1, 2),
+            ("SITL linear map: collective std", "sitl_linear", "collective_std", 1, 3),
+            ("SITL linear map: hover RMS w.r.t. estimate [cm]", "sitl_linear", "hover_est_rms", 100, 2),
+            ("SITL linear map: $x$ step settling [s]", "sitl_linear", "step_x_settling", 1, 2),
+            ("SITL curve map: collective std", "sitl_curve", "collective_std", 1, 3),
+            ("SITL curve map: hover RMS w.r.t. estimate [cm]", "sitl_curve", "hover_est_rms", 100, 2)]
+    lines = []
+    for lab, sec, key, sc, dg in rows:
+        cells = [_ms(f[k].get(sec, {}), key, sc, dg) for k in fams]
+        if all(c == "--" for c in cells):
+            continue
+        lines.append(" & ".join([lab] + cells) + "\\\\")
+    head = " & ".join(["Metric"] + [f"{k} ({f[k]['seeds']} seeds)" for k in fams])
+    w("hover_v1.tex", f"\\begin{{tabular}}{{l{'c' * len(fams)}}}\\toprule\n{head}\\\\\\midrule\n" + "\n".join(lines) +
+      "\n\\bottomrule\\end{tabular}\n")
+
+
 if __name__ == "__main__":
     m2()
     depth()
+    sitl()
+    hover_v1()
     evals()
     bench()
     print(sorted(os.listdir(OUT)))

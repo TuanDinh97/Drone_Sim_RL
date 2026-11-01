@@ -1,0 +1,913 @@
+{
+  "track": {
+    "circle (r 1 m, 0.2 Hz)": {
+      "runs": {
+        "logs/sitl/track_circle_r1.npz": {
+          "duration_s": 20.19925308227539,
+          "left_offboard": false,
+          "true_rmse": 0.07087365495982041,
+          "true_rmse_xy": 0.06220149778466966,
+          "true_rmse_z": 0.03397129141948259,
+          "true_max": 0.10530394283409211,
+          "true_mean": 0.06721889123297652,
+          "true_duration_s": 18.19925308227539,
+          "est_rmse": 0.019842169575010078,
+          "est_rmse_xy": 0.017020719447526065,
+          "est_rmse_z": 0.01019837256291726,
+          "est_max": 0.056567620923798065,
+          "est_mean": 0.01687055112201847,
+          "est_duration_s": 18.19925308227539
+        },
+        "logs/sitl/track_circle_r2.npz": {
+          "duration_s": 20.18036198616028,
+          "left_offboard": false,
+          "true_rmse": 0.05601565828674219,
+          "true_rmse_xy": 0.04017665289934382,
+          "true_rmse_z": 0.039033197859036826,
+          "true_max": 0.10837335010051576,
+          "true_mean": 0.052939992179926655,
+          "true_duration_s": 18.18036198616028,
+          "est_rmse": 0.02457817661371339,
+          "est_rmse_xy": 0.022465809699080044,
+          "est_rmse_z": 0.009968658897745925,
+          "est_max": 0.07855540928551226,
+          "est_mean": 0.02041165099306723,
+          "est_duration_s": 18.18036198616028
+        }
+      },
+      "sitl": {
+        "true_rmse": {
+          "mean": 0.0634446566232813,
+          "std": 0.007428998336539112,
+          "n": 2
+        },
+        "true_rmse_xy": {
+          "mean": 0.05118907534200674,
+          "std": 0.011012422442662918,
+          "n": 2
+        },
+        "true_rmse_z": {
+          "mean": 0.036502244639259704,
+          "std": 0.002530953219777119,
+          "n": 2
+        },
+        "true_max": {
+          "mean": 0.10683864646730393,
+          "std": 0.0015347036332118216,
+          "n": 2
+        },
+        "est_rmse": {
+          "mean": 0.022210173094361733,
+          "std": 0.002368003519351656,
+          "n": 2
+        },
+        "est_max": {
+          "mean": 0.06756151510465516,
+          "std": 0.010993894180857097,
+          "n": 2
+        }
+      },
+      "quadsim": {
+        "crashed": {
+          "mean": 0.0,
+          "std": 0.0,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_rmse": {
+          "mean": 0.017767534692012983,
+          "std": 0.003688947026503252,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_rmse_xy": {
+          "mean": 0.013781430995156333,
+          "std": 0.0032666004466337557,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_rmse_z": {
+          "mean": 0.01071024405796863,
+          "std": 0.0037397556956004748,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_max": {
+          "mean": 0.03326944874738937,
+          "std": 0.005662348087725027,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_mean": {
+          "mean": 0.01666126474567938,
+          "std": 0.0035599763801830047,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_duration_s": {
+          "mean": 17.999999,
+          "std": 0.0,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_rmse": {
+          "mean": 0.024650613810535627,
+          "std": 0.0005869223024460714,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_rmse_xy": {
+          "mean": 0.02006109874921906,
+          "std": 0.0006958128326055609,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_rmse_z": {
+          "mean": 0.014317752421405414,
+          "std": 0.0002595498038540565,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_max": {
+          "mean": 0.06114559584681925,
+          "std": 0.004226376400098779,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_mean": {
+          "mean": 0.022880782102033467,
+          "std": 0.0005504199759877865,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_duration_s": {
+          "mean": 17.999999,
+          "std": 0.0,
+          "n_finite": 32,
+          "n": 32
+        }
+      },
+      "quadsim_crash_rate": 0.0,
+      "reference": {
+        "shape": "circle",
+        "radius": 1.0,
+        "freq_hz": 0.2,
+        "z_amp": 0.0
+      }
+    },
+    "figure-8 (r 1.5 m, 0.15 Hz)": {
+      "runs": {
+        "logs/sitl/track_fig8_r1.npz": {
+          "duration_s": 20.17956304550171,
+          "left_offboard": false,
+          "true_rmse": 0.09598482584167861,
+          "true_rmse_xy": 0.08957460224730486,
+          "true_rmse_z": 0.03448880143023967,
+          "true_max": 0.1763141556505808,
+          "true_mean": 0.08632317890129546,
+          "true_duration_s": 18.17956304550171,
+          "est_rmse": 0.030430265950034983,
+          "est_rmse_xy": 0.028144251971028263,
+          "est_rmse_z": 0.011571610379766947,
+          "est_max": 0.06074622206885357,
+          "est_mean": 0.02808033544079987,
+          "est_duration_s": 18.17956304550171
+        },
+        "logs/sitl/track_fig8_r2.npz": {
+          "duration_s": 20.19967794418335,
+          "left_offboard": false,
+          "true_rmse": 0.08805210765218499,
+          "true_rmse_xy": 0.08662800069016317,
+          "true_rmse_z": 0.015772227439935792,
+          "true_max": 0.15994784978272839,
+          "true_mean": 0.08003395254478862,
+          "true_duration_s": 18.19967794418335,
+          "est_rmse": 0.03787985543080667,
+          "est_rmse_xy": 0.03578687522166099,
+          "est_rmse_z": 0.01241704511258941,
+          "est_max": 0.07053954985623026,
+          "est_mean": 0.03442718099323518,
+          "est_duration_s": 18.19967794418335
+        }
+      },
+      "sitl": {
+        "true_rmse": {
+          "mean": 0.0920184667469318,
+          "std": 0.00396635909474681,
+          "n": 2
+        },
+        "true_rmse_xy": {
+          "mean": 0.08810130146873402,
+          "std": 0.0014733007785708435,
+          "n": 2
+        },
+        "true_rmse_z": {
+          "mean": 0.02513051443508773,
+          "std": 0.009358286995151939,
+          "n": 2
+        },
+        "true_max": {
+          "mean": 0.1681310027166546,
+          "std": 0.008183152933926213,
+          "n": 2
+        },
+        "est_rmse": {
+          "mean": 0.034155060690420826,
+          "std": 0.0037247947403858447,
+          "n": 2
+        },
+        "est_max": {
+          "mean": 0.06564288596254192,
+          "std": 0.0048966638936883446,
+          "n": 2
+        }
+      },
+      "quadsim": {
+        "crashed": {
+          "mean": 0.0,
+          "std": 0.0,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_rmse": {
+          "mean": 0.026675752617217472,
+          "std": 0.002349786493625179,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_rmse_xy": {
+          "mean": 0.023426778805832608,
+          "std": 0.0018759049966944736,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_rmse_z": {
+          "mean": 0.012428256601763967,
+          "std": 0.0032129001427506814,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_max": {
+          "mean": 0.054626866902669755,
+          "std": 0.006502474314483761,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_mean": {
+          "mean": 0.02477219317991018,
+          "std": 0.0024226586865782047,
+          "n_finite": 32,
+          "n": 32
+        },
+        "true_duration_s": {
+          "mean": 17.999999,
+          "std": 0.0,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_rmse": {
+          "mean": 0.030392872379921144,
+          "std": 0.0005354762727262219,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_rmse_xy": {
+          "mean": 0.026144428794480527,
+          "std": 0.0005605286489410554,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_rmse_z": {
+          "mean": 0.015493120997333286,
+          "std": 0.0003623240909333983,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_max": {
+          "mean": 0.07808959998832857,
+          "std": 0.005796832302175511,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_mean": {
+          "mean": 0.028068350511513268,
+          "std": 0.0004992810664875827,
+          "n_finite": 32,
+          "n": 32
+        },
+        "est_duration_s": {
+          "mean": 17.999999,
+          "std": 0.0,
+          "n_finite": 32,
+          "n": 32
+        }
+      },
+      "quadsim_crash_rate": 0.0,
+      "reference": {
+        "shape": "figure8",
+        "radius": 1.5,
+        "freq_hz": 0.15,
+        "z_amp": 0.0
+      }
+    }
+  },
+  "waypoint": {
+    "runs": {
+      "logs/sitl/waypoint_r1.npz": {
+        "left_offboard": false,
+        "true_success": false,
+        "true_reached": 3,
+        "true_num_waypoints": 5,
+        "true_time_to_finish": NaN,
+        "true_path_length": 26.718126171677792,
+        "true_reach_times": [
+          0.9610908031463623,
+          2.361090898513794,
+          3.2610907554626465
+        ],
+        "est_success": true,
+        "est_reached": 5,
+        "est_num_waypoints": 5,
+        "est_time_to_finish": 6.465090751647949,
+        "est_path_length": 21.52869018246492,
+        "est_reach_times": [
+          0.9610908031463623,
+          2.3850908279418945,
+          3.297090768814087,
+          5.409090757369995,
+          6.465090751647949
+        ],
+        "true_min_pass_dist": [
+          0.29439242211744915,
+          0.04416350450038471,
+          0.2581359534463892,
+          0.31154880213054054,
+          0.2657572872951591
+        ],
+        "max_speed": 6.959438140407306,
+        "est_err_rms": 0.15843520804299774,
+        "est_err_max": 0.31609682024968044
+      },
+      "logs/sitl/waypoint_r2.npz": {
+        "left_offboard": false,
+        "true_success": true,
+        "true_reached": 5,
+        "true_num_waypoints": 5,
+        "true_time_to_finish": 6.957732915878296,
+        "true_path_length": 24.739495684681625,
+        "true_reach_times": [
+          0.957730770111084,
+          2.397730827331543,
+          4.657731771469116,
+          5.697731971740723,
+          6.957732915878296
+        ],
+        "est_success": true,
+        "est_reached": 5,
+        "est_num_waypoints": 5,
+        "est_time_to_finish": 7.01373291015625,
+        "est_path_length": 22.889654586762042,
+        "est_reach_times": [
+          0.957730770111084,
+          2.4297308921813965,
+          4.653731822967529,
+          5.72573184967041,
+          7.01373291015625
+        ],
+        "true_min_pass_dist": [
+          0.29160320370098985,
+          0.018678062287674484,
+          0.17046116451578552,
+          0.14511794637574177,
+          0.187345079654166
+        ],
+        "max_speed": 6.948355610861853,
+        "est_err_rms": 0.1448667651445068,
+        "est_err_max": 0.3098980007442719
+      }
+    },
+    "sitl": {
+      "est_success": {
+        "mean": 1.0,
+        "std": 0.0,
+        "n": 2
+      },
+      "est_time_to_finish": {
+        "mean": 6.7394118309021,
+        "std": 0.2743210792541504,
+        "n": 2
+      },
+      "true_reached": {
+        "mean": 4.0,
+        "std": 1.0,
+        "n": 2
+      },
+      "max_speed": {
+        "mean": 6.953896875634579,
+        "std": 0.005541264772726429,
+        "n": 2
+      },
+      "est_err_rms": {
+        "mean": 0.15165098659375226,
+        "std": 0.006784221449245467,
+        "n": 2
+      },
+      "est_err_max": {
+        "mean": 0.31299741049697616,
+        "std": 0.003099409752704285,
+        "n": 2
+      }
+    },
+    "quadsim": {
+      "crashed": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n_finite": 32,
+        "n": 32
+      },
+      "true_success": {
+        "mean": 1.0,
+        "std": 0.0,
+        "n_finite": 32,
+        "n": 32
+      },
+      "true_reached": {
+        "mean": 5.0,
+        "std": 0.0,
+        "n_finite": 32,
+        "n": 32
+      },
+      "true_num_waypoints": {
+        "mean": 5.0,
+        "std": 0.0,
+        "n_finite": 32,
+        "n": 32
+      },
+      "true_time_to_finish": {
+        "mean": 5.130625,
+        "std": 0.016990346523835208,
+        "n_finite": 32,
+        "n": 32
+      },
+      "true_path_length": {
+        "mean": 19.9841231444017,
+        "std": 0.07236132186247775,
+        "n_finite": 32,
+        "n": 32
+      },
+      "est_success": {
+        "mean": 1.0,
+        "std": 0.0,
+        "n_finite": 32,
+        "n": 32
+      },
+      "est_reached": {
+        "mean": 5.0,
+        "std": 0.0,
+        "n_finite": 32,
+        "n": 32
+      },
+      "est_num_waypoints": {
+        "mean": 5.0,
+        "std": 0.0,
+        "n_finite": 32,
+        "n": 32
+      },
+      "est_time_to_finish": {
+        "mean": 5.13390625,
+        "std": 0.01766592655191069,
+        "n_finite": 32,
+        "n": 32
+      },
+      "est_path_length": {
+        "mean": 30.588262936167872,
+        "std": 0.32718424481460334,
+        "n_finite": 32,
+        "n": 32
+      }
+    },
+    "quadsim_crash_rate": 0.0,
+    "waypoints": [
+      [
+        2.5,
+        1.0,
+        2.0
+      ],
+      [
+        -0.5,
+        3.0,
+        2.8
+      ],
+      [
+        -3.0,
+        0.5,
+        1.5
+      ],
+      [
+        -0.5,
+        -3.0,
+        2.2
+      ],
+      [
+        3.0,
+        -1.5,
+        1.8
+      ]
+    ]
+  },
+  "nav": {
+    "label": "PX4 default velocity loop",
+    "runs": {
+      "logs/sitl/nav_l0_r1.npz": {
+        "layout": 0,
+        "success": true,
+        "collision": false,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": 4.2474751472473145,
+        "min_clearance": 0.3704175128753209,
+        "path_length": 12.200945403898237,
+        "min_goal_dist": 0.26153406569450877
+      },
+      "logs/sitl/nav_l1_r1.npz": {
+        "layout": 1,
+        "success": false,
+        "collision": true,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": NaN,
+        "min_clearance": 0.14078764330733512,
+        "path_length": 4.134441409194799,
+        "min_goal_dist": 8.262498552789705
+      },
+      "logs/sitl/nav_l2_r1.npz": {
+        "layout": 2,
+        "success": true,
+        "collision": false,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": 4.382681369781494,
+        "min_clearance": 0.4544386940765809,
+        "path_length": 12.338321254527381,
+        "min_goal_dist": 0.28005175257130727
+      },
+      "logs/sitl/nav_l3_r1.npz": {
+        "layout": 3,
+        "success": false,
+        "collision": true,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": NaN,
+        "min_clearance": 0.24936927745448928,
+        "path_length": 7.735306323914065,
+        "min_goal_dist": 5.389715363242935
+      },
+      "logs/sitl/nav_l4_r1.npz": {
+        "layout": 4,
+        "success": false,
+        "collision": true,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": NaN,
+        "min_clearance": 0.27709180672415623,
+        "path_length": 5.789769708599599,
+        "min_goal_dist": 6.45102610007762
+      },
+      "logs/sitl/nav_l5_r1.npz": {
+        "layout": 5,
+        "success": false,
+        "collision": true,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": NaN,
+        "min_clearance": 0.22575134236817263,
+        "path_length": 5.493699129889231,
+        "min_goal_dist": 7.143535928441078
+      }
+    },
+    "quadsim_per_layout": {
+      "0": {
+        "crash": 0.0,
+        "time_out": 1.0,
+        "episode_length_s": 4.0481249168515205,
+        "success": 1.0,
+        "collision": 0.0,
+        "min_clearance": 0.609602078795433,
+        "time_to_goal": 4.0481249168515205,
+        "path_length": 11.833649516105652,
+        "active_obstacles": 7.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "1": {
+        "crash": 0.625,
+        "time_out": 0.375,
+        "episode_length_s": 3.0637499429285526,
+        "success": 0.375,
+        "collision": 0.625,
+        "min_clearance": 0.3527830634266138,
+        "time_to_goal": 4.709999918937683,
+        "path_length": 12.905560811360678,
+        "active_obstacles": 15.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "2": {
+        "crash": 0.03125,
+        "time_out": 0.96875,
+        "episode_length_s": 4.200624883174896,
+        "success": 0.96875,
+        "collision": 0.03125,
+        "min_clearance": 0.4786163652315736,
+        "time_to_goal": 4.232257942999563,
+        "path_length": 12.01083420168969,
+        "active_obstacles": 13.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "3": {
+        "crash": 0.03125,
+        "time_out": 0.96875,
+        "episode_length_s": 4.271249815821648,
+        "success": 0.96875,
+        "collision": 0.03125,
+        "min_clearance": 0.43252059631049633,
+        "time_to_goal": 4.340644974862376,
+        "path_length": 12.568514700858824,
+        "active_obstacles": 15.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "4": {
+        "crash": 0.09375,
+        "time_out": 0.90625,
+        "episode_length_s": 4.2074998542666435,
+        "success": 0.90625,
+        "collision": 0.0625,
+        "min_clearance": 0.4740400789305568,
+        "time_to_goal": 4.333792949544972,
+        "path_length": 12.545760319150727,
+        "active_obstacles": 11.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "5": {
+        "crash": 0.0,
+        "time_out": 1.0,
+        "episode_length_s": 4.276874840259552,
+        "success": 1.0,
+        "collision": 0.0,
+        "min_clearance": 0.516280110925436,
+        "time_to_goal": 4.276874840259552,
+        "path_length": 12.286656081676483,
+        "active_obstacles": 15.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      }
+    },
+    "quadsim_overall": {
+      "crash": 0.13020833333333334,
+      "time_out": 0.8697916666666666,
+      "episode_length_s": 4.011354042217135,
+      "success": 0.8697916666666666,
+      "collision": 0.125,
+      "min_clearance": 0.4773070489366849,
+      "time_to_goal": 4.277604654163658,
+      "path_length": 12.290439365866655,
+      "active_obstacles": 12.666666666666666,
+      "curriculum_max_obstacles": 24.0
+    },
+    "layouts_file": "logs/sitl/nav_layouts.json",
+    "sitl_success_rate": 0.3333333333333333,
+    "sitl_collision_rate": 0.6666666666666666
+  },
+  "nav_1": {
+    "label": "PX4 velocity loop matched to quadsim",
+    "runs": {
+      "logs/sitl/nav_matched_l0_r1.npz": {
+        "layout": 0,
+        "success": true,
+        "collision": false,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": 4.0201027393341064,
+        "min_clearance": 0.4639501343788226,
+        "path_length": 11.99228385320146,
+        "min_goal_dist": 0.30689529990017994
+      },
+      "logs/sitl/nav_matched_l1_r1.npz": {
+        "layout": 1,
+        "success": false,
+        "collision": true,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": NaN,
+        "min_clearance": 0.11733746497581204,
+        "path_length": 4.184218187370568,
+        "min_goal_dist": 8.30556839051082
+      },
+      "logs/sitl/nav_matched_l2_r1.npz": {
+        "layout": 2,
+        "success": true,
+        "collision": false,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": 4.209789991378784,
+        "min_clearance": 0.532974235204819,
+        "path_length": 12.241245361007959,
+        "min_goal_dist": 0.30490716968906667
+      },
+      "logs/sitl/nav_matched_l3_r1.npz": {
+        "layout": 3,
+        "success": true,
+        "collision": false,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": 4.488846063613892,
+        "min_clearance": 0.4901181985563412,
+        "path_length": 12.903162087432086,
+        "min_goal_dist": 0.2649972728048975
+      },
+      "logs/sitl/nav_matched_l4_r1.npz": {
+        "layout": 4,
+        "success": false,
+        "collision": true,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": NaN,
+        "min_clearance": 0.31237625455132156,
+        "path_length": 9.08689352885749,
+        "min_goal_dist": 4.169652749325237
+      },
+      "logs/sitl/nav_matched_l5_r1.npz": {
+        "layout": 5,
+        "success": true,
+        "collision": false,
+        "timeout": false,
+        "left_offboard": false,
+        "time_to_goal": 4.458124399185181,
+        "min_clearance": 0.5333526196060407,
+        "path_length": 12.877110692704063,
+        "min_goal_dist": 0.29270105649238604
+      }
+    },
+    "quadsim_per_layout": {
+      "0": {
+        "crash": 0.0,
+        "time_out": 1.0,
+        "episode_length_s": 4.0481249168515205,
+        "success": 1.0,
+        "collision": 0.0,
+        "min_clearance": 0.609602078795433,
+        "time_to_goal": 4.0481249168515205,
+        "path_length": 11.833649516105652,
+        "active_obstacles": 7.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "1": {
+        "crash": 0.625,
+        "time_out": 0.375,
+        "episode_length_s": 3.0637499429285526,
+        "success": 0.375,
+        "collision": 0.625,
+        "min_clearance": 0.3527830634266138,
+        "time_to_goal": 4.709999918937683,
+        "path_length": 12.905560811360678,
+        "active_obstacles": 15.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "2": {
+        "crash": 0.03125,
+        "time_out": 0.96875,
+        "episode_length_s": 4.200624883174896,
+        "success": 0.96875,
+        "collision": 0.03125,
+        "min_clearance": 0.4786163652315736,
+        "time_to_goal": 4.232257942999563,
+        "path_length": 12.01083420168969,
+        "active_obstacles": 13.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "3": {
+        "crash": 0.03125,
+        "time_out": 0.96875,
+        "episode_length_s": 4.271249815821648,
+        "success": 0.96875,
+        "collision": 0.03125,
+        "min_clearance": 0.43252059631049633,
+        "time_to_goal": 4.340644974862376,
+        "path_length": 12.568514700858824,
+        "active_obstacles": 15.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "4": {
+        "crash": 0.09375,
+        "time_out": 0.90625,
+        "episode_length_s": 4.2074998542666435,
+        "success": 0.90625,
+        "collision": 0.0625,
+        "min_clearance": 0.4740400789305568,
+        "time_to_goal": 4.333792949544972,
+        "path_length": 12.545760319150727,
+        "active_obstacles": 11.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      },
+      "5": {
+        "crash": 0.0,
+        "time_out": 1.0,
+        "episode_length_s": 4.276874840259552,
+        "success": 1.0,
+        "collision": 0.0,
+        "min_clearance": 0.516280110925436,
+        "time_to_goal": 4.276874840259552,
+        "path_length": 12.286656081676483,
+        "active_obstacles": 15.0,
+        "curriculum_max_obstacles": 24.0,
+        "n": 32
+      }
+    },
+    "quadsim_overall": {
+      "crash": 0.13020833333333334,
+      "time_out": 0.8697916666666666,
+      "episode_length_s": 4.011354042217135,
+      "success": 0.8697916666666666,
+      "collision": 0.125,
+      "min_clearance": 0.4773070489366849,
+      "time_to_goal": 4.277604654163658,
+      "path_length": 12.290439365866655,
+      "active_obstacles": 12.666666666666666,
+      "curriculum_max_obstacles": 24.0
+    },
+    "layouts_file": "logs/sitl/nav_layouts.json",
+    "sitl_success_rate": 0.6666666666666666,
+    "sitl_collision_rate": 0.3333333333333333
+  },
+  "markdown": "\n**Tracking \u2014 circle (r 1 m, 0.2 Hz)** (SITL n=2 runs, quadsim n=32 envs; RMSE after 2 s)\n\n| metric | quadsim | PX4 SITL |\n|---|---|---|\n| RMSE truth [cm] | 1.78 \u00b1 0.37 | 6.34 \u00b1 0.74 |\n| RMSE horizontal, truth [cm] | 1.38 \u00b1 0.33 | 5.12 \u00b1 1.1 |\n| RMSE vertical, truth [cm] | 1.07 \u00b1 0.37 | 3.65 \u00b1 0.25 |\n| max error, truth [cm] | 3.33 \u00b1 0.57 | 10.7 \u00b1 0.15 |\n| RMSE w.r.t. estimate [cm] | 2.47 \u00b1 0.059 | 2.22 \u00b1 0.24 |\n\n**Tracking \u2014 figure-8 (r 1.5 m, 0.15 Hz)** (SITL n=2 runs, quadsim n=32 envs; RMSE after 2 s)\n\n| metric | quadsim | PX4 SITL |\n|---|---|---|\n| RMSE truth [cm] | 2.67 \u00b1 0.23 | 9.2 \u00b1 0.4 |\n| RMSE horizontal, truth [cm] | 2.34 \u00b1 0.19 | 8.81 \u00b1 0.15 |\n| RMSE vertical, truth [cm] | 1.24 \u00b1 0.32 | 2.51 \u00b1 0.94 |\n| max error, truth [cm] | 5.46 \u00b1 0.65 | 16.8 \u00b1 0.82 |\n| RMSE w.r.t. estimate [cm] | 3.04 \u00b1 0.054 | 3.42 \u00b1 0.37 |\n\n**Waypoints** (5-waypoint course; SITL n=2 runs, quadsim n=32 envs)\n\n| metric | quadsim | PX4 SITL |\n|---|---|---|\n| course completed (policy's own logic) | 1 | 1 |\n| time to finish [s] | 5.13 \u00b1 0.017 | 6.74 \u00b1 0.27 |\n| waypoints passed within 0.3 m on truth (of 5) | 5 | 4 \u00b1 1 |\n| estimate error during the course, RMS / max [cm] | \u2013 | 15.2 \u00b1 0.68 / 31.3 \u00b1 0.31 |\n\n**Navigation (range ring, velocity interface)** \u2014 per layout: quadsim success / collision rate over its envs vs the PX4 SITL outcome (time to goal [s])\n\n| layout | obstacles | quadsim | PX4 default velocity loop | PX4 velocity loop matched to quadsim |\n|---|---|---|---|---|\n| 0 | 7 | 1.00 / 0.00 (4.05) | goal (4.25), min clearance 0.37 m | goal (4.02), min clearance 0.46 m |\n| 1 | 15 | 0.38 / 0.62 (4.71) | collision, min clearance 0.14 m | collision, min clearance 0.12 m |\n| 2 | 13 | 0.97 / 0.03 (4.23) | goal (4.38), min clearance 0.45 m | goal (4.21), min clearance 0.53 m |\n| 3 | 15 | 0.97 / 0.03 (4.34) | collision, min clearance 0.25 m | goal (4.49), min clearance 0.49 m |\n| 4 | 11 | 0.91 / 0.06 (4.33) | collision, min clearance 0.28 m | collision, min clearance 0.31 m |\n| 5 | 15 | 1.00 / 0.00 (4.28) | collision, min clearance 0.23 m | goal (4.46), min clearance 0.53 m |\n| all | | 0.87 / 0.12 | 0.33 success | 0.67 success |",
+  "velocity_loop_fopdt": {
+    "sitl_default": {
+      "x": {
+        "delay_s": 0.15,
+        "tau_s": 0.743101878192212,
+        "gain": 0.8496422719845261,
+        "vaf": 0.12443986925265367
+      },
+      "y": {
+        "delay_s": 0.20499999999999996,
+        "tau_s": 0.515696417005281,
+        "gain": 0.7830468444341144,
+        "vaf": 0.776331920552671
+      },
+      "z": {
+        "delay_s": 0.04499999999999999,
+        "tau_s": 0.24771195208646915,
+        "gain": 0.9470233858889995,
+        "vaf": 0.8803489303370785
+      }
+    },
+    "sitl_matched": {
+      "x": {
+        "delay_s": 0.1366666666666667,
+        "tau_s": 0.70872416237051,
+        "gain": 0.9097438380906774,
+        "vaf": 0.13291372590619555
+      },
+      "y": {
+        "delay_s": 0.21533333333333335,
+        "tau_s": 0.254033428643061,
+        "gain": 0.8460719940249847,
+        "vaf": 0.8312388979699206
+      },
+      "z": {
+        "delay_s": 0.04733333333333333,
+        "tau_s": 0.21791531790454902,
+        "gain": 0.8101664634498094,
+        "vaf": 0.8966034362314602
+      }
+    },
+    "quadsim": {
+      "x": {
+        "delay_s": 0.14716666666666667,
+        "tau_s": 0.5671748593861755,
+        "gain": 0.9601391357751058,
+        "vaf": 0.20948884141241206
+      },
+      "y": {
+        "delay_s": 0.14366666666666666,
+        "tau_s": 0.21639321200699357,
+        "gain": 0.9394764009628734,
+        "vaf": 0.9056661812503108
+      },
+      "z": {
+        "delay_s": 0.042666666666666665,
+        "tau_s": 0.27061629120385805,
+        "gain": 0.7643150414814688,
+        "vaf": 0.7997726831427951
+      }
+    }
+  }
+}

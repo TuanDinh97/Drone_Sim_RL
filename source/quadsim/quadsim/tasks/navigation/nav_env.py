@@ -140,7 +140,8 @@ class NavEnv(QuadrotorEnv):
 
     # ------------------------------------------------------------------ sensing
     def _update_range_ring(self):
-        """Horizontal 360 deg range ring in the yaw-aligned frame of the estimated pose (LiDAR-like)."""
+        """Horizontal 360 deg range ring (LiDAR-like): rays from the *true* position in the true yaw-aligned frame,
+        as a body-mounted sensor measures (the policy only sees the ring, not the pose it was taken from)."""
         n, r = self.num_envs, self.cfg.range_rays
         yaw = qm.yaw_from_quat(self.robot.data.root_quat_w)
         q_yaw = torch.stack([torch.cos(yaw / 2), torch.zeros_like(yaw), torch.zeros_like(yaw), torch.sin(yaw / 2)], -1)

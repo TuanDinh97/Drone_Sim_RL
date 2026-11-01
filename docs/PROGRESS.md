@@ -65,7 +65,7 @@ Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, 
 - Known transient: the very first launch with `--enable_cameras` crashed once in `libslang.so` while compiling
   shaders (empty shader cache); every later launch succeeded.
 
-## Milestone 4 — State-based RL 🟡 (hover ✅, tracking/waypoint training)
+## Milestone 4 — State-based RL ✅ (hover, tracking, waypoints; multi-seed hover in session 3)
 - PPO (rsl_rl 3.1.2), asymmetric actor-critic: actor sees only deployable obs (noisy, delayed odometry + gyro +
   last action + task), critic additionally sees true state, rotor speeds, wind, disturbance, DR parameters.
   Control interface CTBR (collective thrust + body rates → onboard PX4-like rate PID at 200 Hz), policy 50 Hz.
@@ -140,7 +140,7 @@ Full-density evaluation (curriculum off, 4–24 obstacles, mean ≈ 12; 500 epis
   last 300 it.) for time reasons; more training may help.
 - RGB-D: rendered RGB + depth → CNN PPO executes end to end (10-iteration run, 64 envs). No performance claim.
 
-## Milestone 6 — Sim-to-Real interfaces 🟡
+## Milestone 6 — Sim-to-Real interfaces ✅ (bridge flown in PX4 SITL; all tasks deployable)
 - Export (`scripts/rl/export.py`): TorchScript + ONNX with normalizer and clamp; ONNX vs PyTorch max |Δ| = 3.6e-7 ✅.
   Machine-readable interface contract (`contract.json`, example `docs/results/contract_hover.json`).
 - `quadsim.deploy.interface` (NumPy only): ENU/FLU ↔ NED/FRD, PX4 odometry → sim conventions, observation
@@ -199,13 +199,13 @@ figure `scripts/sitl/plot_comparison.py`. Raw runs (`.npz`, bridge step logs, PX
 | z step (truth): settling time (5 cm) [s] | 0.962 ± 0.036 | 1.2 ± 1 | 1.52 ± 0.16 | 4.13 ± 2.6 | 1.44 ± 0.071 | nan |
 | x step w.r.t. estimate: rise [s] / overshoot [%] / settling [s] | 0.646 ± 0.014 / 3.86 ± 0.39 / 1.07 ± 0.022 | 0.643 ± 0.022 / 3.9 ± 1.1 / 2.86 ± 3.8 | 0.536 ± 0.0065 / 1.89 ± 0.22 / 1.84 ± 0.019 | 0.55 ± 0.01 / 1.49 ± 0.1 / 1.86 ± 0.02 | 0.54 ± 0.004 / 1.68 ± 0.03 / 1.86 ± 0.023 | 0.584 / 2.69 / 1.89 |
 | z step w.r.t. estimate: rise [s] / overshoot [%] / settling [s] | 0.625 ± 0.015 / 4.1 ± 0.29 / 0.998 ± 0.028 | 0.685 ± 0.056 / 3.86 ± 1 / 4.09 ± 5 | 0.643 ± 0.014 / 1.34 ± 0.49 / 1.07 ± 0.047 | 0.636 ± 0.012 / 0.44 ± 0.017 / 1.02 ± 0.017 | 0.624 ± 0.024 / 1.03 ± 0.65 / 1.07 ± 0.027 | 0.744 / 0 / 1.24 |
-| rate cmd -> true rate: delay (roll / pitch) [ms] | 13.2 ± 4.3 / 13.2 ± 4.3 | 16.2 ± 6.3 / 15.6 ± 5.3 | 34 ± 2.8 / 24.7 ± 1.9 | 44 ± 1.4 / 21.5 ± 0.87 | 26 ± 4 / 21 ± 1 | 40 / 20 |
-| rate cmd -> true rate: time constant (roll / pitch) [ms] | 53.1 ± 1.9 / 52 ± 6.9e-15 | 45.5 ± 11 / 48.8 ± 9.7 | 45.8 ± 3.3 / 36.1 ± 1.3 | 36.6 ± 1.4 / 38.8 ± 1.3 | 36.6 ± 1.4 / 38.2 ± 3 | 41.1 / 32.5 |
-| rate cmd -> true rate: gain (roll / pitch) | 1.02 ± 0.021 / 1.01 ± 0.0066 | 0.841 ± 0.19 / 0.907 ± 0.16 | 1.02 ± 0.01 / 0.97 ± 0.0084 | 0.983 ± 0.0052 / 1.02 ± 0.011 | 1.06 ± 0.024 / 0.993 ± 0.024 | 0.959 / 0.978 |
-| rate cmd -> true rate: VAF (roll / pitch) | 0.972 ± 0.0062 / 0.986 ± 0.0017 | 0.838 ± 0.14 / 0.906 ± 0.12 | 0.948 ± 0.0038 / 0.966 ± 0.0068 | 0.951 ± 0.0018 / 0.981 ± 0.0023 | 0.954 ± 0.0039 / 0.969 ± 0.01 | 0.924 / 0.979 |
+| rate cmd -> true rate: delay (roll / pitch) [ms] | 13.2 ± 4.3 / 13.2 ± 4.3 | 16.2 ± 6.3 / 15.6 ± 5.3 | 22.7 ± 0.94 / 12.7 ± 1.9 | 31 ± 1 / 10 ± 1.4 | 15 ± 5 / 10 ± 2 | 28 / 8 |
+| rate cmd -> true rate: time constant (roll / pitch) [ms] | 53.1 ± 1.9 / 52 ± 6.9e-15 | 45.5 ± 11 / 48.8 ± 9.7 | 46.9 ± 1.7 / 39.1 ± 1.5 | 38 / 42 ± 1.4 | 38.2 ± 3 / 41.3 ± 3.2 | 44.5 / 38 |
+| rate cmd -> true rate: gain (roll / pitch) | 1.02 ± 0.021 / 1.01 ± 0.0066 | 0.841 ± 0.19 / 0.907 ± 0.16 | 0.995 ± 0.007 / 0.968 ± 0.0093 | 0.959 ± 0.0065 / 1.02 ± 0.018 | 1.04 ± 0.024 / 0.993 ± 0.027 | 0.945 / 0.981 |
+| rate cmd -> true rate: VAF (roll / pitch) | 0.972 ± 0.0062 / 0.986 ± 0.0017 | 0.838 ± 0.14 / 0.906 ± 0.12 | 0.955 ± 0.0014 / 0.97 ± 0.0067 | 0.959 ± 0.00051 / 0.985 ± 0.002 | 0.97 ± 0.0094 / 0.974 ± 0.0098 | 0.94 / 0.984 |
 | hover collective action a0: std / dominant frequency [Hz] | 0.174 ± 0.018 / 3.56 ± 0.42 | 0.176 ± 0.038 / 3.45 ± 0.55 | 0.218 ± 0.14 / 4 ± 0.2 | 0.00465 ± 0.00016 / 0.813 ± 0.27 | 0.178 ± 0.17 / 2.25 ± 1.5 | 0.0222 / 7.5 |
 | hover vertical velocity RMS, truth [cm/s] | 5.39 ± 1.1 | 5.41 ± 1.4 | 10.1 ± 6.2 | 1.02 ± 0.036 | 8.79 ± 7.8 | 1 |
-| hover body-rate RMS, truth (roll / pitch) [rad/s] | 0.172 ± 0.013 / 0.175 ± 0.017 | 0.186 ± 0.047 / 0.189 ± 0.046 | 0.0753 ± 0.036 / 0.0819 ± 0.046 | 0.0259 ± 0.0022 / 0.0184 ± 0.0021 | 0.0618 ± 0.036 / 0.0828 ± 0.063 | 0.0277 / 0.289 |
+| hover body-rate RMS, truth (roll / pitch) [rad/s] | 0.172 ± 0.013 / 0.175 ± 0.017 | 0.186 ± 0.047 / 0.189 ± 0.046 | 0.0731 ± 0.034 / 0.0782 ± 0.043 | 0.0259 ± 0.0022 / 0.0184 ± 0.0021 | 0.0589 ± 0.034 / 0.0789 ± 0.06 | 0.0272 / 0.257 |
 | hover body-rate dominant frequency (roll / pitch) [Hz] | 3.11 ± 1.9 / 5.05 ± 1.4 | 3.07 ± 1.9 / 4.79 ± 1.5 | 2.92 ± 1.4 / 2.92 ± 1.4 | 0.813 ± 0.11 / 0.75 | 2.25 ± 1.5 / 2.25 ± 1.5 | 0.75 / 7.5 |
 | estimate attitude lag vs truth (roll / pitch) [ms] | 4.8 ± 4 / 4.7 ± 4 | 6.05 ± 4 / 6 ± 4.1 | 3 / 2 | 3.25 ± 0.43 / 2 | 3 / 2 | 4 / 2 |
 | odometry age at policy step: median / p95 [ms] | – | – | 11.9 ± 0.94 / 15.9 ± 1 | 7.99 ± 1.8 / 12 ± 1.7 | 12.5 ± 3.2 / 16.6 ± 3.2 | 13.8 / 17.9 |
@@ -249,17 +249,19 @@ Findings
    training randomization) the policy still flies: it raises its collective (a0 0.43) and holds −1.3 cm below the goal
    w.r.t. the estimate; z step rise 0.74 s; this run showed a 7.5–9.5 Hz pitch-rate oscillation (0.29 rad/s RMS, not
    investigated).
-4. **Rate loop: PX4's is slower than the simulated one, and roll is slower than pitch.** Command → body-rate fits:
-   pitch delay 20–26 ms, τ 33–41 ms in SITL vs 13 ms / 53 ms in quadsim (13 ms = 0–10 ms action delay + motor lag +
-   PID). Roll is slower (38–46 ms delay in quiet default-geometry runs) because PX4's x500 airframe `CA_ROTOR*`
-   = (0.13, 0.20–0.22) m differ from the gz rotor positions (±0.174, ±0.174) m, so the allocator under-actuates roll.
-   **Verified:** with `CA_ROTOR*` = gz geometry, roll delay 30 ms (quiet run) / 22 ms (oscillating run) vs 38–46 / 32 ms
-   with the default geometry under the same conditions; pitch unchanged. The fitted delays depend on the excitation
-   (oscillating runs fit 6–10 ms shorter) — closed-loop identification, read as ±10 ms. The remaining ~8–10 ms of
-   extra delay vs quadsim is not attributed (candidates: PX4's 40 Hz gyro low-pass, D-term filter, uORB/DDS hops).
+4. **Rate loop: pitch as fast as quadsim's, roll slower because of the allocation geometry.** Command → body-rate fits
+   (truth body rates from central differences of the ground-truth attitude; an earlier version of this analysis used
+   PX4's backward-differenced Euler-angle "ground-truth angular velocity" and overstated all SITL delays by ~10 ms —
+   corrected): pitch delay 8–14 ms, τ 38–44 ms in SITL vs 13 ms / 53 ms in quadsim (13 ms = 0–10 ms action delay +
+   motor lag + PID), i.e. PX4's pitch loop is slightly *faster*. Roll is slower (22–32 ms delay with the default
+   geometry) because PX4's x500 airframe `CA_ROTOR*` = (0.13, 0.20–0.22) m differ from the gz rotor positions
+   (±0.174, ±0.174) m, so the allocator under-actuates roll. **Verified:** with `CA_ROTOR*` = gz geometry, roll delay
+   20 ms (quiet run) / 10 ms (oscillating run) vs 24–32 / 22 ms with the default geometry under the same conditions;
+   pitch unchanged. Fitted delays depend on the excitation (closed-loop identification, read as ±10 ms).
 5. **x step settles slower in SITL** (1.86 ± 0.02 s vs 1.07 s w.r.t. the estimate, all SITL configurations): after a
    faster rise the position dips back to ≈ 0.9 m at ≈ 1.5 s before settling (figure, top left); quadsim settles
-   monotonically. Consistent with the slower PX4 rate loop reducing the damping of the horizontal loop (not isolated).
+   monotonically. Cause not isolated (the pitch loop is not slower; candidates: EKF2's velocity dynamics during
+   accelerations, PX4's rate-loop damping / filters, the different τ).
 6. **Hover collective and command chatter in quadsim.** In nominal quadsim the policy hovers with mean a0 ≈ 0.150
    instead of the static hover action 0.184 (−2.9 % commanded thrust). Replaying its command sequence through the x500
    motor model offline shows that the asymmetric motor lag (τ_up 12.5 ms < τ_down 25 ms) rectifies the chattering
@@ -303,6 +305,118 @@ cross-checks the rigid-body engine, PX4's control/estimation stack and the inter
 SITL runs, so run-to-run statistics are coarse; rate fits use closed-loop data (VAF 0.92–0.98) and 50 Hz ground truth;
 tracking / waypoint / velocity-interface policies not yet run in SITL.
 
+## Continuation: audit, all tasks in PX4 SITL, sim-to-real v1 distribution (2026-11-01, session 3)
+Goal: re-verify the reported results, take tracking / waypoint / navigation policies through PX4 SITL, and turn the
+sim-to-sim gaps found in SITL into improvements of the training environment. Worktree branch
+`claude/frosty-swartz-ab3133`; runs and logs in the main checkout's `logs/` (worktree `logs/*` are symlinks).
+
+### Re-verification of reported results ✅
+| item | reported | re-run (this session) | verdict |
+|---|---|---|---|
+| unit tests | 48 (README) / 60 | 80 pass (new tests added) | ✅ |
+| env smoke test (6 non-camera tasks) | pass | pass | ✅ |
+| M2 dynamics (x500) | all pass | all pass | ✅ |
+| M6 deploy consistency (hover) | obs 9.5e-7, success 99.8 % | identical | ✅ |
+| hover eval, 1000 ep. (PPO / cascade) | 99.9 % 1.38 cm / 88.7 % 6.1 cm | **bit-identical** (also after this session's code changes) | ✅ |
+| tracking eval, 500 ep. | 12.6 ± 1.5 cm | 12.2 cm | ✅ within CI (original used 250 envs, re-run 500 → other samples; `evaluate.py` now records `num_envs`) |
+| waypoint eval, 500 ep. | 99.4 ± 0.7 % | 98.8 % | ✅ within CI (same reason) |
+| camera tasks, recording, resume, rendered depth | pass | REVERIFY2_PLACEHOLDER | |
+
+### Deployment of all tasks ✅
+- Tracking, waypoint and range-navigation policies exported (contract now has `task_params`: horizon, reach radius,
+  ring geometry). `quadsim.deploy.offboard.OffboardPolicy` gained task objects (onboard sum-of-sines reference with
+  task time from the hand-over, training waypoint switching, LaserScan → 32-ray ring with stale-sensor gating).
+- Deploy-in-the-loop (`scripts/validation/m6_deploy_consistency.py`, generalized; ONNX + NumPy observation rebuilt from
+  onboard quantities flies the simulator): hover / tracking / waypoint / nav-range max obs error 9.5e-7 / 7.5e-6 /
+  2.9e-6 / 1.2e-6, max action error ≤ 8.4e-6; success / crash vs PyTorch within 3 points (nav: 80.8 vs 83.3 %) — all pass.
+
+### SITL findings (methodology, estimator)
+- **EKF2 GNSS delay mis-configuration in SITL.** EKF2's position led the gz truth by 0.11 s in motion: `EKF2_GPS_DELAY`
+  defaults to 110 ms (right for real receivers) but gz's GNSS has no latency. With 0 ms: lead −3 ms, truth-referenced
+  tracking error 14 → 7 cm (estimate-referenced unchanged). `run_sitl.sh` now sets it (`SITL_GPS_DELAY_MS`); hover runs
+  of the first SITL section were stationary and unaffected.
+- **Ground-truth artefacts of PX4's gz bridge**: ground-truth velocity and "angular velocity" are backward differences
+  (the latter of Euler angles) → truth body rates are recomputed by central differences of the ground-truth quaternions
+  (`body_rates_from_quat`); rate-loop fits in `docs/results/sitl_comparison.json` were recomputed.
+- **EKF2 error statistics** (`scripts/sitl/estimator_stats.py` → `docs/results/sitl_estimator.json`, 6 hover runs):
+  per-flight bias ~1.8 / 1.8 / 3.9 cm (x/y/z), slow error std 1.4 cm with 2–3 s correlation, fast error 1.3 mm,
+  velocity error ~1 cm/s (0.3–2 s correlation), roll/pitch 0.2 mrad — quadsim's v0 model is mostly white
+  (1 cm, 3 cm/s, 10 mrad). These define the v1 estimator model.
+
+### Tracking, waypoints and navigation in PX4 SITL
+Same reference / course / layouts in both simulators (`scripts/sitl/quadsim_task_scenario.py`, `sitl_scenario.py
+--task`), thrust-curve map, `EKF2_GPS_DELAY=0`, scored by `scripts/sitl/compare_tasks.py` → `docs/results/sitl_tasks.json`.
+
+**Tracking — circle (r 1 m, 0.2 Hz)** (SITL n=2 runs, quadsim n=32 envs; RMSE after 2 s)
+
+| metric | quadsim | PX4 SITL |
+|---|---|---|
+| RMSE truth [cm] | 1.78 ± 0.37 | 6.34 ± 0.74 |
+| RMSE horizontal, truth [cm] | 1.38 ± 0.33 | 5.12 ± 1.1 |
+| RMSE vertical, truth [cm] | 1.07 ± 0.37 | 3.65 ± 0.25 |
+| max error, truth [cm] | 3.33 ± 0.57 | 10.7 ± 0.15 |
+| RMSE w.r.t. estimate [cm] | 2.47 ± 0.059 | 2.22 ± 0.24 |
+
+
+**Tracking — figure-8 (r 1.5 m, 0.15 Hz)** (SITL n=2 runs, quadsim n=32 envs; RMSE after 2 s)
+
+| metric | quadsim | PX4 SITL |
+|---|---|---|
+| RMSE truth [cm] | 2.67 ± 0.23 | 9.2 ± 0.4 |
+| RMSE horizontal, truth [cm] | 2.34 ± 0.19 | 8.81 ± 0.15 |
+| RMSE vertical, truth [cm] | 1.24 ± 0.32 | 2.51 ± 0.94 |
+| max error, truth [cm] | 5.46 ± 0.65 | 16.8 ± 0.82 |
+| RMSE w.r.t. estimate [cm] | 3.04 ± 0.054 | 3.42 ± 0.37 |
+
+**Waypoints** (5-waypoint course; SITL n=2 runs, quadsim n=32 envs)
+
+| metric | quadsim | PX4 SITL |
+|---|---|---|
+| course completed (policy's own logic) | 1 | 1 |
+| time to finish [s] | 5.13 ± 0.017 | 6.74 ± 0.27 |
+| waypoints passed within 0.3 m on truth (of 5) | 5 | 4 ± 1 |
+| estimate error during the course, RMS / max [cm] | – | 15.2 ± 0.68 / 31.3 ± 0.31 |
+
+**Navigation (range ring, velocity interface)** — per layout: quadsim success / collision rate over its envs vs the PX4 SITL outcome (time to goal [s])
+
+| layout | obstacles | quadsim | PX4 default velocity loop | PX4 velocity loop matched to quadsim |
+|---|---|---|---|---|
+| 0 | 7 | 1.00 / 0.00 (4.05) | goal (4.25), min clearance 0.37 m | goal (4.02), min clearance 0.46 m |
+| 1 | 15 | 0.38 / 0.62 (4.71) | collision, min clearance 0.14 m | collision, min clearance 0.12 m |
+| 2 | 13 | 0.97 / 0.03 (4.23) | goal (4.38), min clearance 0.45 m | goal (4.21), min clearance 0.53 m |
+| 3 | 15 | 0.97 / 0.03 (4.34) | collision, min clearance 0.25 m | goal (4.49), min clearance 0.49 m |
+| 4 | 11 | 0.91 / 0.06 (4.33) | collision, min clearance 0.28 m | collision, min clearance 0.31 m |
+| 5 | 15 | 1.00 / 0.00 (4.28) | collision, min clearance 0.23 m | goal (4.46), min clearance 0.53 m |
+| all | | 0.87 / 0.12 | 0.33 success | 0.67 success |
+
+- **Tracking transfers at the control level** (estimate-referenced RMSE equal within noise); truth-referenced error is
+  3–4× larger in SITL because of EKF2's correlated error.
+- **Waypoints**: course completed in every SITL run (also 1 extra geometry-fix run), but 6.3–7.0 s instead of 5.13 s.
+  Ruled out: body drag (quadsim without body drag: 5.13 s), allocation geometry (6.29 s). At up to 7 m/s EKF2's error
+  reaches 30 cm, so on truth some waypoints are passed just outside the 0.3 m radius. AIRMODE_PLACEHOLDER
+- **Navigation (velocity interface) — largest gap.** With PX4's default velocity controller 2/6 layouts reached the goal
+  (quadsim 87 %). Velocity-loop identification (FOPDT, lateral axis): PX4 default L = 0.21 s, τ = 0.52 s; quadsim cascade
+  L = 0.14 s, τ = 0.22 s (`MPC_XY_VEL_P_ACC` 1.8 vs simulated 3.0). PX4 configured like the simulated cascade
+  (`MPC_XY_VEL_P_ACC=3.0, MPC_XY_VEL_D_ACC=0, MPC_Z_VEL_I_ACC=1.0, MPC_TILTMAX_AIR=34.4`): τ = 0.25 s, **4/6 goals**;
+  residual delay 0.21 vs 0.14 s (PX4 attitude/rate chain). One flight per layout → indicative only. Obstacles are virtual
+  in SITL (`scripts/sitl/virtual_scan.py`, ring identical to the training caster, unit-tested; collisions from ground
+  truth with the training radius); no contact physics.
+
+### Sim-to-real training distribution v1 and multi-seed hover
+`Quadsim-{Hover,Track,Waypoint}-v1` (`quadsim.tasks.apply_sim2real_v1`): EKF-like estimate errors (per-flight bias,
+Gauss–Markov position/velocity errors; levels from SITL EKF2, widened), action and estimator delay 0–20 ms, noise scale
+×[0.5, 2], rate-PID gain ×[0.6, 1.4], thrust-map gain around hover ×[0.8, 1.7]. All new terms are off in the v0 tasks
+(v0 evaluations bit-identical, unit test for the unchanged random stream).
+
+HOVER_V1_PLACEHOLDER
+
+### Defects fixed in this session
+`evaluate.py` did not record `num_envs` (made the tracking/waypoint re-runs look non-reproducible); NavEnv ring docstring
+(true vs estimated pose); SITL harness: rclpy abort at exit (skipped ulog copy), `ls | head` SIGPIPE under pipefail, nav
+analysis window used a different clock origin than the trajectories; `load_policy` could not evaluate a policy in an env
+with a different critic input (now actor-only fallback); new step-log column order (q/velocity swapped) found by the
+analysis and fixed.
+
 ## Upstream issue found and patched (affects GUI / video)
 - Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the
   property → PhysX transform query before GPU buffers exist when a viewport renders → every RigidObject fails
@@ -317,7 +431,11 @@ tracking / waypoint / velocity-interface policies not yet run in SITL.
   rays × 24 cylinders = 1.36 ms/frame, 169 MB; matches the PyTorch reference (unit test on CPU and CUDA).
 
 ## Open issues / next steps
-- Not done: hardware flights, SITL runs of the tracking/waypoint/navigation policies, real-vehicle system identification, multi-seed statistics, tuned baselines,
-  RGB policy training with texture/lighting randomization (see `docs/ROADMAP.md`).
+- Not done: hardware flights; real-vehicle system identification; depth/RGB policies in SITL (needs a rendered gz camera
+  matched to the training camera); retraining the navigation policy with a randomized / PX4-identified velocity loop;
+  tracking/waypoint policies retrained on v1 (task configs exist: `Quadsim-{Track,Waypoint}-v1`); multi-seed statistics
+  beyond hover; tuned baselines; RGB policy training with texture/lighting randomization (see `docs/ROADMAP.md`).
+- Open sim-to-sim gaps: waypoint course 25–35 % slower in SITL (cause not isolated); ~70 ms extra delay of PX4's velocity
+  and attitude chain; SITL obstacles are virtual (no contact physics).
 - GUI and a 4096-env training run cannot share the 8 GB GPU.
 - Files created by the container in bind mounts are owned by root.

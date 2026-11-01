@@ -126,9 +126,16 @@ def nav_main(env, u):
     u.episode_metric_buffer.clear()
     u.collect_episode_metrics = True
     first = {}
+    k_rec = min(args.save_envs, n)
+    rec = {"act": [], "vel": [], "yaw": []}  # policy-rate record of the first envs (velocity-loop identification)
     for _ in range(int(u.max_episode_length) + 2):
         with torch.no_grad():
             obs, *_ = env.step(pol(obs))
+        q = u.robot.data.root_quat_w[:k_rec]
+        rec["act"].append(u.actions[:k_rec].cpu().numpy())
+        rec["vel"].append(u.robot.data.root_lin_vel_w[:k_rec].cpu().numpy())
+        rec["yaw"].append(torch.atan2(2 * (q[:, 0] * q[:, 3] + q[:, 1] * q[:, 2]),
+                                      1 - 2 * (q[:, 2] ** 2 + q[:, 3] ** 2)).cpu().numpy())
         for r in u.episode_metric_buffer:
             for j, e in enumerate(r["env_id"].tolist()):
                 if e not in first:
@@ -152,6 +159,8 @@ def nav_main(env, u):
     base = os.path.join(args.out_dir, f"quadsim_{args.tag}")
     with open(base + ".json", "w") as f:
         json.dump(res, f, indent=2)
+    np.savez_compressed(base + ".npz", dt=u.step_dt, max_vel=np.asarray(u.cfg.control.max_velocity),
+                        **{k: np.stack(v) for k, v in rec.items()})
     print(f"[quadsim-task] {args.tag}: success {overall['success']:.3f} collision {overall['collision']:.3f} "
           f"-> {base}.json", flush=True)
 

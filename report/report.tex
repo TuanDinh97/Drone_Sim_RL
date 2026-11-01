@@ -20,6 +20,7 @@
 \newcommand{\ok}{\textcolor{green!50!black}{\textbf{pass}}}
 \newcommand{\pend}{\textcolor{orange!80!black}{\textbf{partial}}}
 \newcommand{\no}{\textcolor{red!70!black}{\textbf{not done}}}
+\newcommand{\TBD}[1]{\textcolor{red}{\textbf{[TBD: #1]}}}
 
 \title{\textbf{quadsim}: A Validated Quadrotor Sim-to-Real Reinforcement-Learning Platform on NVIDIA Isaac Lab\\[4pt]
 \large Technical Report}
@@ -212,8 +213,13 @@ is obtained by finite differences of the PhysX velocity (exact for the symplecti
 $\sigma_c$ (discrete std $\sigma_c/\sqrt{\Delta t_s}$), and biases are a per-episode turn-on value plus a Gauss--Markov drift
 with random-walk intensity $\sigma_{rw}$ (stationary std $\sigma_{rw}\sqrt{\tau/2}$). Default values are the PX4/rotors
 SITL IMU parameters. Measurements are sampled and held at the sensor rate and pass a per-episode random delay.
-\textbf{State estimate:} position (white + random-walk drift), velocity and attitude (multiplicative rotation-vector)
-noise with latency, emulating EKF/VIO/mocap outputs. \textbf{Barometer:} ISA conversion with noise and Gauss--Markov
+\textbf{State estimate:} $\hat{\vect p}=\vect p+\vect b_p+\vect x_p+\vect d_p+\vect n_p$,
+$\hat{\vect v}=\vect v+\vect x_v+\vect n_v$, attitude with a multiplicative rotation-vector error, all delayed by a
+per-episode latency; $\vect b_p\sim\mathcal N(0,\mathrm{diag}\,\bm\sigma_b^2)$ is a per-flight bias, $\vect x_p,\vect x_v$
+are first-order Gauss--Markov processes ($\dot{\vect x}=-\vect x/\tau+\sigma\sqrt{2/\tau}\,\vect w$, exact
+discretization $\vect x_{k+1}=a\vect x_k+\sigma\sqrt{1-a^2}\,\bm\xi_k$, $a=e^{-\Delta t/\tau}$), $\vect d_p$ a random walk and
+$\vect n$ white noise. The v0 tasks use only the white and random-walk terms (EKF/VIO/mocap-like); the parameters of
+the correlated terms of the v1 tasks were identified from PX4 EKF2 in SITL (\cref{sec:sitl-est}). \textbf{Barometer:} ISA conversion with noise and Gauss--Markov
 bias. \textbf{Depth camera:} distance-to-image-plane with stereo-like noise $\sigma(z)=\sigma_0+kz^2$, quantization,
 per-pixel dropouts, minimum/maximum range; no-return pixels read as maximum range. \textbf{Analytic ray casting:}
 exact ray--plane, ray--finite-cylinder (side and cap) and ray--oriented-box intersections, implemented in PyTorch
@@ -254,6 +260,11 @@ Startup (written to PhysX): mass $\times[0.9,1.1]$, inertia $\times[0.85,1.15]$ 
 Per episode (model side): $k_f\times[0.9,1.1]$ per rotor, $k_m\times[0.85,1.15]$, motor time constants
 $\times[0.7,1.6]$, $\omega_{\max}\times[0.92,1]$ (battery sag), drag $\times[0.5,1.5]$, payload $-5\ldots+10\,\%$ of weight,
 sensor-noise scale $\times[0.5,1.5]$, action delay 0--2 and estimator delay 0--2 physics steps.
+The \emph{v1} tasks (\texttt{Quadsim-\{Hover,Track,Waypoint\}-v1}) add the corrections found in the PX4 SITL
+cross-check (\cref{sec:sitl}): the EKF-like estimate model, action and estimator delays of 0--4 steps (\SIrange{0}{20}{ms}),
+noise scale $\times[0.5,2]$, a per-episode rate-PID gain scale $\times[0.6,1.4]$ and a thrust-map gain around hover,
+$C=C_h+g\,(C_{\mathrm{cmd}}-C_h)$ with $g\in[0.8,1.7]$, which represents a thrust-curve or calibration error of the
+deployed thrust mapping.
 
 \subsection{Learning algorithm}
 PPO~\cite{schulman2017ppo} (rsl\_rl 3.1.2) with GAE ($\gamma=0.99,\lambda=0.95$), adaptive learning rate (KL target
@@ -497,6 +508,9 @@ containerized test service passes all unit tests and the Isaac Sim GPU smoke tes
 camera, target/reference markers) and headless MP4 recording of trained policies were verified after the patch of
 \cref{sec:patch}.
 
+
+%==========================================================================================
+\input{sitl}
 
 %==========================================================================================
 \section{Limitations}

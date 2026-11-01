@@ -28,6 +28,8 @@ class HoverEnvCfg(QuadrotorEnvCfg):
     w_lin_vel: float = 0.05
     w_ang_vel: float = 0.02
     w_action_rate: float = 0.05
+    w_collective_rate: float = 0.0
+    """extra penalty on the collective's change per step (damps the policy's heave mode; 0 = v0/v1 reward)"""
     w_crash: float = 10.0
     success_radius: float = 0.1
 
@@ -66,7 +68,7 @@ class HoverEnv(QuadrotorEnv):
         d = self.robot.data
         e_p, e_yaw = self._errors()
         dt = self.step_dt
-        return {
+        out = {
             "pos": c.w_pos * (1 - torch.tanh(e_p / 0.8)) * dt,
             "pos_fine": c.w_pos_fine * torch.exp(-(e_p / 0.1) ** 2) * dt,
             "yaw": c.w_yaw * 0.5 * (1 + torch.cos(e_yaw)) * dt,
@@ -75,6 +77,9 @@ class HoverEnv(QuadrotorEnv):
             "action_rate": -c.w_action_rate * (self.actions - self.prev_actions).square().sum(-1) * dt,
             "crash": -c.w_crash * self.crashed.float(),
         }
+        if c.w_collective_rate > 0:
+            out["collective_rate"] = -c.w_collective_rate * (self.actions[:, 0] - self.prev_actions[:, 0]).square() * dt
+        return out
 
     def _task_crash(self):
         return (self.target_pos - self.local_pos()).norm(dim=-1) > self.cfg.max_target_distance

@@ -56,7 +56,7 @@ delayed policy command → **action interface** on the onboard flight controller
 |---|---|---|---|
 | `VEHICLES` | `cfg.dynamics.preset` (name **or** `.yaml`/`.json` path) | `() -> QuadrotorParams` | `x500`, `crazyflie`, `racer5`, `hexa_x` |
 | `ACTION_INTERFACES` | `cfg.control.mode` | `ActionInterface`: `action_dim`, `hover_action`, `reset`, `__call__(a, quat, est, gyro) -> rotor thrusts` | `motor`, `ctbr`, `ctatt`, `velocity`, `position` (+ `acceleration` example) |
-| `ALGORITHMS` | `train.py --algo`, `evaluate.py --algo` | `Algorithm`: `default_cfg`, `train`, `load_policy` | `ppo` (rsl_rl), `sac`, `td3`, `bc`, `vla` (+ `ars` example) |
+| `ALGORITHMS` | `train.py --algo`, `evaluate.py --algo`, `export.py --algo` | `Algorithm`: `default_cfg`, `train`, `load_policy`, `actor_module` (export) | `ppo` (rsl_rl), `sac`, `td3`; evaluation only: `bc` (trained by `train_bc.py`), `vla` (+ `ars` example) |
 | `BASELINES` | `evaluate.py --controllers` | `ctrl(env)() -> actions` | `cascade`, `geometric`, `potential_field`, `swarm_potential`, `langnav_expert` |
 | `BENCHMARKS` | `scripts/benchmark/run.py --suite` | `Suite(task, conditions, metrics, ...)` | `hover`, `track`, `waypoint`, `nav_range`, `race`, `swarm`, `langnav` |
 | Gymnasium registry | `--task` | Isaac Lab DirectRLEnv + cfg entry points | 27 built-in `Quadsim-*` tasks (+ 4 in `examples/`) |
@@ -164,7 +164,8 @@ is logged as `Safety/lambda`. (This is the reward-penalty form without a separat
 * **SAC / TD3** (`quadsim.rl.offpolicy`): GPU-native, asymmetric twin critics with LayerNorm, running observation
   normalization, large batches and several updates per environment step, per-environment exploration noise (TD3),
   automatic temperature (SAC), time-out bootstrapping, reward scaling to per-second units. Checkpoints contain
-  networks, optimizers and normalizers. (skrl 1.4.3 is still installed; `scripts/rl/train_sac.py` is the earlier
+  networks, optimizers and normalizers. They use the state observation groups only (an `image` group is ignored)
+  and log to TensorBoard (`--logger wandb` applies to PPO). (skrl 1.4.3 is still installed; `scripts/rl/train_sac.py` is the earlier
   skrl integration, which has no asymmetric critic.)
 * **BC / DAgger** (`quadsim.il.bc`): state / image / language inputs split by the dataset's observation layout;
   FiLM-conditioned CNN for language-conditioned vision; DAgger by alternating `collect_demos.py --executor` and

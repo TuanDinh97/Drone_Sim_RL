@@ -16,6 +16,7 @@ from typing import Protocol
 import torch
 
 from quadsim.registry import ALGORITHMS
+from quadsim.rl.algorithms import Algorithm
 
 
 class VLAAdapter(Protocol):
@@ -33,8 +34,13 @@ def proprio_of(env, obs_policy: torch.Tensor) -> torch.Tensor:
 
 
 @ALGORITHMS.register("vla")
-class _VLAAlgorithm:
+class _VLAAlgorithm(Algorithm):
+    """Evaluation of external models through :class:`VLAAdapter` (``--checkpoint module:factory``)."""
+
     name = "vla"
+
+    def actor_module(self, act):
+        return None  # external models are exported by their own toolchain
 
     def load_policy(self, checkpoint: str, env, task=None):
         mod, _, fn = checkpoint.partition(":")

@@ -42,6 +42,19 @@ def _features(obs, mean, var):
     return torch.cat([x.clamp(-5, 5), torch.ones_like(x[:, :1])], -1)
 
 
+class LinearPolicy(torch.nn.Module):
+    """The trained ARS policy as a module (``Algorithm.actor_module`` -> ONNX export)."""
+
+    def __init__(self, w, mean, var):
+        super().__init__()
+        self.register_buffer("w", w)
+        self.register_buffer("mean", mean)
+        self.register_buffer("var", var)
+
+    def forward(self, obs):
+        return (_features(obs, self.mean, self.var) @ self.w.T).clamp(-1, 1)
+
+
 @ALGORITHMS.register("ars", overwrite=True)
 class ARS(Algorithm):
     name = "ars"
@@ -65,13 +78,17 @@ class ARS(Algorithm):
         w = torch.zeros(a_dim, o_dim + 1, device=dev)
         w[:, -1] = u.hover_action  # bias starts at the hover command
         mean, var, count = torch.zeros(o_dim, device=dev), torch.ones(o_dim, device=dev), 1e-4
+        start = 0
         if resume:
-            ck = torch.load(resume, map_location=dev)
+            from quadsim.rl.policy_io import latest_checkpoint
+
+            ck = torch.load(resume if resume.endswith(".pt") else latest_checkpoint(resume), map_location=dev)
             w, mean, var = ck["w"], ck["mean"], ck["var"]
+            count, start = ck.get("count", count), ck.get("iteration", 0)
         e = torch.arange(n_dir * 2 * cfg.envs_per_direction, device=dev)
         d_of_env, sign = (e // cfg.envs_per_direction) % n_dir, 1.0 - 2.0 * (e // (cfg.envs_per_direction * n_dir))
         writer = SummaryWriter(log_dir)
-        for it in range(cfg.max_iterations):
+        for it in range(start, start + cfg.max_iterations):
             t0 = time.time()
             delta = torch.randn(n_dir, a_dim, o_dim + 1, device=dev)
             w_env = w[None] + cfg.noise * sign[:, None, None] * delta[d_of_env]  # (E, A, O+1)
@@ -94,17 +111,19 @@ class ARS(Algorithm):
             sigma = r_dir[:, best].std().clamp_min(1e-6)
             w = w + cfg.step_size / (len(best) * sigma) * torch.einsum("d,dao->ao", diff, delta[best])
             writer.add_scalar("ars/return_mean", r_dir.mean().item(), it)
-            print(f"[ars] it {it + 1}/{cfg.max_iterations} return {r_dir.mean().item():.3f} "
+            print(f"[ars] it {it + 1}/{start + cfg.max_iterations} return {r_dir.mean().item():.3f} "
                   f"(best {r_dir.max().item():.3f}) {time.time() - t0:.1f} s", flush=True)
-            if (it + 1) % cfg.save_interval == 0 or it + 1 == cfg.max_iterations:
-                torch.save({"algo": "ars", "w": w, "mean": mean, "var": var, "iteration": it + 1},
+            if (it + 1) % cfg.save_interval == 0 or it + 1 == start + cfg.max_iterations:
+                torch.save({"algo": "ars", "w": w, "mean": mean, "var": var, "count": count, "iteration": it + 1},
                            os.path.join(log_dir, f"model_{it + 1}.pt"))
 
     def load_policy(self, checkpoint, env, task=None):
         ck = torch.load(checkpoint, map_location=str(env.unwrapped.device))
+        policy = LinearPolicy(ck["w"], ck["mean"], ck["var"])
 
         @torch.no_grad()
         def act(obs):
-            return (_features(obs["policy"], ck["mean"], ck["var"]) @ ck["w"].T).clamp(-1, 1)
+            return policy(obs["policy"])
 
+        act.policy = policy  # what Algorithm.actor_module returns (ONNX export)
         return act

@@ -77,8 +77,9 @@ def contract_from_env(env, task: str) -> dict:
     for o in getattr(getattr(env, "terms", None), "policy_obs", []):  # configured extra (deployable) terms
         c_ = o.cfg
         layout.append([o.name, o.dim, f"observation term {getattr(c_.func, '__name__', c_.func)}{c_.params or ''}: "
-                                      f"scale {c_.scale}, noise std {c_.noise_std}, every {c_.period_steps} policy "
-                                      f"steps, {c_.delay_steps} steps latency"])
+                                      f"scale {c_.scale}, clip {c_.clip}, noise std {c_.noise_std}, every "
+                                      f"{c_.period_steps} policy steps, {c_.delay_steps} steps latency, history "
+                                      f"{c_.history} (oldest first)"])
     mode = c.control.mode
     action = {
         "motor": "a_i in [-1,1] -> rotor thrust (a_i+1)/2 * T_max_rotor",
@@ -104,6 +105,8 @@ def contract_from_env(env, task: str) -> dict:
             "max_tilt_rad": c.control.max_tilt,
             "max_velocity_m_s": list(c.control.max_velocity),
             "max_yaw_rate_rad_s": c.control.max_yaw_rate,
+            "position_center_m": list(c.control.position_center),
+            "position_range_m": list(c.control.position_range),
             "hover_action": env.hover_action.tolist(),
         },
         "training_assumptions": {
@@ -130,24 +133,24 @@ def export_policy(policy_module, contract: dict, out_dir: str, example_obs: torc
                   example_image: torch.Tensor | None = None, opset: int = 17) -> dict:
     """Export an rsl_rl actor-critic (ActorCritic or ActorCriticCNN) or a quadsim off-policy actor
     (:class:`quadsim.rl.offpolicy.Actor`, normalizer inside) and verify ONNX == PyTorch."""
+    import copy
+
     os.makedirs(out_dir, exist_ok=True)
     pol = policy_module
     norm = getattr(pol, "actor_obs_normalizer", None)
-    if norm is None:  # off-policy actor: normalization + tanh are part of its forward()
-        model = MlpPolicyExport(nn.Identity(), pol).cpu().eval()
+    if norm is None:  # off-policy actor (or any module whose forward() maps observations to actions)
+        model = MlpPolicyExport(nn.Identity(), pol)
         inputs = (example_obs.cpu(),)
         names = ["obs"]
     elif hasattr(pol, "encoder"):
-        model = CnnPolicyExport(norm, pol.encoder, pol.actor).cpu().eval()
+        model = CnnPolicyExport(norm, pol.encoder, pol.actor)
         inputs = (example_obs.cpu(), example_image.cpu())
         names = ["obs", "image"]
     else:
-        model = MlpPolicyExport(norm, pol.actor).cpu().eval()
+        model = MlpPolicyExport(norm, pol.actor)
         inputs = (example_obs.cpu(),)
         names = ["obs"]
-    import copy
-
-    model = copy.deepcopy(model)
+    model = copy.deepcopy(model).cpu().eval()  # the caller's policy stays on its device and in its mode
     with torch.no_grad():
         ref = model(*inputs).numpy()
         traced = torch.jit.trace(model, inputs)

@@ -329,3 +329,27 @@ def test_attribute_curriculum_judges_current_level_only():
         value = mdp.attribute_curriculum(env, ids, "init_max_tilt", 0.3, 1.2, 0.15)
         level_at_start[ids] = env.cfg.init_max_tilt
     assert value == pytest.approx(0.75)
+
+
+def test_action_decoder_position_mode():
+    from quadsim.deploy.interface import ActionDecoder
+
+    contract = {"action": {"control_mode": "position", "collective_range": [0.0, 1.0], "max_total_thrust_N": 40.0,
+                           "max_body_rate_rad_s": [6, 6, 3], "max_velocity_m_s": [3, 3, 2], "max_yaw_rate_rad_s": 2.0,
+                           "position_center_m": [0.0, 0.0, 1.5], "position_range_m": [3.0, 3.0, 1.5]}}
+    dec = ActionDecoder(contract)
+    d = dec.decode(np.array([0.5, -1.0, 1.0, 0.25]))
+    assert np.allclose(d["position_local"], [1.5, -3.0, 3.0]) and d["yaw_rate"] == pytest.approx(0.5)
+    px4 = dec.to_px4(np.array([0.5, -1.0, 1.0, 0.25]))
+    assert px4["msg"] == "TrajectorySetpoint" and np.allclose(px4["position"], [-3.0, 1.5, -3.0])  # ENU -> NED
+    assert px4["yawspeed"] == pytest.approx(-0.5) and np.isnan(px4["velocity"]).all()
+
+
+def test_export_policy_leaves_the_callers_module_untouched(tmp_path):
+    from quadsim.deploy.export import export_policy
+
+    actor = Actor(5, 2, [16], stochastic=False)
+    actor.train()
+    rep = export_policy(actor, {"task": "test"}, str(tmp_path), torch.randn(4, 5))
+    assert actor.training  # export works on a copy (eval mode, CPU)
+    assert os.path.exists(rep["onnx"]) and rep.get("verified", True)

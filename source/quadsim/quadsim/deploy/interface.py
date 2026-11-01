@@ -303,6 +303,8 @@ class ActionDecoder:
         self.max_rate = np.asarray(a["max_body_rate_rad_s"])
         self.max_vel = np.asarray(a["max_velocity_m_s"])
         self.max_yaw_rate = a["max_yaw_rate_rad_s"]
+        self.pos_center = np.asarray(a.get("position_center_m", (0.0, 0.0, 0.0)))
+        self.pos_range = np.asarray(a.get("position_range_m", (0.0, 0.0, 0.0)))
 
     def decode(self, action, q_wb=None) -> dict:
         a = np.clip(np.asarray(action, dtype=np.float64), -1, 1)
@@ -315,7 +317,10 @@ class ActionDecoder:
             c, s = np.cos(yaw), np.sin(yaw)
             v_w = np.stack([c * v_h[..., 0] - s * v_h[..., 1], s * v_h[..., 0] + c * v_h[..., 1], v_h[..., 2]], -1)
             return {"velocity_world": v_w, "yaw_rate": a[..., 3] * self.max_yaw_rate}
-        raise NotImplementedError(self.mode)
+        if self.mode == "position":  # set-point in the task's local frame (z-up), relative to its origin
+            return {"position_local": self.pos_center + a[..., :3] * self.pos_range,
+                    "yaw_rate": a[..., 3] * self.max_yaw_rate}
+        raise NotImplementedError(f"decoding '{self.mode}' actions (supported: ctbr, velocity, position)")
 
     def to_px4(self, action, q_wb=None, thrust_scale: float = 1.0, thrust_curve: ThrustCurve = LINEAR_THRUST) -> dict:
         """PX4 offboard set-point fields.
@@ -326,6 +331,7 @@ class ActionDecoder:
         real thrust curve only at hover. Calibrate ``thrust_scale = c(u_hover) / (m g / T_max_sim)`` with PX4's
         hover-thrust estimate ``u_hover`` (:meth:`ThrustCurve.calibrate`, docs/SIM2REAL.md).
         Velocity -> ``TrajectorySetpoint``: velocity NED, yawspeed (NED: positive clockwise from above).
+        Position -> ``TrajectorySetpoint``: position NED (task-local origin = PX4 local origin), yawspeed.
         """
         d = self.decode(action, q_wb)
         if self.mode == "ctbr":
@@ -333,6 +339,9 @@ class ActionDecoder:
             rates = flu_to_frd(d["body_rates_flu"])
             return {"msg": "VehicleRatesSetpoint", "roll": rates[..., 0], "pitch": rates[..., 1],
                     "yaw": rates[..., 2], "thrust_body": np.stack([0 * t_n, 0 * t_n, -t_n], -1)}
+        if self.mode == "position":
+            return {"msg": "TrajectorySetpoint", "position": enu_to_ned(d["position_local"]), "yawspeed": -d["yaw_rate"],
+                    "velocity": np.full(3, np.nan), "acceleration": np.full(3, np.nan)}
         v = enu_to_ned(d["velocity_world"])
         return {"msg": "TrajectorySetpoint", "velocity": v, "yawspeed": -d["yaw_rate"],
                 "position": np.full(3, np.nan), "acceleration": np.full(3, np.nan)}

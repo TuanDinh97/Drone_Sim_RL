@@ -16,6 +16,7 @@ import torch
 import torch.nn as nn
 
 from quadsim.registry import ALGORITHMS
+from quadsim.rl.algorithms import Algorithm
 
 from .language import BagOfWordsEncoder, PretrainedTextEncoder
 
@@ -171,10 +172,14 @@ def evaluate_bc_loss(policy, ds, device, batch_size=4096):
 
 
 @ALGORITHMS.register("bc")
-class _BCAlgorithm:
-    """Evaluation / export hook for BC checkpoints (training: ``scripts/il/train_bc.py``)."""
+class _BCAlgorithm(Algorithm):
+    """Evaluation / export hook for BC checkpoints (training: ``scripts/il/train_bc.py``; state-only BC policies
+    export to ONNX, image / pretrained-text ones do not)."""
 
     name = "bc"
+
+    def default_cfg(self, task):
+        raise NotImplementedError("BC policies are trained with scripts/il/train_bc.py (see docs/TUTORIALS.md §9)")
 
     def load_policy(self, checkpoint, env, task=None):
         u = env.unwrapped

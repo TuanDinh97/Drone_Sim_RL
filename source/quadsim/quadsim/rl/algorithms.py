@@ -5,10 +5,12 @@ An algorithm is registered in :data:`quadsim.registry.ALGORITHMS` as an :class:`
 * ``default_cfg(task)``  configuration object (a configclass, so ``agent.<field>=value`` overrides work);
 * ``train(env, cfg, log_dir, resume)``  runs the training loop and writes checkpoints to ``log_dir``;
 * ``load_policy(checkpoint, env, task)``  returns ``act(obs_dict) -> actions`` (deterministic, for evaluation);
-* ``actor_module(act)``  the exportable network behind a loaded policy (ONNX export).
+* ``actor_module(act)``  the exportable network behind a loaded policy (``scripts/rl/export.py``; default
+  ``act.policy``, ``None`` = not exportable).
 
 Built-in: ``ppo`` (rsl_rl 3.1.2, asymmetric actor-critic, CNN encoder for image tasks), ``sac`` and ``td3``
-(:mod:`quadsim.rl.offpolicy`, asymmetric twin critics). ``examples/custom_algorithm.py`` registers a new one.
+(:mod:`quadsim.rl.offpolicy`, asymmetric twin critics), and the evaluation-only ``bc`` (trained by
+``scripts/il/train_bc.py``) and ``vla`` (external models). ``examples/custom_algorithm.py`` registers a new one.
 """
 
 from __future__ import annotations
@@ -25,10 +27,10 @@ class Algorithm:
     log_root = "logs"
 
     def default_cfg(self, task: str):
-        raise NotImplementedError
+        raise NotImplementedError(f"algorithm '{self.name}' cannot be trained by scripts/rl/train.py")
 
     def train(self, env, cfg, log_dir: str, resume: str | None = None):
-        raise NotImplementedError
+        raise NotImplementedError(f"algorithm '{self.name}' cannot be trained by scripts/rl/train.py")
 
     def load_policy(self, checkpoint: str, env, task: str | None = None):
         raise NotImplementedError

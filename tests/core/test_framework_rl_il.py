@@ -167,6 +167,18 @@ def test_hardware_recommendation():
     assert recommend_num_envs("render", 7.0, 1024) < 256
     assert recommend_num_envs("depth_raycast", 3.5, 2048) < 1024
     assert recommend_num_envs("state", 1.0, 4096) == 64
+    assert recommend_num_envs("render", 1.0, 32) == 32  # never raises a small default
+    assert recommend_num_envs("render", 1.0, 32, allow_increase=True) == 64
+
+
+def test_hardware_detect_respects_cuda_visible_devices(monkeypatch):
+    from quadsim.utils import hardware
+
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
+    assert hardware.detect()["gpu"] is None
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "1,0")
+    assert hardware._first_visible_gpu() == "1"
+    assert hardware.own_gpu_memory_gb(pid=-1) == 0.0
 
 
 # ---------------------------------------------------------------- language / BC / datasets

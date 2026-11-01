@@ -199,8 +199,10 @@ environment, `scripts/il/setup_lerobot_env.sh`) and verifies the export by reloa
 
 ## Resources
 
-`quadsim.utils.hardware` reads the GPU's free memory and lowers a task's default `num_envs` when it would not fit
-(model calibrated on the RTX 5060 measurements; only lowers unless asked). Observed on the 8 GB RTX 5060: state
+`quadsim.utils.hardware` reads the free memory of the first visible GPU (`CUDA_VISIBLE_DEVICES`), adds back what
+the simulator process already holds, and lowers a task's default `num_envs` when it would not fit (model
+calibrated on the RTX 5060 measurements; only lowers unless asked). The choice depends on what other processes
+hold at that moment, so pass `--num_envs` explicitly for runs that must be comparable (seeds, ablations). Observed on the 8 GB RTX 5060: state
 tasks 4096 envs ~3-4 GB; rendered cameras ~4-5 GB for 64-128 envs; **do not run more than two GPU simulations at a
 time** (PhysX fails to allocate its scene otherwise).
 

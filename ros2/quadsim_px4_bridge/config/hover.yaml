@@ -7,3 +7,5 @@ quadsim_policy:
     thrust_scale: 1.0                      # calibrate: px4 hover thrust / sim hover fraction (docs/SIM2REAL.md)
     max_odom_age_s: 0.05                   # watchdog -> stop publishing (PX4 falls back to its failsafe)
     geofence_radius_m: 3.0
+    log_path: ""                           # optional per-step CSV log (policy inputs/outputs)
+    thrust_curve: [0.0, 1.0]               # normalized thrust curve c(u), ascending coeffs; gz x500: [0.0225, 0.255, 0.7225]

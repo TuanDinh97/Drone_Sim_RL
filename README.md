@@ -73,7 +73,8 @@ images), plotting, GUI viewer / MP4 recording with target markers, throughput be
 
 **Sim-to-Real**: ONNX/TorchScript export with a machine-readable interface contract, NumPy deployment
 interface (ENU/FLU ↔ NED/FRD, PX4 `VehicleRatesSetpoint` / `TrajectorySetpoint`), ROS 2 PX4 offboard bridge
-(`ros2/quadsim_px4_bridge`, not yet run against PX4).
+(`ros2/quadsim_px4_bridge`), flown with the hover policy against PX4 v1.16 SITL (gz x500); reproducible SITL
+pipeline and sim-vs-SITL comparison in `ros2/px4_sitl/` and `scripts/sitl/` (see `docs/SIM2REAL.md`).
 
 ## Installation
 
@@ -135,8 +136,8 @@ World z-up (ENU-like), body FLU, quaternions wxyz (`q_WB`), SI units, PX4 Quad-X
 Policy observations contain only deployable quantities; privileged information is restricted to the critic.
 
 ## Known limitations
-See `docs/PROGRESS.md` (open issues) and the report's limitations section. Most important: no hardware or
-PX4-SITL flights yet; depth policies trained on analytic depth with a parametric noise model; RGB policies lack
+See `docs/PROGRESS.md` (open issues) and the report's limitations section. Most important: no hardware
+flights (PX4 SITL only, hover policy only); depth policies trained on analytic depth with a parametric noise model; RGB policies lack
 texture/lighting randomization; baselines use default (untuned) gains; single training seed per configuration.
 
 ## License

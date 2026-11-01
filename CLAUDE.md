@@ -6,8 +6,10 @@ Read `docs/PROGRESS.md` (verified state, open issues) and `docs/ROADMAP.md` (nex
 ## Current state (2026-11-01)
 All seven milestones meet their acceptance criteria (details and caveats in docs/PROGRESS.md). Trained runs live in
 `logs/rsl_rl/` (git-ignored): hover `*_ctbr_s42`, tracking `*_track_ctbr_s42`, waypoint `*_waypoint_ctbr_s42`,
-nav range `*_nav_range_v2_s42`, nav depth `*_nav_depth_v2_s42` (model_900). Next steps: docs/ROADMAP.md
-("Beyond the current scope"), starting with PX4 SITL in the loop.
+nav range `*_nav_range_v2_s42`, nav depth `*_nav_depth_v2_s42` (model_900). The hover policy flies PX4 v1.16.2
+SITL (gz x500) through `ros2/quadsim_px4_bridge` (docs/PROGRESS.md "PX4 SITL cross-check"; PX4 + ROS 2 workspace in
+`third_party/`, built by `ros2/px4_sitl/setup_px4_sitl.sh`, runs via `scripts/sitl/run_sitl.sh`).
+Next steps: docs/ROADMAP.md ("Beyond the current scope").
 
 ## Environment (verified)
 - Machine: Ubuntu 24.04, **RTX 5060 8 GB** (not the 12 GB RTX 5070 of the original brief), i5-14600KF, 32 GB RAM.
@@ -27,6 +29,11 @@ nav range `*_nav_range_v2_s42`, nav depth `*_nav_depth_v2_s42` (model_900). Next
   all obs groups (`policy`, `critic`, `image`) from `_get_observations()`.
 - `DirectRLEnv.physics_dt` is a read-only property.
 - Mass/inertia randomization uses CPU PhysX views → done once at startup; per-episode variation via model-side params + payload force.
+- PX4 SITL (native: ROS 2 Jazzy + Gazebo Harmonic on the host): run PX4 with `/opt/ros` removed from `PATH` (ROS's vendored
+  `gz` cannot start PX4's world); a surviving `gz sim` server is silently re-used by the next PX4 → kill PX4 by process group;
+  PX4 ≥ 1.16 versioned topics (`/fmu/out/vehicle_status_v1`); x500 airframe needs `NAV_DLL_ACT=0` to arm without a GCS;
+  rclpy's `MultiThreadedExecutor` dropped ~35 % of 300 msg/s in the recorder → use `SingleThreadedExecutor`.
+- The conda env's editable `quadsim` install points at the main checkout: in a worktree prefix `PYTHONPATH=$PWD/source/quadsim`.
 
 ## Layout
 - `source/quadsim/quadsim/core` – pure PyTorch (no Isaac import): params, motor/aero model, reference integrator, controllers, sensors, wind.

@@ -5,11 +5,17 @@ import torch
 
 from quadsim.core import math as qm
 from quadsim.deploy.interface import (
+    POSE_FRAME_NED,
+    VELOCITY_FRAME_BODY_FRD,
+    VELOCITY_FRAME_NED,
     ActionDecoder,
     ObservationBuilder,
     enu_to_ned,
     flu_to_frd,
     px4_odometry_to_sim,
+    px4_topic,
+    px4_vehicle_odometry_to_sim,
+    q_conj,
     q_enu_flu_to_ned_frd,
     q_ned_frd_to_enu_flu,
     q_rotate,
@@ -99,3 +105,68 @@ def test_action_decoder_velocity_px4():
     # forward 3 m/s while facing north -> NED velocity (3, 0, -1); +yaw rate (CCW) -> negative NED yawspeed
     assert np.allclose(m["velocity"], [3.0, 0.0, -1.0], atol=1e-12)
     assert abs(m["yawspeed"] + 1.0) < 1e-12
+
+
+def test_px4_topic_versioning():
+    assert px4_topic("/fmu/out/vehicle_status", 1) == "/fmu/out/vehicle_status_v1"  # PX4 v1.16 VehicleStatus
+    assert px4_topic("/fmu/out/vehicle_odometry", 0) == "/fmu/out/vehicle_odometry"
+    assert px4_topic("/fmu/in/vehicle_rates_setpoint") == "/fmu/in/vehicle_rates_setpoint"
+
+
+def test_px4_vehicle_odometry_frames_and_invalid():
+    rng = np.random.default_rng(3)
+    q = _rand_q(1, rng)[0]
+    pos, vel_ned, w = [1.0, 2.0, -3.0], np.array([0.5, -0.2, 0.1]), [0.1, 0.2, 0.3]
+    ref = px4_odometry_to_sim(pos, q, vel_ned, w)
+    out = px4_vehicle_odometry_to_sim(pos, q, vel_ned, w, POSE_FRAME_NED, VELOCITY_FRAME_NED)
+    assert all(np.allclose(a, b) for a, b in zip(out, ref))
+    # body-FRD velocity is rotated into NED before conversion
+    vel_frd = q_rotate(q_conj(q), vel_ned)
+    out = px4_vehicle_odometry_to_sim(pos, q, vel_frd, w, POSE_FRAME_NED, VELOCITY_FRAME_BODY_FRD)
+    assert np.allclose(out[2], ref[2], atol=1e-12)
+    # unusable: heading-free FRD pose frame, unknown velocity frame, NaN fields (PX4's "invalid")
+    assert px4_vehicle_odometry_to_sim(pos, q, vel_ned, w, 2, VELOCITY_FRAME_NED) is None
+    assert px4_vehicle_odometry_to_sim(pos, q, vel_ned, w, POSE_FRAME_NED, 0) is None
+    assert px4_vehicle_odometry_to_sim(pos, [float("nan"), 0, 0, 0], vel_ned, w) is None
+    assert px4_vehicle_odometry_to_sim(pos, q, [float("nan")] * 3, w) is None
+
+
+def test_thrust_curve_inverse_and_calibration():
+    from quadsim.deploy.interface import ThrustCurve
+
+    lin = ThrustCurve()
+    u = np.linspace(0, 1, 11)
+    assert np.allclose(lin.inverse(u), u, atol=1e-9) and abs(lin.calibrate(0.7295, 0.592) - 0.7295 / 0.592) < 1e-12
+    gz = ThrustCurve([0.0225, 0.255, 0.7225])  # (0.15 + 0.85 u)^2
+    assert np.allclose(gz(u), (0.15 + 0.85 * u) ** 2)
+    assert np.allclose(gz.inverse(gz(u)), u, atol=1e-8)
+    assert gz.inverse(-1.0) == 0.0 and gz.inverse(2.0) == 1.0  # clipped to the achievable range
+    try:
+        ThrustCurve([0.0, 1.0, -1.0])  # decreasing above u = 0.5
+        raise AssertionError("non-monotonic curve accepted")
+    except ValueError:
+        pass
+
+
+def test_action_decoder_thrust_curve_makes_thrust_linear():
+    from quadsim.deploy.interface import ThrustCurve
+
+    t_max = 34.19432
+    contract = {"action": {"control_mode": "ctbr", "collective_range": [0.0, 1.0], "max_total_thrust_N": t_max,
+                           "max_body_rate_rad_s": [6.0, 6.0, 3.0], "max_velocity_m_s": [3, 3, 2],
+                           "max_yaw_rate_rad_s": 2.0}}
+    dec, gz = ActionDecoder(contract), ThrustCurve([0.0225, 0.255, 0.7225])
+    hover_frac = 2.0643076923076924 * 9.81 / t_max
+    s = gz.calibrate(0.7289, hover_frac)
+    a0 = np.linspace(-0.6, 0.9, 16)
+    acts = np.stack([a0, 0 * a0, 0 * a0, 0 * a0], -1)
+    collective = dec.decode(acts)["collective_N"]
+    u = -dec.to_px4(acts, thrust_scale=s, thrust_curve=gz)["thrust_body"][..., 2]
+    # thrust the gz x500 produces at u (T_ref = 4 k_f omega_max^2 = t_max) is proportional to the commanded collective
+    assert np.allclose(t_max * gz(u), s * collective, rtol=1e-7)
+    # the linear map is exact only at hover: local gain of the real curve there is ~1.6x the linear map's
+    u_lin = -dec.to_px4(acts, thrust_scale=0.7289 / hover_frac)["thrust_body"][..., 2]
+    gain_ratio = (2 * 0.85 * (0.15 + 0.85 * 0.7289)) / (gz(0.7289) / 0.7289)
+    assert 1.55 < gain_ratio < 1.65
+    # linear map saturates (u = 1) above 1 / thrust_scale = 81 % of T_max; the curve keeps the full range
+    assert u_lin[-1] == 1.0 and np.all(np.diff(u_lin) >= 0) and u[-1] < 1.0 and np.all(np.diff(u) > 0)

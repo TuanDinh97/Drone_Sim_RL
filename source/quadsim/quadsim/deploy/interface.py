@@ -86,6 +86,34 @@ def px4_odometry_to_sim(pos_ned, q_ned_frd, vel_ned, ang_vel_frd):
             ned_to_enu(vel_ned), frd_to_flu(ang_vel_frd))
 
 
+# VehicleOdometry frame enums (px4_msgs, PX4 v1.14 - v1.16)
+POSE_FRAME_NED = 1
+VELOCITY_FRAME_NED, VELOCITY_FRAME_BODY_FRD = 1, 3
+
+
+def px4_vehicle_odometry_to_sim(pos, q, vel, ang_vel, pose_frame: int = POSE_FRAME_NED,
+                                velocity_frame: int = VELOCITY_FRAME_NED):
+    """Like :func:`px4_odometry_to_sim`, honouring ``VehicleOdometry.pose_frame / velocity_frame``.
+
+    Returns ``None`` when the message cannot be used: unsupported frame (the policy needs a gravity- and
+    heading-referenced NED pose) or any NaN field (PX4 marks invalid estimates with NaN).
+    """
+    pos, q, vel, ang_vel = (np.asarray(x, dtype=np.float64) for x in (pos, q, vel, ang_vel))
+    if pose_frame != POSE_FRAME_NED or velocity_frame not in (VELOCITY_FRAME_NED, VELOCITY_FRAME_BODY_FRD):
+        return None
+    if not all(np.all(np.isfinite(x)) for x in (pos, q, vel, ang_vel)):
+        return None
+    if velocity_frame == VELOCITY_FRAME_BODY_FRD:
+        vel = q_rotate(q / np.linalg.norm(q), vel)  # FRD body -> NED
+    return px4_odometry_to_sim(pos, q, vel, ang_vel)
+
+
+def px4_topic(base: str, message_version: int = 0) -> str:
+    """uXRCE-DDS topic name of a PX4 message: PX4 >= 1.16 appends ``_v<N>`` for message versions N > 0
+    (e.g. ``VehicleStatus`` v1 -> ``/fmu/out/vehicle_status_v1``; see uxrce_dds_client/utilities.hpp)."""
+    return f"{base}_v{int(message_version)}" if message_version else base
+
+
 # ----------------------------------------------------------------------------- observation
 class ObservationBuilder:
     """Builds the policy observation from onboard estimates, following ``contract.json``."""
@@ -128,6 +156,42 @@ class ObservationBuilder:
 
 
 # ----------------------------------------------------------------------------- actions
+class ThrustCurve:
+    """Normalized thrust curve ``c(u) = T(u) / T_ref`` of the vehicle's actuators, ``u`` = PX4 normalized thrust.
+
+    Polynomial with ascending coefficients, required to be increasing on [0, 1]. ``[0, 1]`` is the linear map.
+    PX4 SITL gz ``x500`` (ESC map omega = 150 + 850 u, thrust ~ omega^2): ``c(u) = (0.15 + 0.85 u)^2`` =
+    ``[0.0225, 0.255, 0.7225]``. For a real vehicle, fit it on a thrust stand.
+    """
+
+    def __init__(self, coeffs=(0.0, 1.0)):
+        self.p = np.polynomial.Polynomial(np.asarray(coeffs, dtype=np.float64))
+        u = np.linspace(0.0, 1.0, 201)
+        if not np.all(self.p.deriv()(u) > 0):
+            raise ValueError(f"thrust curve {list(coeffs)} is not increasing on [0, 1]")
+        self.lo, self.hi = float(self.p(0.0)), float(self.p(1.0))
+
+    def __call__(self, u):
+        return self.p(np.asarray(u, dtype=np.float64))
+
+    def inverse(self, y):
+        """u in [0, 1] with c(u) = y (clipped to [c(0), c(1)]); vectorized bisection, |err| < 1e-9."""
+        y = np.clip(np.asarray(y, dtype=np.float64), self.lo, self.hi)
+        a, b = np.zeros_like(y), np.ones_like(y)
+        for _ in range(32):
+            m = 0.5 * (a + b)
+            below = self.p(m) < y
+            a, b = np.where(below, m, a), np.where(below, b, m)
+        return np.where(y <= self.lo, 0.0, np.where(y >= self.hi, 1.0, 0.5 * (a + b)))
+
+    def calibrate(self, u_hover: float, sim_hover_fraction: float) -> float:
+        """``thrust_scale`` that maps the simulated hover thrust to the measured hover command ``u_hover``."""
+        return float(self(u_hover)) / sim_hover_fraction
+
+
+LINEAR_THRUST = ThrustCurve()
+
+
 class ActionDecoder:
     """Normalized action -> physical set-points (simulation frames) and PX4 offboard messages."""
 
@@ -153,18 +217,19 @@ class ActionDecoder:
             return {"velocity_world": v_w, "yaw_rate": a[..., 3] * self.max_yaw_rate}
         raise NotImplementedError(self.mode)
 
-    def to_px4(self, action, q_wb=None, thrust_scale: float = 1.0) -> dict:
+    def to_px4(self, action, q_wb=None, thrust_scale: float = 1.0, thrust_curve: ThrustCurve = LINEAR_THRUST) -> dict:
         """PX4 offboard set-point fields.
 
         CTBR -> ``VehicleRatesSetpoint``: roll/pitch/yaw rates in FRD and ``thrust_body = [0, 0, -T_n]``
-        with ``T_n = thrust_scale * collective / T_max`` (PX4 normalized thrust). ``thrust_scale`` absorbs
-        the real ESC/motor/propeller thrust curve; calibrate it as
-        ``px4_estimated_hover_thrust / (m g / T_max_sim)`` (see docs/SIM2REAL.md).
+        with ``T_n = c^-1(thrust_scale * collective / T_max)`` (PX4 normalized thrust, ``c`` = ``thrust_curve``).
+        With the default linear curve ``T_n = thrust_scale * collective / T_max``: ``thrust_scale`` then absorbs the
+        real thrust curve only at hover. Calibrate ``thrust_scale = c(u_hover) / (m g / T_max_sim)`` with PX4's
+        hover-thrust estimate ``u_hover`` (:meth:`ThrustCurve.calibrate`, docs/SIM2REAL.md).
         Velocity -> ``TrajectorySetpoint``: velocity NED, yawspeed (NED: positive clockwise from above).
         """
         d = self.decode(action, q_wb)
         if self.mode == "ctbr":
-            t_n = np.clip(thrust_scale * d["collective_N"] / self.t_max, 0.0, 1.0)
+            t_n = np.clip(thrust_curve.inverse(thrust_scale * d["collective_N"] / self.t_max), 0.0, 1.0)
             rates = flu_to_frd(d["body_rates_flu"])
             return {"msg": "VehicleRatesSetpoint", "roll": rates[..., 0], "pitch": rates[..., 1],
                     "yaw": rates[..., 2], "thrust_body": np.stack([0 * t_n, 0 * t_n, -t_n], -1)}

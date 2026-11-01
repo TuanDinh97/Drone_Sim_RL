@@ -99,6 +99,11 @@ class LangNavEnv(QuadrotorEnv):
     def __init__(self, cfg: LangNavEnvCfg, render_mode=None, **kwargs):
         from quadsim.il.language import Tokenizer
 
+        if cfg.num_landmarks > len(COLORS):
+            raise ValueError(f"num_landmarks={cfg.num_landmarks} but only {len(COLORS)} colours are defined")
+        if 2 * cfg.bearing_range < (cfg.num_landmarks - 1) * cfg.min_bearing_separation:
+            raise ValueError(f"{cfg.num_landmarks} landmarks need 2 * bearing_range >= (num_landmarks - 1) * "
+                             f"min_bearing_separation (= {(cfg.num_landmarks - 1) * cfg.min_bearing_separation:.2f} rad)")
         super().__init__(cfg, render_mode, **kwargs)
         n, k, dev = self.num_envs, cfg.num_landmarks, self.device
         self.landmarks = torch.zeros(n, k, 3, device=dev)  # (x, y, z_top) env-local
@@ -215,7 +220,7 @@ class LangNavEnv(QuadrotorEnv):
         self.dwell_target = torch.where(near_target & slow, self.dwell_target + 1, torch.zeros_like(self.dwell_target))
         self.dwell_other = torch.where(near_other.any(-1) & slow, self.dwell_other + 1,
                                        torch.zeros_like(self.dwell_other))
-        new_success = (self.dwell_target >= self.cfg.dwell_steps) & ~self.success & ~self.wrong
+        new_success = (self.dwell_target >= self.cfg.dwell_steps) & ~self.success & ~self.wrong & ~self.hit
         self.wrong |= (self.dwell_other >= self.cfg.dwell_steps) & ~self.success & ~new_success
         self.t_success = torch.where(new_success, self.episode_length_buf.float() * self.step_dt, self.t_success)
         self.success |= new_success

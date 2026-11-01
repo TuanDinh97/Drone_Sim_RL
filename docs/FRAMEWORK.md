@@ -81,17 +81,20 @@ wind/motor/velocity-kick events, attribute curriculum).
 
 `quadsim.core.vehicles` builds a `QuadrotorParams` from a registered preset, a YAML/JSON file
 (`examples/vehicles/hexa_550.yaml`) or a dict: `base:` inheritance, generic symmetric frames
-(`frame: {num_rotors, arm_length, layout: x|plus}`; 4-rotor X frames use the PX4 Quad-X order),
-`thrust_to_weight` → `k_f`, `inertia: auto` (box body + point-mass motors), physical validation (positive mass,
-inertia triangle inequality, thrust-to-weight > 1.05, full-rank allocation). Everything downstream adapts
+(`frame: {num_rotors, arm_length, layout: x|plus}`, even rotor counts; 4-rotor X frames use the PX4 Quad-X order),
+`thrust_to_weight` → `k_f` (give one of the two), `inertia: auto` (box body + point-mass motors), physical validation
+of every vehicle, registered factories included (positive mass, inertia triangle inequality, thrust-to-weight > 1.05
+at nominal parameters, spins ±1, full-rank allocation, positive zero-torque hover thrust on every rotor, i.e. CoM
+inside the rotor polygon). Numbers such as `1e-5` are accepted (YAML would read them as strings); `base:` paths are
+relative to the file. Everything downstream adapts
 automatically: the USD body (one rotor disc per rotor), PhysX mass and inertia, motor/aero model, mixer
-(pseudo-inverse allocation with PX4-style desaturation, any rotor count), hover action, `motor` action dimension
+(pseudo-inverse allocation with PX4-style desaturation, any rotor count and asymmetric layouts), hover action, `motor` action dimension
 (= number of rotors) and observation sizes. `from_isaaclab_multirotor()` converts an Isaac Lab `isaaclab_contrib`
 `MultirotorCfg` (allocation matrix + thruster model) into quadsim parameters.
 
 Why not Isaac Lab's `Multirotor` articulation (isaaclab_contrib, added in v2.3)? It loads robots from Nucleus USDs
-(unreachable from the development network), models thrusters as first-order thrust lags without rotor drag,
-ground effect or gyroscopic terms, and simulates an articulation per vehicle. quadsim keeps a single rigid body per
+(unreachable from the development network), models thrusters with a first-order rotor-speed lag but without rotor
+drag, ground effect or gyroscopic terms, and simulates an articulation per vehicle. quadsim keeps a single rigid body per
 vehicle with the full model-side wrench (validated against a reference integrator to 0.4 mm over 1.5 s) and offers
 the conversion above for interoperability.
 

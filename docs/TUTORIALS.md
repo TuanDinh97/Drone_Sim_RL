@@ -33,8 +33,8 @@ python scripts/rl/train.py --headless --task Quadsim-Hover-v0 env.dynamics.prese
 
 or register Python factories (`examples/custom_vehicle.py`) and use them by name with `--plugins`. The spawner,
 mixer, motor model, hover action and (for `motor` control) the action dimension follow the vehicle automatically.
-Physically inconsistent vehicles are rejected with an explanation (inertia triangle inequality, thrust-to-weight,
-allocation rank).
+Physically inconsistent vehicles, from files or from registered factories, are rejected with an explanation
+(inertia triangle inequality, thrust-to-weight, spin directions, allocation rank, CoM outside the rotor polygon).
 
 ## 3. A custom sensor
 

@@ -215,3 +215,29 @@ def test_position_hold_asymmetric_frame():
         thrust = iface(a, s.quat, torch.cat([s.pos, s.quat, s.lin_vel, s.ang_vel], -1), s.ang_vel)
         sim.step(fc.mixer.thrust_to_omega(thrust))
     assert (sim.state.pos[0] - torch.tensor([0.0, 0.0, 1.0])).norm().item() < 0.02
+
+
+def test_vehicle_file_number_formats_and_base_path(tmp_path):
+    """YAML reads `1e-5` (no decimal point) as a string; base: paths resolve relative to the file."""
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (sub / "parent.yaml").write_text("base: x500\nname: parent\nk_f: 1e-5\nomega_max: 1000\n")
+    (sub / "child.yaml").write_text("base: parent.yaml\ntau_up: 2e-2\nrotor_inertia: 3e-6\nrotor_spin: [1, 1, -1, -1]\n")
+    p = load_vehicle(str(sub / "child.yaml"))
+    assert isinstance(p.k_f, float) and p.k_f == 1e-5 and p.omega_max == 1000.0
+    assert isinstance(p.tau_up, float) and p.tau_up == 0.02 and isinstance(p.rotor_inertia, float)
+    assert p.rotor_spin == (1, 1, -1, -1)
+
+
+def test_vehicle_validation_more_errors():
+    with pytest.raises(ValueError, match="rotor_spin"):
+        params_from_dict({"base": "x500", "rotor_spin": [2, 1, -1, 0]})
+    with pytest.raises(ValueError, match="not both"):
+        params_from_dict({"base": "x500", "k_f": 1e-5, "thrust_to_weight": 3.0})
+    x500 = get_vehicle("x500")
+    far_aft = [[x - 0.4, y, z] for x, y, z in x500.rotor_positions]  # CoM in front of every rotor
+    with pytest.raises(ValueError, match="rotor polygon"):
+        params_from_dict({"base": "x500", "rotor_positions": far_aft})
+    VEHICLES.register("test_bad_plugin_vehicle", lambda: x500.copy(rotor_spin=(1, 1, 1, 0)), overwrite=True)
+    with pytest.raises(ValueError, match="rotor_spin"):
+        get_vehicle("test_bad_plugin_vehicle")

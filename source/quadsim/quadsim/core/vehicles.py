@@ -21,7 +21,7 @@ Vehicle-file schema (all keys optional except what is needed to define thrust)::
       rotor_z: 0.0
     rotor_positions: [[...], ...]  # explicit alternative to ``frame`` (body FLU, m)
     rotor_spin: [1, -1, ...]       # +1 = CCW seen from above
-    k_f: 8.5e-6                # N/(rad/s)^2   - or give thrust_to_weight (+ omega_max) and k_f is derived
+    k_f: 8.5e-6                # N/(rad/s)^2   - or give thrust_to_weight (+ omega_max) and k_f is derived (not both)
     thrust_to_weight: 2.0
     omega_max: 1000.0
     motor_mass: 0.05           # kg per motor+prop, only for inertia: auto
@@ -46,6 +46,25 @@ from .params import QuadrotorParams, _composite_inertia, make_crazyflie, make_x5
 
 GRAVITY = 9.81
 _FIELDS = {f.name for f in fields(QuadrotorParams)}
+_DEFAULTS = QuadrotorParams()
+
+
+def _coerce(name: str, v):
+    """Convert a file value to the field's type (YAML 1.1 reads ``1e-5`` - no decimal point - as a string)."""
+    default = getattr(_DEFAULTS, name)
+    if isinstance(default, bool):
+        if not isinstance(v, bool):
+            raise TypeError(f"vehicle field '{name}' must be true or false, got {v!r}")
+        return v
+    if isinstance(default, float):
+        return float(v)
+    if name == "rotor_positions":
+        return tuple(tuple(float(c) for c in r) for r in v)
+    if name == "rotor_spin":
+        return tuple(int(s) for s in v)
+    if isinstance(default, tuple):
+        return tuple(float(x) for x in v)
+    return v
 
 
 # ------------------------------------------------------------------------------------------------ geometry
@@ -95,8 +114,9 @@ def params_from_dict(d: dict) -> QuadrotorParams:
     unknown = set(d) - _FIELDS
     if unknown:
         raise KeyError(f"unknown vehicle fields {sorted(unknown)}; valid: {sorted(_FIELDS)}")
-    changes = {k: (tuple(tuple(x) if isinstance(x, list) else x for x in v) if isinstance(v, list) else v)
-               for k, v in d.items()}
+    if ttw is not None and "k_f" in d:
+        raise ValueError("give either k_f or thrust_to_weight (k_f is then derived), not both")
+    changes = {k: _coerce(k, v) for k, v in d.items()}
     if frame is not None:
         pos, spin = multirotor_layout(int(frame["num_rotors"]), float(frame["arm_length"]),
                                       frame.get("layout", "x"), float(frame.get("rotor_z", 0.0)))
@@ -127,6 +147,11 @@ def load_vehicle(path: str) -> QuadrotorParams:
 
             d = yaml.safe_load(f)
     d.setdefault("name", os.path.splitext(os.path.basename(path))[0])
+    base = d.get("base")
+    if isinstance(base, str) and base.endswith((".yaml", ".yml", ".json")) and not os.path.isabs(base):
+        local = os.path.join(os.path.dirname(path), base)  # relative to this file (else to the working directory)
+        if os.path.exists(local):
+            d["base"] = local
     p = params_from_dict(d)
     p.source = p.source or f"vehicle file {path}"
     return p
@@ -143,6 +168,8 @@ def validate_params(p: QuadrotorParams) -> None:
         raise ValueError(f"{p.name}: thrust-to-weight {p.thrust_to_weight:.2f} is too low to fly")
     if p.tau_up <= 0 or p.tau_down <= 0 or p.k_f <= 0 or p.omega_max <= p.omega_min:
         raise ValueError(f"{p.name}: motor parameters must be positive (k_f, tau, omega range)")
+    if any(s not in (1, -1) for s in p.rotor_spin):
+        raise ValueError(f"{p.name}: rotor_spin entries must be +1 (CCW) or -1 (CW), got {p.rotor_spin}")
     import numpy as np
 
     pos = np.asarray(p.rotor_positions, dtype=np.float64)
@@ -150,6 +177,10 @@ def validate_params(p: QuadrotorParams) -> None:
     a = np.stack([np.ones_like(spin), pos[:, 1], -pos[:, 0], -spin * p.k_m])
     if np.linalg.matrix_rank(a) < 4:
         raise ValueError(f"{p.name}: rotor geometry cannot produce independent thrust/roll/pitch/yaw (rank < 4)")
+    split = np.linalg.pinv(a)[:, 0]
+    if split.min() <= 0:
+        raise ValueError(f"{p.name}: hovering without torque needs a non-positive thrust on some rotor (CoM outside "
+                         f"the rotor polygon); zero-torque split per newton {np.round(split, 3).tolist()}")
 
 
 # ------------------------------------------------------------------------------------------------ Isaac Lab
@@ -223,4 +254,6 @@ def get_vehicle(name_or_path: str) -> QuadrotorParams:
         return name_or_path
     if name_or_path.endswith((".yaml", ".yml", ".json")):
         return load_vehicle(name_or_path)
-    return VEHICLES.get(name_or_path)()
+    p = VEHICLES.get(name_or_path)()
+    validate_params(p)  # also covers plugin factories that build QuadrotorParams directly
+    return p

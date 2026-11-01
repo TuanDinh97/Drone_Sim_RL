@@ -389,3 +389,14 @@ def test_lagrangian_integral_anti_windup():
     tm._finished_costs.append(torch.zeros(4))  # ... so that lambda reacts as soon as the constraint holds
     tm.shape_reward(torch.zeros(4))
     assert tm.lagrange < 5.0
+
+
+def test_bc_trains_on_a_dataset_smaller_than_one_batch(tmp_path):
+    torch.manual_seed(0)
+    p = str(tmp_path / "d.h5")
+    tok = _write_fake_demos(p, n_ep=2, images=False)
+    tr = DemoDataset(p, "train", 0.0, images=False)
+    assert len(tr) < 1024
+    pol = BCPolicy(tr.obs_layout, 2, tok.vocab_size, None, (32,), drop_blocks=("last_action",))
+    hist = train_bc(pol, tr, None, epochs=3, batch_size=1024, lr=3e-3, device="cpu", log=lambda *_: None)
+    assert all(h > 0 for h in hist["train"])  # optimizer steps happened (the loss was measured)

@@ -30,8 +30,12 @@ FORMAT = "quadsim-demos/1"
 
 
 def _git_commit():
+    """HEAD commit, with ``-dirty`` if tracked files have uncommitted changes."""
     try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
+        sha = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
+        dirty = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"],
+                                        stderr=subprocess.DEVNULL).decode().strip()
+        return sha + ("-dirty" if dirty else "")
     except Exception:
         return "unknown"
 

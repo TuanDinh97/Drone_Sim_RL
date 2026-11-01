@@ -42,6 +42,8 @@ class _Concat:
         self.obs = torch.cat([p.obs for p in parts])
         self.action = torch.cat([p.action for p in parts])
         imgs = [p.image for p in parts]
+        if args.images and any(i is None for i in imgs):
+            raise ValueError("--images: some --data files have no camera images")
         self.image = torch.cat(imgs) if all(i is not None for i in imgs) else None
         self.obs_layout, self.attrs = parts[0].obs_layout, parts[0].attrs
 

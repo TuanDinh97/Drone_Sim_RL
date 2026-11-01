@@ -126,13 +126,12 @@ def train_bc(policy: BCPolicy, train, val=None, epochs: int = 30, batch_size: in
     policy.set_normalizer(train.obs.to(device))
     opt = torch.optim.AdamW(policy.parameters(), lr, weight_decay=weight_decay)
     n = len(train)
+    batch_size = min(batch_size, n)  # a dataset smaller than one batch still trains
     steps = epochs * max(1, n // batch_size)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, steps)
     hist = {"train": [], "val": []}
     obs, act = train.obs.to(device), train.action.to(device)
-    img = train.image if (train.image is not None and policy.cnn is not None) else None
-    if img is not None and str(device).startswith("cuda") and not img.is_pinned():
-        img = img.pin_memory()
+    img = train.image if (train.image is not None and policy.cnn is not None) else None  # stays on the host
     table = train.text_table.to(device) if policy.text_proj is not None else None
     tidx = train.text_idx.to(device) if policy.text_proj is not None else None
     for ep in range(epochs):
@@ -141,7 +140,7 @@ def train_bc(policy: BCPolicy, train, val=None, epochs: int = 30, batch_size: in
         tot = 0.0
         for i in range(0, n - batch_size + 1, batch_size):
             b = perm_d[i: i + batch_size]
-            im = img[perm[i: i + batch_size]].to(device, non_blocking=True) if img is not None else None
+            im = img[perm[i: i + batch_size]].to(device) if img is not None else None
             pred = policy(obs[b], im, table[tidx[b]] if table is not None else None)
             loss = (pred - act[b]).square().mean()
             opt.zero_grad(set_to_none=True)

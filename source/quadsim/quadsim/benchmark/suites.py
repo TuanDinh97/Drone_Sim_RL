@@ -57,7 +57,7 @@ def _robustness(prefix=()):
             Condition("wind_push", "ood", p + _WIND, note="wind 0-3 m/s + turbulence + gusts, pushes <= 0.3 mg"),
             Condition("harsh_dynamics", "ood", p + _HARSH_DYN, note="mass x0.8-1.25, motor tau x1.5-2.5, k_f x0.8-1"),
             Condition("sensor_noise", "ood", p + _SENSOR, note="estimate/IMU noise x2-3"),
-            Condition("latency", "ood", p + _LATENCY, note="20-30 ms command + estimate delay")]
+            Condition("latency", "ood", p + _LATENCY, note="20-30 ms command delay + 0-30 ms estimate delay")]
 
 
 for _s in (

@@ -141,8 +141,10 @@ def tilt_exceeds(env, max_tilt: float) -> torch.Tensor:
 
 
 # ============================================================================ costs (rates; multiplied by weight * dt)
-def speed_violation(env, limit: float, indicator: bool = True) -> torch.Tensor:
-    """Speed above ``limit`` [m/s]: indicator (1/0) or excess speed."""
+def speed_violation(env, limit: float | None = None, indicator: bool = True) -> torch.Tensor:
+    """Speed above ``limit`` [m/s] (default: the task's ``cfg.speed_limit``): indicator (1/0) or excess speed."""
+    if limit is None:
+        limit = env.cfg.speed_limit
     v = env.robot.data.root_lin_vel_w.norm(dim=-1)
     return (v > limit).float() if indicator else (v - limit).clamp(min=0.0)
 

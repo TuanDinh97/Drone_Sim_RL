@@ -120,10 +120,11 @@ class WaypointSpeedCostEnvCfg(WaypointEnvCfg):
     used to measure the constraint violation of unconstrained policies."""
 
     speed_limit: float = 2.0
+    """[m/s], read at run time by the cost term (so ``env.speed_limit=...`` overrides work)"""
 
     def __post_init__(self):
         super().__post_init__()
-        self.terms.costs["overspeed"] = CostTermCfg(func=mdp.speed_violation, params={"limit": self.speed_limit})
+        self.terms.costs["overspeed"] = CostTermCfg(func=mdp.speed_violation)
 
 
 @configclass

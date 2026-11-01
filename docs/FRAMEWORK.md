@@ -59,7 +59,7 @@ delayed policy command → **action interface** on the onboard flight controller
 | `ALGORITHMS` | `train.py --algo`, `evaluate.py --algo`, `export.py --algo` | `Algorithm`: `default_cfg`, `train`, `load_policy`, `actor_module` (export) | `ppo` (rsl_rl), `sac`, `td3`; evaluation only: `bc` (trained by `train_bc.py`), `vla` (+ `ars` example) |
 | `BASELINES` | `evaluate.py --controllers` | `ctrl(env)() -> actions` | `cascade`, `geometric`, `potential_field`, `swarm_potential`, `langnav_expert` |
 | `BENCHMARKS` | `scripts/benchmark/run.py --suite` | `Suite(task, conditions, metrics, ...)` | `hover`, `track`, `waypoint`, `nav_range`, `race`, `swarm`, `langnav` |
-| Gymnasium registry | `--task` | Isaac Lab DirectRLEnv + cfg entry points | 27 built-in `Quadsim-*` tasks (+ 4 in `examples/`) |
+| Gymnasium registry | `--task` | Isaac Lab DirectRLEnv + cfg entry points | 28 built-in `Quadsim-*` tasks (+ 4 in `examples/`) |
 
 Configuration-level extension (no registry needed), `cfg.terms` (`quadsim.tasks.base.terms`), with the Isaac Lab
 term convention `func(env, **params)`:
@@ -112,7 +112,10 @@ mixer), at the physics rate, on the delayed action and the onboard state estimat
 | `position` | position set-point in a configurable box + yaw rate | full cascade |
 
 The rate-loop gain and thrust-map gain can be randomized per episode (`randomization.rate_gain_scale`,
-`thrust_gain_scale`), which the PX4 SITL study showed to matter for transfer.
+`thrust_gain_scale`), which the PX4 SITL study showed to matter for transfer. The rate gain acts on every interface
+with an onboard rate loop (all but `motor`), the thrust-map gain on the commanded collective of `ctbr` and `ctatt`
+(the outer loops of `velocity` / `position` compute their collective themselves); otherwise the sampled values are
+inert (the critic still observes them). The `position` interface's hover action commands `position_center`.
 
 ### Sensors
 
@@ -132,11 +135,15 @@ thrust-map gain; `WindCfg` / `PushCfg` disturbances; action and estimate latency
 
 ## Tasks
 
+Episode ends: a crash (`_task_crash`, generic limits, failure terms) terminates; the time limit truncates (the value
+is bootstrapped). Ends decided by the task (`_task_timeout`: goal reached, course finished, wrong landmark) are
+truncations by default, as in all published runs; `env.task_end_is_terminal=True` makes them terminal.
+
 | Task | Purpose | Interface | Policy observation |
 |---|---|---|---|
 | `Quadsim-Hover-v0/v1/v2` (+ `-Motor`, `-Hexa`, `-Hexa-Motor`, `-Sensors`) | stabilization / recovery | ctbr / motor | state + target |
 | `Quadsim-Track-v0/v1` | trajectory tracking | ctbr | state + reference preview |
-| `Quadsim-Waypoint-v0/v1`, `-SpeedCost-v0`, `-Safe-v0` | waypoint racing, constrained RL | ctbr | state + next waypoints |
+| `Quadsim-Waypoint-v0/v1`, `-SpeedCost-v0`, `-Safe-v0/v1` | waypoint racing, constrained RL (v1: constraint warm-up) | ctbr | state + next waypoints |
 | `Quadsim-Nav-{Range,Depth,Depth-Render,RGB,RGBD}-v0` | obstacle avoidance | velocity | state + range ring / image |
 | `Quadsim-Race-v0/v1` (+ `-Ellipse`, `-Figure8`) | drone racing through gates, multi-lap (v1: both turning directions) | ctbr (racer5) | state + next two gates |
 | `Quadsim-Swarm-v0` | cooperative multi-agent position swap | velocity | state + goal + neighbours |
@@ -156,7 +163,10 @@ Neighbour information in the policy observation comes from the other agents' *es
 Cost terms produce per-step cost rates; `SafetyCfg(lagrangian=True, cost_limit=...)` turns any algorithm into its
 Lagrangian variant: the environment returns `(r - λ c) / (1 + λ)` and updates `λ ≥ 0` with a PID rule on the mean
 episode cost of finished episodes (Stooke et al. 2020). The raw reward and cost remain in `extras`, the multiplier
-is logged as `Safety/lambda`. (This is the reward-penalty form without a separate cost critic.) The multiplier lives
+is logged as `Safety/lambda`. (This is the reward-penalty form without a separate cost critic.)
+`SafetyCfg.warmup_steps` holds the multiplier at `lambda_init` for the first steps, so that the policy learns the
+task before the constraint is enforced (without it, one of three PPO-Lagrangian seeds never learned to finish the
+waypoint course; `Quadsim-Waypoint-Safe-v1`). The multiplier lives
 in the environment: it is not stored in checkpoints (a resumed run restarts from `lambda_init`), and an off-policy
 replay buffer keeps rewards shaped with earlier multipliers; the published PPO-Lagrangian runs are on-policy and
 were not resumed.

@@ -51,7 +51,9 @@ self.terms.observations["gnss"] = ObsTermCfg(func=gnss_position, noise_std=0.3, 
 ## 4. A custom task
 
 Subclass `QuadrotorEnv` and implement the task hooks (`examples/custom_task.py`, precision landing):
-`task_obs_dim/_task_obs`, `_task_privileged_obs`, `_compute_task_reward`, `_task_crash/_task_timeout`,
+`task_obs_dim/_task_obs`, `_task_privileged_obs`, `_compute_task_reward`, `_task_crash/_task_timeout` (a crash
+terminates the episode; a time-out truncates it and the value is bootstrapped - the built-in tasks return reaching
+the goal as a time-out unless `env.task_end_is_terminal=True`, see `docs/PROGRESS.md`),
 `_sample_initial_state`, `_task_episode_metrics`; optionally `baseline_targets` so the classical cascade baseline
 can fly it. Register it with `gym.register` (entry point and config classes can be objects). Train:
 

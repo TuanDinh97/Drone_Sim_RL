@@ -24,7 +24,10 @@ Problems met while building and validating quadsim, with their fixes.
 | Measurements right after `sim.reset()` are off | reset performs two warm-up physics steps; re-write the root state before measuring |
 | Evaluation numbers differ slightly between `evaluate.py --controllers a b` and separate runs | a controller evaluated after another in the same process starts from a different simulator/RNG state; benchmark suites run every controller in a fresh process (cascade hover: 88.7 % vs 89.8 %, within the CI) |
 | One unit test fails only while a training runs | the CUDA variant of `test_raycast_warp` needs free GPU memory; run `CUDA_VISIBLE_DEVICES= pytest tests/core` (CPU only) or on an idle GPU |
-| `--num_envs` silently lower than the task default | `quadsim.utils.hardware` lowered it because the free GPU memory would not fit; pass `--num_envs` explicitly to override |
+| `--num_envs` silently lower than the task default | `quadsim.utils.hardware` lowered it because the free GPU memory would not fit (it depends on what other processes hold at that moment); pass `--num_envs` explicitly, always for seeds and ablations |
+| `ModuleNotFoundError: No module named 'env.control'` with `--plugins my.py env.control.mode=x` (versions before the review) | argparse attached the override to the `--plugins` list; current scripts move `env.`/`agent.` items back to the overrides (older versions: put overrides before `--plugins`) |
+| `PhysX ... failed to allocate` although only one simulator runs | non-simulator GPU jobs count too: an RGB behaviour-cloning training (`train_bc.py --images`) holds ~2 GB next to a 4096-env training |
+| Numbers differ from results published before the review | `evaluate.py` used to stop at a global episode count, which drops the episodes still running (the long ones) and over-weights short episodes; every env now contributes its first `ceil(episodes / num_envs)` episodes, and all published numbers were re-measured (`docs/PROGRESS.md`, "Review and corrections") |
 
 ## Learning
 
@@ -36,6 +39,9 @@ Problems met while building and validating quadsim, with their fixes.
 | Language-conditioned BC fails on unseen phrasings | out-of-vocabulary words are ignored by the bag-of-words encoder; only colour/keyword words generalize (held-out phrasing ~60 %) - use a frozen pretrained text encoder (`train_bc.py --text_encoder stabilityai/sd-turbo:text_encoder`: 99.8 %) |
 | Expert demonstrations contain collisions | check the scenario sampler: rejection sampling with infeasible constraints can silently return invalid layouts (fixed in LangNav with a guaranteed-spacing sampler) |
 | Multi-agent groups desynchronize | rsl_rl randomizes `episode_length_buf` at the start of training; `SwarmEnv` re-synchronizes the clock of every group each step |
+| `ValueError: reward terms [...] already exist in the task's reward` | a configured reward term had the name of one of the task's own terms (it used to replace it silently); give it its own name |
+| `train.py --algo bc` fails | behaviour cloning is trained by `scripts/il/train_bc.py`; `bc` and `vla` are evaluation-only algorithms |
+| A curriculum climbs to its hardest level regardless of performance (versions before the review) | `attribute_curriculum` averaged the last episode of every env, mostly from easier levels; it now judges each level only on episodes that started at it |
 
 ## Shell / workflow
 
@@ -45,4 +51,5 @@ Problems met while building and validating quadsim, with their fixes.
 | `pkill -f pattern` kills your own shell | the pattern also matches the shell's command line; use a character class (`pgrep -f "[r]un_name foo"`) or kill by PID |
 | Results vanish with a git worktree | training writes `./logs` relative to the cwd: symlink `logs`, `datasets`, `outputs` to the main checkout |
 | A worktree run imports the main checkout's code | the editable install points at the main checkout: prefix `PYTHONPATH=$PWD/source/quadsim` |
+| A queue's later jobs behave differently from its first ones | every queued process imports the checkout's source when it starts: do not edit `source/` while a queue still has jobs to start (make fixes in a separate worktree and merge afterwards) |
 | PX4 SITL: gz world does not start / an old world is reused / cannot arm | see `CLAUDE.md` (strip `/opt/ros` from `PATH`, kill PX4 by process group, `NAV_DLL_ACT=0`, `EKF2_GPS_DELAY=0` in SITL only) |

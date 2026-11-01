@@ -21,6 +21,12 @@ new tasks (race, swarm multi-agent, langnav language-conditioned), IL/VLA (`quad
 export in `third_party/lerobot-venv`), benchmark suites (`quadsim.benchmark`, `scripts/benchmark/run.py`),
 hardware-aware num_envs, `examples/`. Architecture: docs/FRAMEWORK.md; recipes: docs/TUTORIALS.md.
 Core refactors are guarded by `scripts/validation/regression_evals.sh` + `compare_evals.py` (59 metrics bit-identical).
+Session 5 (review): three independent code reviews; ~20 verified defects fixed with tests (commits after 7008d7d,
+docs/PROGRESS.md "Review and corrections"). The most important: `evaluate.py` stopped at a global episode count, which
+over-weights short episodes - it now takes the first ceil(episodes/num_envs) episodes of every env, and every
+published evaluate.py number was re-measured (`scripts/validation/reevaluate.py`; originals in
+`logs/_pre_review_eval_backup/`). Racing, swarm, safe RL and LangNav now have 3 seeds (`scripts/rl/multiseed.sh`,
+`docs/results/framework/multiseed.json`). The regression reference after the review is `logs/eval/regress_review`.
 Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at the end of docs/PROGRESS.md.
 
 ## Environment (verified)
@@ -63,6 +69,13 @@ Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at 
 - LeRobot needs NumPy 2 / pyarrow >= 21: only inside `third_party/lerobot-venv` (never in `quadsim`).
 - Never edit a shell script while it is running (queues!): bash reads scripts incrementally and fails mid-file with
   a bogus syntax error. Copy it, or wait until it exits.
+- Every queued process imports the checkout's `source/` when it starts: never edit code while a queue still has jobs
+  to start; make fixes in a separate `git worktree` and merge afterwards (run old-code jobs from a worktree).
+- Non-simulator GPU jobs count against the 8 GB too: RGB behaviour cloning (`train_bc.py --images`) holds ~2 GB.
+- Evaluations: never stop at a global episode count (drops the long episodes still running); `evaluate.py` keeps each
+  env's first k episodes. Pass `--num_envs` explicitly for seeds/ablations (the hardware check depends on the moment).
+- Known modelling choice, not fixed: reaching the goal / finishing (waypoint, nav, race, LangNav) is a *time-out*
+  (bootstrapped by PPO and the off-policy learners), not a termination; changing it requires retraining those tasks.
 
 ## Layout
 - `source/quadsim/quadsim/registry.py` – extension registries + plugin loader.

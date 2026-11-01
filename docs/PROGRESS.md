@@ -2,6 +2,12 @@
 
 Legend: ✅ verified by an executed test (artifact linked) · 🟡 implemented, partially verified · ⬜ not started
 
+> **Erratum (session 5 review).** Sections before "Review and corrections" record numbers as they were measured
+> at the time. `scripts/rl/evaluate.py` then stopped at a global episode count, which over-weights short
+> episodes; every evaluate.py result was re-measured with the corrected evaluator and the review fixes - the
+> current values are in [Review and corrections](#review-and-corrections-2026-11-01-session-5), which supersedes the
+> earlier tables where they differ.
+
 ## Milestone 1 — Isaac Sim / Isaac Lab foundation ✅ (2026-11-01)
 - Stack: Isaac Sim 5.1.0 (pip) + Isaac Lab v2.3.2 + torch 2.7.0+cu128 on RTX 5060 8 GB (sm_120).
 - `scripts/validation/m1_isaac_smoke_test.py`: headless boot 2.8 s; 64 rigid bodies free fall 0.5 s at dt=1/400:
@@ -596,6 +602,155 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
   hover PPO **99.8 %, 1.38 cm**; landing task (`examples/custom_task.py`): first reward **0 %** (the policy hovered
   above the pad to avoid the hard-touchdown penalty), reward v2 (per-second time penalty + "low and slow over the pad"
   term) **94.1 %**, touchdown 0.41 m/s (limit 0.6), vs the cascade descent baseline 52.0 % (48 % hard touchdowns).
+
+## Review and corrections (2026-11-01, session 5)
+Goal: a comprehensive review of the framework (code, docs, report) and replication of the single-seed framework results.
+
+### Method
+- Three independent reviews (subagents that saw the code but not each other's findings): core + vehicles + control
+  interfaces + export; task environments + terms + baselines; learning (SAC/TD3), imitation learning, evaluation and
+  result tooling. Plus a mechanical check of the docs (every referenced file and task name exists).
+- Every reported defect was verified before fixing: reproduced on the CPU where possible (unit test that fails on the
+  previous code and passes after the fix), otherwise checked against the code paths. Fixes went into a separate
+  worktree while the multi-seed training queue kept using the unchanged code; 23 commits (`def53da`..`bad86ff`, including the follow-up options below);
+  CPU unit tests 124 → 141.
+- Regression of the fixes on the reference set (`scripts/validation/regression_evals.sh`, 59 metrics): the corrected
+  evaluator alone vs. all fixes (`logs/eval/regress_evalfix` vs `regress_review`) differs **only** where a fix acts
+  by design (below); everything else is bit-identical.
+
+### Defects found and fixed
+| Defect | Effect on published results | Fix |
+|---|---|---|
+| **Evaluation sampling bias**: `evaluate.py` stopped at the first step where the *global* count of finished episodes reached `--episodes` and kept all of them, so the episodes still running - the long ones - were dropped and envs with short episodes contributed more | every evaluate.py number; largest where outcomes differ in episode length (crash vs. time-out, early success): navigation, racing, swarm, landing, LangNav (see "Re-measured results") | each env contributes its first `ceil(episodes / num_envs)` episodes (`0004d1d`); all results re-measured |
+| Cascade baseline: velocity integrator never reset between episodes | cascade numbers on hover / tracking / waypoints / racing | reset at each episode start (`480d433`) |
+| Reset: initial angular velocity written to PhysX as world-frame but seeded into gyro, odometry and rate controller as body-frame (hover only; 3.1 rad/s mean disagreement) | hover (first steps of every episode) | body-frame sample rotated for PhysX (`732210d`) |
+| SAC updated its target critic twice per gradient step (effective tau 0.00998, config said 0.005) | published SAC run is valid but was mis-described | single update, SAC default tau 0.01 (`7301482`) |
+| Off-policy resume acted randomly while refilling the buffer, stored an inflated `learning_starts` | none (no published run resumed) | `7301482` |
+| `attribute_curriculum` averaged the last episode of every env (mostly earlier, easier levels): ran away to the hardest level | example only | judge each level on its own episodes (`5f22b18`) |
+| Mixer: equal collective split also for asymmetric rotor layouts (CoM off the rotor centroid) → torque at every thrust level | none (all presets symmetric) | zero-torque split for asymmetric frames, presets bit-identical (`650d8c2`) |
+| `--plugins my.py env.a=b` / `--controllers c env.a=b`: argparse took the override as a plugin / controller | documented commands failed or silently ignored the override | `split_overrides` (`def53da`) |
+| Vehicle files: `1e-5` read as a string by YAML, spins other than ±1, `k_f` + `thrust_to_weight` (one ignored), CoM outside the rotor polygon, plugin factories unvalidated, `base:` relative to the cwd | none (all vehicles byte-identical) | `2297c4d` |
+| `params/env.yaml` recorded the class-default vehicle when the preset was set later (hexa run: "hexa_x" with the x500's mass) | run metadata only | resolved before dumping (`8ef93ad`) |
+| Hardware check double-counted the simulator's own memory, raised small task defaults to 64, ignored `CUDA_VISIBLE_DEVICES` | the seed-42 safe run got 3456 instead of 4096 envs (kept for the replication) | `df083e0` |
+| `export.py`: no `--plugins` / overrides, `actor_module` never used, caller's policy moved to CPU in place, position-interface contract incomplete; deploy decoder lacked position mode; `bc`/`vla` adapters broke `train.py --algo bc` | plug-in tasks and algorithms could not be exported | `9dc51e7` |
+| `collect_framework_results.py` would have taken the alphabetically last suite tag (`race/seeds`) as the curated race/swarm tables; `benchmark/run.py` reported a stale JSON when a re-run failed | latent (committed files were correct) | `08bad98` |
+| Rendered cameras showed the previous episode's scene in the first frame of every episode | RGB demonstrations contain ~0.7 % stale frames (collected before the fix); evaluations now correct | re-render after resets (`c3de0df`) |
+| Terms: finished-episode costs accumulated without bound when no Lagrangian used them; PID integral could exceed `lambda_max`; a configured reward with a task-term name replaced it silently | none | `2925bee` |
+| Racing: 6.2 % of random circuits had overlapping gate frames, 0.22 % started inside a frame (crash on the first step) | random-circuit conditions | resampled (`670a3ec`) |
+| LangNav: infeasible landmark layouts (e.g. 6 landmarks) unchecked; a dwell finished in a collision step counted as success *and* crash | 2 of 500 BC evaluation episodes | `2327dfb` |
+| `env.speed_limit=...` overrides had no effect (copied into the cost term before overrides) | none (default used) | `f141be0` |
+| BC: zero optimizer steps on datasets smaller than a batch; `--images` silently dropped images if one file had none; whole-dataset pinning doubled host RAM | none | `86f381f` |
+| Docs: stale task count, nonexistent script / example names, superseded SAC claim, RGB claim, F5 status, curriculum and event descriptions | - | `7008d7d` and the fix commits |
+
+### Regression of the fixes (reference set, 59 metrics; `logs/eval/regress_{before,evalfix,review}`)
+- Corrected evaluator alone (old code): 33 of 59 metrics bit-identical. Hover and tracking do not change (their
+  episodes end together at the time limit, so the old stopping rule happened to keep the same episodes); changed:
+  waypoint cascade 92.8 → 92.0 %, range navigation PPO 83.0 → 84.4 %, potential field **49.8 → 39.4 %**.
+- All review fixes vs. the corrected evaluator alone: 39 of 59 bit-identical. The 20 changed metrics are exactly the
+  ones the fixes act on: hover PPO and cascade (reset frame; PPO crashes 0.1 → 0 %, error 1.38 → 1.26 cm; cascade
+  88.7 → 90.3 %) and the cascade on tracking / waypoints (integrator reset; 46.6 cm, 91.6 %). Tracking PPO and SE(3),
+  waypoint PPO, navigation PPO and potential field are bit-identical.
+- `logs/eval/regress_review` is the regression reference from now on.
+
+### Re-measured results (published value → corrected; `docs/results/framework/reevaluation.json`)
+All 127 published evaluate.py results (and the 28 evaluations of the replication run so far) were re-run from their own metadata
+(`scripts/validation/reevaluate.py`, originals in `logs/_pre_review_eval_backup/`); the curated files in
+`docs/results/` and `docs/results/framework/` were regenerated from them. Median change of a success rate 0.4
+points; the large changes are where failures end episodes much earlier (or later) than successes:
+
+| Result | Published | Corrected |
+|---|---|---|
+| Hover: PPO / cascade success (nominal) | 99.9 / 88.7 % | 99.9 / 90.3 % (PPO error 1.38 → 1.26 cm) |
+| Hover with wind + pushes: PPO / cascade | 97.3 / 78.6 % | 97.2 / 80.8 % |
+| Tracking RMSE PPO / cascade / SE(3) | 12.6 / 46.6 / 49.2 cm | 12.6 / 46.6 / 49.0 cm |
+| Waypoints PPO / cascade | 99.4 % in 6.6 s / 92.8 % in 10.4 s | 99.4 % in 6.7 s / 91.6 % in 10.4 s |
+| Range navigation PPO (reward v1 / v2) | 52.9 / 83.0 % | 57.8 / **84.4 %** |
+| Potential field (paired / separate run) | 49.8 / 39.3 % | **39.4 / 36.6 %** - the earlier "39-50 %" spread was this bias |
+| Depth policy, analytic / RTX-rendered depth | 61.1 / 66.7 % | 63.8 / 60.0 % (difference within the CI) |
+| DR ablation, harsh conditions, DR / no DR | 78.5 / 77.2 % | 78.7 / 78.2 % (conclusion unchanged) |
+| Hover v0 / v1 / v2 distributions (3 seeds each): v1-env success | 72.9 / 75.6 / 69.3 % | 73.9 / 74.4 / 69.3 % |
+| same, harsh OOD success | 78.1 / 66.5 / 68.5 % | 77.8 / 66.0 / 70.2 % (ranking unchanged) |
+| Hover suite PPO, nominal / wind / harsh / noise / latency | 99.9 / 97.3 / 90.1 / 96.0 / 67.2 % | 99.9 / 97.2 / 91.0 / 96.1 / 69.9 % |
+| Hover suite SAC | 99.9 / 96.9 / 87.8 / 98.4 / 82.0 % | 100 / 97.0 / 89.7 / 98.2 / 80.6 % |
+| Hover suite BC student | 99.9 / 97.4 / 88.9 / 97.6 / 83.0 % | 100 / 97.4 / 91.9 / 97.6 / 82.6 % |
+| Hover suite cascade | 89.8 / 80.4 / 68.7 / 86.7 / 81.1 % | 88.8 / 81.1 / 72.0 / 87.4 / 82.3 % |
+| Generalization gap PPO / SAC / BC / cascade | 12.3 / 8.6 / 8.2 / 10.6 pts | 11.4 / 8.6 / 7.6 / 8.1 pts |
+| SAC / TD3 (2nd config) / ARS on hover | 99.9 / 99.6 / 46.5 % | 100 / 99.9 / 46.8 % |
+| Hexarotor CTBR PPO / cascade; motor-level PPO | 99.8 / 96.5 %; 100 % | 99.8 / 96.2 %; 100 % |
+| Landing: PPO reward v2 / cascade | 94.1 / 52.0 % | 94.1 / **64.1 %** |
+| Racing PPO v0, random / ellipse / figure-8 / wind | 95.2 / 99.6 / 0 / 94.2 % | 94.4 / 99.6 / **5.4** / 95.8 % |
+| Racing PPO v1 (both directions) | 92.8 / 97.8 / 54.3 / 94.2 % | 94.8 / 98.0 / **73.8** / 95.4 % |
+| Racing cascade: success / crash (random circuits) | 0.7 / 40 % | 0.6 / 25 % |
+| Swarm PPO, swap / wind / latency | 87.5 / 89.8 / 80.5 % | unchanged |
+| Swarm potential field | 100 / 96.9 / 96.1 % | 100 / 97.7 / 96.1 % |
+| Swarm straight lines: success / collisions (swap) | 18.3 / 44.6 % | **35.9 / 36.1 %** (wind 0 → 29.7 %) |
+| Safe RL: PPO-Lagrangian cost / success; unconstrained PPO | 0.082 s / 87.7 %; 5.31 s / 99.4 % | 0.081 s / 87.6 %; 5.35 s / 99.4 % |
+| LangNav map, held-out phrasing: BC / DAgger 1 / DAgger 2 / CLIP | 65.3 / 54.5 / 59.7 / 99.8 % | 58.2 / 50.8 / 56.2 / 97.0 % (training phrasing unchanged) |
+| LangNav map, BC with last action (train / held-out) | 15.8 / 20.4 % | 15.4 / 41.0 % |
+| LangNav RGB, train / held-out phrasing: BC / DAgger 1 / CLIP | 82.3, 90.0 / 100, 100 / 99.7, 98.3 % | 82.8, 85.3 / 100, 100 / 99.7, 99.1 % (also includes the camera re-render fix) |
+| LangNav RGB, colour-servo VLA adapter | 6.2 / 7.4 % | 6.6 / 7.2 % |
+
+The published LangNav row "BC without last action: 34.4 % held-out" and "+ unknown words ignored: 65.3 %" were the
+**same checkpoint** (bit-identical weights - training phrasings contain no unknown word); the difference was the
+encoder's handling of unknown words at evaluation time. It is now measured with the ablation plugin
+`scripts/validation/ablations/bow_unknown_words_averaged.py` on the same checkpoints (below).
+
+### Multi-seed replication (seeds 42 / 1 / 2; BC: 0 / 1 / 2; `docs/results/framework/multiseed.json`)
+Seeds 1-2 trained with the code of `7008d7d` (as seed 42), all evaluated with the corrected evaluator.
+
+| Result | Per seed | Mean ± std |
+|---|---|---|
+| Race-v0 success: random circuits / ellipse / figure-8 / wind | 94.4, 97.2, 96.8 / 99.6, 99.2, 98.2 / 5.4, 6.4, 0.4 / 95.8, 95.8, 96.6 % | 96.1 ± 1.5 / 99.0 ± 0.7 / **4.1 ± 3.2** / 96.1 ± 0.5 % |
+| Race-v1 (both directions) | 94.8, 96.8, 95.6 / 98.0, 97.2, 97.2 / 73.8, 66.6, 79.2 / 95.4, 95.4, 95.8 % | 95.7 ± 1.0 / 97.5 ± 0.5 / **73.2 ± 6.3** / 95.5 ± 0.2 % |
+| Race lap time (random circuits, v0 / v1) | 2.47, 2.44, 2.46 / 2.45, 2.46, 2.48 s | 2.46 / 2.46 s |
+| Swarm PPO group success: swap / wind / latency | 87.5, 89.1, 92.2 / 89.8, 77.3, 89.1 / 80.5, 76.6, 72.7 % | 89.6 ± 2.4 / 85.4 ± 7.0 / 76.6 ± 3.9 % |
+| Swarm PPO agent collisions (swap) | 0.4, 4.3, 0.4 % | 1.7 ± 2.3 % |
+| PPO-Lagrangian episode cost (budget 0.1 s) | 0.081, 0.126, 0.108 s | **0.105 ± 0.023 s** |
+| PPO-Lagrangian course success | 87.6, **0.0**, 85.2 % | 57.6 ± 49.9 % |
+| LangNav map, BC, held-out: unknown words averaged in / ignored | 30.8, 15.6, 14.4 / 58.2, 64.0, 62.4 % | **20.3 ± 9.1 / 61.5 ± 3.0 %** |
+| LangNav map, BC, training phrasing | 81.0, 68.8, 78.0 % | 75.9 ± 6.4 % |
+| LangNav map, DAgger 2, held-out: bag of words / CLIP | 56.2, 84.2, 80.0 / 97.0, 95.6, 98.0 % | **73.5 ± 15.1 / 96.9 ± 1.2 %** |
+| LangNav RGB, BC: training / held-out phrasing | 82.8, 75.3, 71.9 / 85.3, 75.3, 62.8 % | 76.7 ± 5.6 / 74.5 ± 11.3 % |
+| LangNav RGB, DAgger 1: training / held-out | 100, 100, 100 / 100, 95.3, 100 % | 100 / 98.4 ± 2.7 % |
+| LangNav RGB, DAgger 1 + CLIP: training / held-out | 99.7, 100, 99.7 / 99.1, 99.7, 100 % | 99.8 ± 0.2 / 99.6 ± 0.5 % |
+
+### What the corrections change in the conclusions
+- Racing: the counter-clockwise-only policy is not at 0 % on the figure-8 but at 4 ± 3 % (its few successes were
+  the long episodes the old evaluator dropped); training on both turning directions raises it to **73 ± 6 %**
+  (published: 54 %) at unchanged performance elsewhere - a larger effect than reported.
+- Navigation: the potential-field baseline reaches 37-39 %, not "39-50 %"; PPO 84.4 %.
+- Swarm: uncoordinated straight lines succeed in 36 % of the swaps (published 18 %); the shared PPO policy (89.6 ±
+  2.4 % over 3 seeds, 1.7 % collisions) is still far better and 3.4x faster than the potential field (100 %, 6.9 s).
+- Safe RL: the multiplier keeps the over-speed time **around** the budget (0.105 ± 0.023 s over 3 seeds: one seed
+  below, two above by 8 and 26 %), and one seed never learned to finish the course (0 % success): its multiplier
+  rose to ~5 by iteration 150 and ~15 by iteration 900 while its training success stayed at 0. The published single-seed claim ("within
+  budget, 87.7 % success") was the favourable seed.
+- LangNav: ignoring unknown words matters even more than published (held-out 20 → 62 % over 3 seeds); with the same
+  data, a frozen CLIP text tower reaches 96.9 ± 1.2 % against 73.5 ± 15.1 % for the bag of words after DAgger.
+- Vision-language (RGB, no map): one DAgger round lifts BC from 77 ± 6 % to 100 % (held-out phrasings 75 ± 11 % →
+  98 ± 3 %); with images the bag of words already generalizes after DAgger, CLIP adds little (99.6 ± 0.5 %).
+- Hover, tracking, waypoints, SAC/TD3, hexarotor, distillation: no change beyond a point; the reset-frame fix lowers
+  the hover position error of PPO slightly (1.38 → 1.26 cm).
+
+### Follow-up options added after the review
+- `env.task_end_is_terminal=True` (`db87a89`): ends decided by the task (goal reached, course finished, wrong
+  landmark) become terminal states instead of bootstrapped time-outs. Default off (published formulation); being
+  evaluated on Race-v1 with 3 seeds against the 3 published-formulation seeds.
+- `SafetyCfg.warmup_steps` and `Quadsim-Waypoint-Safe-v1` (`bad86ff`): the multiplier is held at 0 for the first 300
+  iterations so the policy learns the course first; being trained with 3 seeds for comparison with v0.
+- RGB LangNav demonstrations re-collected after the camera re-render fix, BC / DAgger re-trained (seed 0).
+
+### Known issues kept (documented, not fixed)
+- Reaching the goal / finishing (waypoint, navigation, racing, LangNav success and wrong pillar) is returned as a
+  *time-out* in all published runs, so PPO and the off-policy learners bootstrap the value there instead of treating
+  it as terminal (`env.task_end_is_terminal=True` changes this for new runs; the published policies are not
+  retrained).
+- Hover and race policies were trained before the reset-frame and track-resampling fixes; they are evaluated with
+  the corrected environments (a small train/eval difference, now consistent with the documented task definition).
+- RGB LangNav demonstrations were collected before the camera fix (first frame of each episode stale).
+- `Quadsim-LangNav-RGB-v0` has no PPO runner configuration with an image encoder (imitation learning only).
+- The Lagrange multiplier is not stored in checkpoints; swarm confidence intervals treat the 4 agents of a group as
+  independent episodes (they are correlated), so they are too narrow.
 
 ## Upstream issue found and patched (affects GUI / video)
 - Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the

@@ -24,23 +24,23 @@ touching the simulation core, and evaluate them reproducibly against classical b
 | Evaluation | identical seeds and conditions for policies and classical baselines, 95 % CIs, **benchmark suites with in-distribution / OOD splits** and generalization gap | `BENCHMARKS.register(Suite(...))` |
 | Data | synchronized HDF5 recording, **episode-structured demonstrations with instructions**, **LeRobot v3.0 export (verified with LeRobot's loader)**, dataset inspection | — |
 | Deployment | ONNX/TorchScript export + interface contract, NumPy runtime, ROS 2 PX4 offboard bridge, PX4 v1.16 SITL pipeline | optional; nothing in training depends on PX4 / ROS 2 |
-| Resources | GPU-memory-aware `num_envs`, Docker image, 124 CPU unit tests, regression and example checks | — |
+| Resources | GPU-memory-aware `num_envs`, Docker image, 141 CPU unit tests, regression and example checks, re-evaluation tool | — |
 
 ## Verified framework results (simulation, RTX 5060 8 GB)
 
 | What | Result | Evidence |
 |---|---|---|
 | Core refactor (interfaces as classes, vehicle registry, terms) | **59/59** reference metrics bit-identical (PPO + cascade + SE(3) + potential field), after the refactor and with the final code | `scripts/validation/regression_evals.sh`, `docs/results/framework/regression.json` |
-| Hover benchmark, nominal / mean of 4 OOD conditions (success) | PPO 99.9 / 87.6 %, **SAC 99.9 / 91.3 %**, BC-distilled 99.9 / 91.7 %, cascade 89.8 / 79.2 % | `docs/results/framework/bench_hover_algos.json` |
-| Off-policy SAC / TD3 (new, asymmetric critics) vs the earlier skrl SAC on hover | **99.9 % / 99.6 %** vs 0 % success (TD3's first configuration: 0 %) | `docs/results/framework/offpolicy_hover.json` |
-| Hexarotor from the generic frame generator, PPO (CTBR / 6-D motor actions) vs cascade | **99.8 % / 100 %** (1.2 / 1.4 cm) vs 96.5 % | `docs/results/framework/vehicles_interfaces.json` |
-| Safe RL: waypoint racing with speed ≤ 2 m/s, budget 0.1 s/episode | PPO-Lagrangian **0.082 s** over-speed, 87.7 % success; unconstrained PPO 5.31 s, 99.4 % | `docs/results/framework/safe_rl.json` |
-| Drone racing (2 laps, 7 gates, 5-inch racer), unseen random circuits | PPO **95.2 %**, 2.44 s per lap (11.8 m/s); fixed ellipse 99.6 %; **figure-8 0 %** (trained on one turning direction) → **54 %** when trained on both directions; gate-aligned cascade 0.7 % | `docs/results/framework/bench_race.json` |
-| Multi-agent swap (4 drones, shared policy, centralized critic) | PPO 87.5 % group success, 0.4 % collisions, 2.0 s; tuned potential field 100 %, 6.9 s; straight lines 18 %, 45 % collisions | `docs/results/framework/bench_swarm.json` |
-| RL → BC distillation (hover) | BC student 99.9 %, 1.4 cm (teacher 99.9 %, 1.4 cm) | `docs/results/framework/imitation.json` |
-| Language-conditioned navigation (map + instruction), BC → DAgger | 81 % → **100 %** (expert 100 %); unseen phrasings 60 % with a bag-of-words encoder, **99.8 %** with a frozen pretrained CLIP text tower; without the instruction 12 % | same |
-| Behaviour cloning with the last action as input | 15.8 % (copycat failure) vs 81 % without it | same |
-| Vision-language BC (RGB camera + instruction, no map) → 1 DAgger round | 82 % → **100 %** (train and unseen phrasings) | same |
+| Hover benchmark, nominal / mean of 4 OOD conditions (success) | PPO 99.9 / 88.5 %, **SAC 100 / 91.4 %**, BC-distilled 100 / 92.4 %, cascade 88.8 / 80.7 % | `docs/results/framework/bench_hover_algos.json` |
+| Off-policy SAC / TD3 (new, asymmetric critics) vs the earlier skrl SAC on hover | **100 % / 99.9 %** vs 0 % success (TD3's first configuration: 0 %) | `docs/results/framework/offpolicy_hover.json` |
+| Hexarotor from the generic frame generator, PPO (CTBR / 6-D motor actions) vs cascade | **99.8 % / 100 %** (1.2 / 1.4 cm) vs 96.2 % | `docs/results/framework/vehicles_interfaces.json` |
+| Safe RL: waypoint racing with speed ≤ 2 m/s, budget 0.1 s/episode | PPO-Lagrangian over-speed **0.105 ± 0.023 s** (3 seeds: 0.081 / 0.126 / 0.108 s), course success 87.6 / **0** / 85.2 % (one seed never learned the course); unconstrained PPO 5.35 s, 99.4 % | `docs/results/framework/safe_rl.json`, `multiseed.json` |
+| Drone racing (2 laps, 7 gates, 5-inch racer), unseen random circuits, 3 seeds | PPO **96.1 ± 1.5 %**, 2.46 s per lap (11.9 m/s); fixed ellipse 99.0 %; **figure-8 4 ± 3 %** (trained on one turning direction) → **73 ± 6 %** when trained on both directions; gate-aligned cascade 0.6 % | `docs/results/framework/bench_race.json`, `multiseed.json` |
+| Multi-agent swap (4 drones, shared policy, centralized critic), 3 seeds | PPO **89.6 ± 2.4 %** group success, 1.7 % collisions, 2.0 s; tuned potential field 100 %, 6.9 s; straight lines 36 %, 36 % collisions | `docs/results/framework/bench_swarm.json`, `multiseed.json` |
+| RL → BC distillation (hover) | BC student 99.9 %, 1.3 cm (teacher 99.9 %, 1.3 cm) | `docs/results/framework/imitation.json` |
+| Language-conditioned navigation (map + instruction), BC → DAgger, 3 seeds | 76 ± 6 % → **100 %** (expert 100 %); unseen phrasings 74 ± 15 % with a bag-of-words encoder (20 ± 9 % if unknown words are not ignored), **96.9 ± 1.2 %** with a frozen pretrained CLIP text tower; without the instruction 11 % | same, `multiseed.json` |
+| Behaviour cloning with the last action as input | 15.4 % (copycat failure) vs 81 % without it | same |
+| Vision-language BC (RGB camera + instruction, no map) → 1 DAgger round, 3 seeds | 77 ± 6 % → **100 %** (unseen phrasings 75 ± 11 % → 98 ± 3 %; with CLIP 99.6 %) | same, `multiseed.json` |
 | LeRobot v3.0 export, verified by reloading with lerobot 0.4.4 | map dataset 200 episodes / 26 722 frames, RGB dataset 300 episodes / 42 199 frames: state, action, task and images exact | `docs/results/framework/imitation.json` |
 | Extension examples (vehicle YAML / plugin, GNSS and 3-D LiDAR sensors, landing task, reward + curriculum, acceleration interface, ARS algorithm, VLA adapter) | **11/11** execute; trained plug-ins: acceleration interface 99.8 %, landing 94.1 % (first reward 0 %, fixed), ARS 46.5 % | `docs/results/framework/examples_check.json`, `vehicles_interfaces.json` |
 
@@ -52,13 +52,13 @@ touching the simulation core, and evaluate them reproducibly against classical b
 | Thrust step / yaw torque vs model | 0.02 % / 0.004 % error | same |
 | RTX-rendered depth vs analytic GPU ray casting | **7 mm** median, 99.6 % hit agreement | `scripts/validation/m3_depth_consistency.py` |
 | Exported ONNX policy + NumPy deploy interface in closed loop | obs/action error **1e-6**, identical success | `scripts/validation/m6_deploy_consistency.py` |
-| Hover/recovery (57° tilt, 3 rad/s), PPO vs cascade PID | **99.9 %** vs 88.7 % success; 1.4 vs 6.1 cm | `docs/results/eval_hover_nominal.json` |
-| Same under unseen wind, gusts and pushes | **97.3 %** vs 78.6 % | `docs/results/eval_hover_wind_push.json` |
-| Trajectory tracking ≤4 m/s, PPO vs cascade vs SE(3) | **12.6** vs 46.6 vs 49.2 cm RMSE | `docs/results/eval_track_nominal.json` |
-| Waypoint course (5 waypoints), PPO vs cascade | **99.4 %** in 6.6 s vs 92.8 % in 10.4 s | `docs/results/eval_waypoint_nominal.json` |
+| Hover/recovery (57° tilt, 3 rad/s), PPO vs cascade PID | **99.9 %** vs 90.3 % success; 1.3 vs 6.3 cm | `docs/results/eval_hover_nominal.json` |
+| Same under unseen wind, gusts and pushes | **97.2 %** vs 80.8 % | `docs/results/eval_hover_wind_push.json` |
+| Trajectory tracking ≤4 m/s, PPO vs cascade vs SE(3) | **12.6** vs 46.6 vs 49.0 cm RMSE | `docs/results/eval_track_nominal.json` |
+| Waypoint course (5 waypoints), PPO vs cascade | **99.4 %** in 6.7 s vs 91.6 % in 10.4 s | `docs/results/eval_waypoint_nominal.json` |
 | Training throughput (hover, 4096 envs) | ~190 k env-steps/s, 3.9 GB VRAM | training logs |
-| Obstacle navigation, 360° range ring (PPO, reward v2) vs potential field | **83.0 %** vs 39–50 % success (17 % vs 5 % collisions) | `docs/results/eval_nav_*.json` |
-| Depth-camera navigation (CNN on 64×48 analytic depth) → zero-shot on RTX-rendered depth | 61.1 % → **66.7 %** (no degradation) | same |
+| Obstacle navigation, 360° range ring (PPO, reward v2) vs potential field | **84.4 %** vs 37–39 % success (16 % vs 7 % collisions) | `docs/results/eval_nav_*.json` |
+| Depth-camera navigation (CNN on 64×48 analytic depth) → zero-shot on RTX-rendered depth | 63.8 % → **60.0 %** (difference within the CI) | same |
 | Env throughput, hover / analytic depth / rendered depth | 439 k @ 8192 envs / 83 k @ 2048 / 6.8 k @ 256 env-steps/s | `docs/results/benchmark.jsonl` |
 | Deploy pipeline in the loop for hover / tracking / waypoint / range navigation | obs error ≤ **7.5e-6**, success as PyTorch | `scripts/validation/m6_deploy_consistency.py` |
 | **PX4 v1.16 SITL (gz x500)**: hover policy as offboard controller | 10/10 full runs; hover **0.8–1.0 cm** RMS w.r.t. the estimate (quadsim 1.9 cm) | `docs/results/sitl_comparison.json` |
@@ -73,8 +73,8 @@ GNSS-delay mis-configuration; all are quantified in `docs/PROGRESS.md` and the r
 
 Negative / neutral results are reported too: domain randomization gave lower errors but no significant success gain
 on hover under harsh conditions; the first off-policy SAC baseline (skrl) learned but reached 0 % success (superseded
-by the framework's SAC, 99.9 %); the first navigation reward produced a fast but collision-prone policy (53 %
-success); the first SE(3) baseline design was unstable at 50 Hz; the depth policy (61–67 %) remains well below the
+by the framework's SAC, 99.9 %); the first navigation reward produced a fast but collision-prone policy (58 %
+success); the first SE(3) baseline design was unstable at 50 Hz; the depth policy (60–64 %) remains well below the
 range policy (see `docs/PROGRESS.md`). RGB/RGB-D obstacle navigation runs end to end, but no RGB navigation (RL)
 performance is claimed; the RGB results above are imitation-learned, language-conditioned navigation.
 
@@ -153,7 +153,7 @@ proxy), fetch the base image with `python3 scripts/tools/pull_image_via_proxy.py
 
 ## Quick start
 ```bash
-python -m pytest tests/core -q                                         # 124 unit tests (~15 s, no simulator)
+python -m pytest tests/core -q                                         # 141 unit tests (~15 s, no simulator)
 python scripts/rl/train.py --headless --task Quadsim-Hover-v0         # PPO, ~8 min on an RTX 5060
 python scripts/rl/train.py --headless --task Quadsim-Hover-v0 --algo sac --num_envs 1024 --max_iterations 15000
 python scripts/rl/evaluate.py --headless --task Quadsim-Hover-v0 --controllers policy cascade \
@@ -213,12 +213,18 @@ World z-up (ENU-like), body FLU, quaternions wxyz (`q_WB`), SI units, PX4 Quad-X
 Policy observations contain only deployable quantities; privileged information is restricted to the critic.
 
 ## Known limitations
-See `docs/PROGRESS.md` (open issues) and the report's limitations section. Most important: no hardware flights (PX4
-SITL only); real-vehicle parameters not identified (presets other than X500/Crazyflie are engineering approximations);
-most new-task results are single-seed; RGB policies lack texture/lighting randomization and the language encoder is a
-bag-of-words model unless a pretrained text encoder is used (unseen phrasings 60 % vs 99.8 % with CLIP); no pretrained VLA was run (the adapter interface and LeRobot
-export are validated, the models are not); off-policy policies leave a large final yaw error on hover; autonomous exploration and
-adaptive-control tasks are not implemented (observation histories are available as terms).
+See `docs/PROGRESS.md` (open issues, "Review and corrections") and the report's limitations section. Most important:
+no hardware flights (PX4 SITL only); real-vehicle parameters not identified (presets other than X500/Crazyflie are
+engineering approximations); racing, swarm, safe RL and the language tasks have 3 seeds, the other new results one;
+reaching the goal is returned as a time-out (bootstrapped) in the published runs - `env.task_end_is_terminal=True`
+makes it terminal; PPO-Lagrangian can lock into a slow policy when its multiplier grows before the task is learned
+(1 of 3 seeds; `Quadsim-Waypoint-Safe-v1` adds a constraint warm-up); RGB policies lack texture/lighting
+randomization; no pretrained VLA was run (the adapter interface and LeRobot export are validated, the models are not);
+off-policy policies leave a large final yaw error on hover; autonomous exploration and adaptive-control tasks are not
+implemented (observation histories are available as terms).
+
+> **Review (session 5).** A code review found and fixed ~20 defects (`docs/PROGRESS.md`, "Review and corrections"),
+> among them a sampling bias of the evaluator: all evaluation numbers in this README are the re-measured values.
 
 ## License
 BSD-3-Clause (same as Isaac Lab). Isaac Sim is subject to the NVIDIA Omniverse license.

@@ -121,7 +121,9 @@ class ObservationBuilder:
     def __init__(self, contract: dict):
         self.c = contract
         self.a_dim = contract["action"]["dim"]
-        self.has_last_action = any(x[0] == "last_action" for x in contract["observation"]["layout"])
+        names = [x[0] for x in contract["observation"]["layout"]]
+        self.has_last_action = "last_action" in names
+        self.extra_terms = names[names.index("task") + 1:] if "task" in names else []  # configured observation terms
         self.last_action = np.asarray(contract["action"]["hover_action"], dtype=np.float32)
 
     def state_obs(self, pos_w, q_wb, vel_w, gyro_b):
@@ -172,8 +174,16 @@ class ObservationBuilder:
             parts.append(np.asarray(range_ring) / range_max)
         return np.concatenate(parts, -1)
 
-    def build(self, state_parts, task_part):
-        return np.concatenate([state_parts, task_part], -1).astype(np.float32)
+    def build(self, state_parts, task_part, extra: dict | None = None):
+        """State block + task block + the contract's extra observation terms (``extra``: term name -> values from the
+        deployment's own sensor drivers, in the training units; their rate / latency / noise are not reproduced)."""
+        parts = [state_parts, task_part]
+        if self.extra_terms:
+            missing = [n for n in self.extra_terms if extra is None or n not in extra]
+            if missing:
+                raise ValueError(f"the policy also observes the terms {missing} (contract layout): pass extra={{...}}")
+            parts += [np.asarray(extra[n]) for n in self.extra_terms]
+        return np.concatenate(parts, -1).astype(np.float32)
 
     def update_last_action(self, action):
         self.last_action = np.asarray(action, dtype=np.float32)

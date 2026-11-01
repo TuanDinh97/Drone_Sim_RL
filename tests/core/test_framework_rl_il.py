@@ -400,3 +400,16 @@ def test_bc_trains_on_a_dataset_smaller_than_one_batch(tmp_path):
     pol = BCPolicy(tr.obs_layout, 2, tok.vocab_size, None, (32,), drop_blocks=("last_action",))
     hist = train_bc(pol, tr, None, epochs=3, batch_size=1024, lr=3e-3, device="cpu", log=lambda *_: None)
     assert all(h > 0 for h in hist["train"])  # optimizer steps happened (the loss was measured)
+
+
+def test_observation_builder_requires_extra_terms():
+    from quadsim.deploy.interface import ObservationBuilder
+
+    contract = {"action": {"dim": 4, "hover_action": [0.0] * 4},
+                "observation": {"dim": 21, "layout": [["state", 12], ["last_action", 4], ["task", 4], ["baro", 1]]}}
+    b = ObservationBuilder(contract)
+    assert b.extra_terms == ["baro"]
+    with pytest.raises(ValueError, match="baro"):
+        b.build(np.zeros(16), np.zeros(4))
+    assert b.build(np.zeros(16), np.zeros(4), extra={"baro": np.ones(1)}).shape == (21,)
+

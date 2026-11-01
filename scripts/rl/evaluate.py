@@ -97,7 +97,8 @@ def main():
     apply_overrides(env_cfg, agent_cfg_for(args.task), overrides)
     env_cfg.seed = args.seed
     env = gym.make(args.task, cfg=env_cfg)
-    results = {"task": args.task, "checkpoint": args.checkpoint, "seed": args.seed, "overrides": overrides,
+    results = {"task": args.task, "checkpoint": args.checkpoint, "seed": args.seed, "num_envs": args.num_envs,
+               "overrides": overrides,
                "episodes_requested": args.episodes, "controllers": {}}
     for c in args.controllers:
         print(f"[eval] {c} ...", flush=True)

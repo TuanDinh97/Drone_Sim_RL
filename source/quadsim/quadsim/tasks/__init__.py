@@ -20,6 +20,43 @@ from .waypoint.waypoint_env import WaypointEnv, WaypointEnvCfg
 _AG = "quadsim.tasks.agents"
 
 
+def apply_sim2real_v1(cfg):
+    """Training distribution "v1" = v0 + the corrections identified in the PX4 SITL cross-check (docs/PROGRESS.md):
+    EKF2-like estimate errors (per-flight bias + correlated position/velocity errors instead of mostly white noise;
+    levels from SITL EKF2, widened for hardware), estimator and command latency up to 20 ms (SITL: odometry 5-16 ms
+    median / 23 ms max at the policy step, rate loop ~10 ms slower than the simulated one), randomized rate-loop gain
+    and thrust-map gain around hover (the linear thrust map on the gz x500 has 1.6x the trained local gain)."""
+    o = cfg.sensors.odometry
+    o.pos_noise_std, o.pos_drift_rw, o.vel_noise_std, o.att_noise_std = 0.003, 0.0, 0.01, 0.005
+    o.pos_bias_std = (0.02, 0.02, 0.04)
+    o.pos_gm_std, o.pos_gm_tau, o.vel_gm_std, o.vel_gm_tau = 0.015, 2.5, 0.01, 0.5
+    o.delay_steps_max = 4
+    cfg.control.action_delay_steps = (0, 4)
+    r = cfg.randomization
+    r.rate_gain_scale, r.thrust_gain_scale, r.sensor_noise_scale = (0.6, 1.4), (0.8, 1.7), (0.5, 2.0)
+
+
+@configclass
+class HoverV1EnvCfg(HoverEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        apply_sim2real_v1(self)
+
+
+@configclass
+class TrackingV1EnvCfg(TrackingEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        apply_sim2real_v1(self)
+
+
+@configclass
+class WaypointV1EnvCfg(WaypointEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        apply_sim2real_v1(self)
+
+
 @configclass
 class HoverMotorEnvCfg(HoverEnvCfg):
     def __post_init__(self):
@@ -61,6 +98,9 @@ class NavRgbdEnvCfg(NavDepthRenderEnvCfg):
 _TASKS = {
     "Quadsim-Hover-v0": (HoverEnv, HoverEnvCfg, "HoverPPORunnerCfg"),
     "Quadsim-Hover-Motor-v0": (HoverEnv, HoverMotorEnvCfg, "HoverPPORunnerCfg"),
+    "Quadsim-Hover-v1": (HoverEnv, HoverV1EnvCfg, "HoverPPORunnerCfg"),
+    "Quadsim-Track-v1": (TrackingEnv, TrackingV1EnvCfg, "TrackPPORunnerCfg"),
+    "Quadsim-Waypoint-v1": (WaypointEnv, WaypointV1EnvCfg, "WaypointPPORunnerCfg"),
     "Quadsim-Track-v0": (TrackingEnv, TrackingEnvCfg, "TrackPPORunnerCfg"),
     "Quadsim-Waypoint-v0": (WaypointEnv, WaypointEnvCfg, "WaypointPPORunnerCfg"),
     "Quadsim-Nav-Range-v0": (NavEnv, NavEnvCfg, "NavRangePPORunnerCfg"),

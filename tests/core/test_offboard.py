@@ -89,3 +89,55 @@ def test_log_row_follows_log_columns():
     assert len(row) == len(LOG_COLUMNS) == len(c.log_row(0, 0, 0, (pos, q, vel, gyro), np.zeros(4)))
     assert [row[k] for k in ("px", "pz", "vx", "vz", "qw", "qz", "wx", "wz", "goal_z", "a0", "a3")] == \
         [1.0, 3.0, 4.0, 6.0, 0.5, 0.5, 7.0, 9.0, 2.0, 0.1, 0.4]
+
+
+TRACK_CONTRACT = {**CONTRACT, "observation": {"layout": [["lin_vel_b_est", 3, ""], ["rot_mat_cols01", 6, ""],
+                                                        ["gyro_b", 3, ""], ["last_action", 4, ""], ["task", 21, ""]]}}
+
+
+def test_track_task_time_starts_at_handover():
+    from quadsim.deploy.interface import SinusoidReference
+    from quadsim.deploy.offboard import TrackTask
+
+    ref = SinusoidReference.shape("circle", 1.0, 0.25, start=(0.0, 0.0, 2.0))
+    pol = FakePolicy((0.18, 0, 0, 0))
+    c = OffboardPolicy(TRACK_CONTRACT, pol, task=TrackTask(ref), geofence_radius_m=3.0)
+    c.step(odom(), 0.01, offboard=False, now=100.0)
+    c.step(odom(), 0.01, offboard=True, now=105.0)  # hand-over: task time 0
+    c.step(odom(), 0.01, offboard=True, now=106.0)  # task time 1 s
+    for o, t in zip(pol.obs, (0.0, 1.0)):
+        p_h, _, _ = ref(t + np.array([0.0, 0.1, 0.2, 0.4, 0.6, 1.0]))
+        assert np.allclose(o[0, 16:19], p_h[0] - [0.0, 0.0, 2.0], atol=1e-6)  # level, yaw 0: body = world
+    assert np.allclose(c.goal, ref(1.0)[0])  # log anchor = current reference point
+    c.step(odom(), 0.01, offboard=False, now=107.0)
+    c.step(odom(), 0.01, offboard=True, now=200.0)  # re-engagement restarts the reference
+    assert c.t_task == 0.0
+
+
+def test_waypoint_task_advances_and_fence_follows_current_waypoint():
+    from quadsim.deploy.offboard import WaypointTask
+
+    wc = {**CONTRACT, "observation": {"layout": CONTRACT["observation"]["layout"][:4] + [["task", 7, ""]]}}
+    pol = FakePolicy((0.18, 0, 0, 0))
+    c = OffboardPolicy(wc, pol, task=WaypointTask([[0, 0, 2.0], [4, 0, 2.0], [4, 4, 2.0]]), geofence_radius_m=5.0)
+    assert c.step(odom((0.1, 0.0, 2.0)), 0.01, offboard=True, now=0.0).reason == "ok"
+    assert np.allclose(c.goal, [4, 0, 2.0]) and np.isclose(pol.obs[-1][0, 22], 2 / 3)  # first waypoint reached
+    r = c.step(odom((-2.0, 0.0, 2.0)), 0.01, offboard=True, now=0.02)  # 6 m from the current waypoint
+    assert (r.heartbeat, r.reason) == (False, "geofence")
+    c.step(odom((0.0, 0.0, 2.0)), 0.01, offboard=False, now=0.04)  # PX4 took over: course restarts
+    assert np.allclose(c.goal, [0, 0, 2.0])
+
+
+def test_nav_task_requires_fresh_range_ring():
+    nc = {**CONTRACT, "action": {**CONTRACT["action"], "control_mode": "velocity", "hover_action": [0, 0, 0, 0]},
+          "observation": {"layout": CONTRACT["observation"]["layout"][:4] + [["task", 36, ""]]},
+          "task_params": {"range_max": 8.0, "range_rays": 32}}
+    pol = FakePolicy((1.0, 0.0, 0.0, 0.0))
+    c = OffboardPolicy(nc, pol, task="nav", goal=(10.0, 0.0, 2.0), geofence_radius_m=15.0)
+    assert c.step(odom(), 0.01, offboard=True, now=0.0, sensor_age_s=0.0).reason == "stale_sensor"  # no ring yet
+    c.task.ring = np.full(32, 4.0)
+    assert c.step(odom(), 0.01, offboard=True, now=0.0, sensor_age_s=0.5).reason == "stale_sensor"
+    r = c.step(odom(), 0.01, offboard=True, now=0.0, sensor_age_s=0.05)
+    assert r.reason == "ok" and r.setpoint["msg"] == "TrajectorySetpoint"
+    assert np.allclose(pol.obs[-1][0, 20:], 0.5)  # ring / range_max
+    assert c.heartbeat_flags() == {"body_rate": False, "velocity": True}

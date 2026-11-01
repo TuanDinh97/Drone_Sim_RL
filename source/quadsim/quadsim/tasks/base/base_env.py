@@ -78,7 +78,10 @@ class QuadrotorEnv(DirectRLEnv):
                          ("k_f", "k_m", "tau_up", "tau_down", "omega_max", "rotor_drag_coeff", "rolling_moment_coeff",
                           "body_drag_lin", "body_drag_quad")}
         self.payload_force_w = torch.zeros(n, 3, device=dev)
-        self.dr_obs = torch.zeros(n, 8, device=dev)  # privileged: normalized DR parameters
+        r = cfg.randomization
+        self._dr_extra = [k for k in ("rate_gain_scale", "thrust_gain_scale") if getattr(r, k) is not None]
+        self.dr_obs = torch.zeros(n, 8 + len(self._dr_extra), device=dev)  # privileged: normalized DR parameters
+        self.thrust_gain = torch.ones(n, device=dev)
         self._randomize_inertial_properties()
 
         # ---------------- onboard controllers (nominal model) ----------------
@@ -219,6 +222,13 @@ class QuadrotorEnv(DirectRLEnv):
         payload = sample_uniform(*dr.payload_weight_frac, (k,), dev)
         self.payload_force_w[env_ids] = 0.0
         self.payload_force_w[env_ids, 2] = -payload * self.model.mass[env_ids] * 9.81
+        for j, key in enumerate(self._dr_extra):
+            g = sample_uniform(*getattr(dr, key), (k,), dev)
+            if key == "rate_gain_scale":
+                self.rate_ctrl.gain_scale[env_ids] = g[:, None]
+            else:
+                self.thrust_gain[env_ids] = g
+            self.dr_obs[env_ids, 8 + j] = g - 1.0
         ns = sample_uniform(*dr.sensor_noise_scale, (k, 1), dev)
         self.imu.noise_scale[env_ids] = ns
         self.odom.noise_scale[env_ids] = ns
@@ -249,7 +259,11 @@ class QuadrotorEnv(DirectRLEnv):
 
     def _collective_from_action(self, a0: torch.Tensor) -> torch.Tensor:
         lo, hi = self.cfg.control.collective_range
-        return (lo + (a0 + 1.0) * 0.5 * (hi - lo)) * self.t_max_nominal
+        c = (lo + (a0 + 1.0) * 0.5 * (hi - lo)) * self.t_max_nominal
+        if self.cfg.randomization.thrust_gain_scale is not None:  # thrust-map gain error around nominal hover
+            c_h = self.params.weight
+            c = torch.clamp(c_h + self.thrust_gain * (c - c_h), min=0.0)
+        return c
 
     def _controller(self, a: torch.Tensor, gyro_b: torch.Tensor) -> torch.Tensor:
         """Delayed normalized action -> per-rotor thrust commands (N, R) using onboard estimates."""

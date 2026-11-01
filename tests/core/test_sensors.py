@@ -175,3 +175,46 @@ def test_wind_turbulence_std():
     for _ in range(100):
         v = w.step(0.02)
     assert v.std(0).mean().item() == pytest.approx(0.8, rel=0.05)
+
+
+def test_odometry_ekf_like_errors():
+    """Per-episode bias + Gauss-Markov position/velocity errors: stationary stds and correlation times."""
+    from quadsim.core.sensors.proprio import OdometryCfg, OdometryModel
+
+    torch.manual_seed(0)
+    n, dt = 4000, 0.005
+    cfg = OdometryCfg(0.0, 0.0, 0.0, 0.0, False, 0, True, pos_bias_std=(0.02, 0.02, 0.04), pos_gm_std=0.015,
+                      pos_gm_tau=2.5, vel_gm_std=0.01, vel_gm_tau=0.5)
+    m = OdometryModel(cfg, n, dt, "cpu")
+    zero13 = torch.zeros(n, 13)
+    zero13[:, 3] = 1.0
+    m.reset(torch.arange(n), zero13)
+    bias = m.bias.clone()
+    assert torch.allclose(bias.std(0), torch.tensor([0.02, 0.02, 0.04]), rtol=0.08)
+    q = torch.zeros(n, 4)
+    q[:, 0] = 1.0
+    e0 = m.step(torch.zeros(n, 3), q, torch.zeros(n, 3), torch.zeros(n, 3))
+    for _ in range(int(0.5 / dt)):  # 0.5 s = one velocity correlation time
+        e = m.step(torch.zeros(n, 3), q, torch.zeros(n, 3), torch.zeros(n, 3))
+    pos_gm = e[:, :3] - bias
+    assert abs(pos_gm.std().item() - 0.015) < 0.0015  # stationary from reset on
+    assert abs(e[:, 7:10].std().item() - 0.01) < 0.001
+    rho_v = torch.corrcoef(torch.stack([e0[:, 7], e[:, 7]]))[0, 1].item()
+    rho_p = torch.corrcoef(torch.stack([e0[:, 0] - bias[:, 0], pos_gm[:, 0]]))[0, 1].item()
+    assert abs(rho_v - math.exp(-1.0)) < 0.05 and abs(rho_p - math.exp(-0.5 / 2.5)) < 0.05
+
+
+def test_odometry_v0_model_draws_no_extra_random_numbers():
+    """The EKF-like terms are off by default and must not change the v0 random stream (reproducibility)."""
+    from quadsim.core.sensors.proprio import OdometryCfg, OdometryModel
+
+    cfg = OdometryCfg(0.01, 0.002, 0.03, 0.01, True, 2, True)
+    zero13 = torch.zeros(8, 13)
+    zero13[:, 3] = 1.0
+    torch.manual_seed(1)
+    OdometryModel(cfg, 8, 0.005, "cpu").reset(torch.arange(8), zero13)
+    after = torch.rand(1)
+    torch.manual_seed(1)
+    torch.randn(8, 3)  # v0 reset draws: drift reset (scaled by 0), then the per-env delay
+    torch.randint(0, 3, (8,))
+    assert torch.equal(after, torch.rand(1))

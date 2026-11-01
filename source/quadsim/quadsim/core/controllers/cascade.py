@@ -46,6 +46,7 @@ class RateController:
         self.integral = torch.zeros(num_envs, 3, device=device)
         self.prev_w = torch.zeros(num_envs, 3, device=device)
         self.w_dot_f = torch.zeros(num_envs, 3, device=device)
+        self.gain_scale = torch.ones(num_envs, 1, device=device)  # per-env PID scale (domain randomization)
 
     def reset(self, env_ids=None, ang_vel: torch.Tensor | None = None):
         ids = slice(None) if env_ids is None else env_ids
@@ -59,7 +60,7 @@ class RateController:
         w_dot = (ang_vel - self.prev_w) / self.dt
         self.w_dot_f = self.w_dot_f + self.alpha * (w_dot - self.w_dot_f)
         self.prev_w = ang_vel.clone()
-        ang_acc = self.kp * err + self.ki * self.integral - self.kd * self.w_dot_f
+        ang_acc = self.gain_scale * (self.kp * err + self.ki * self.integral - self.kd * self.w_dot_f)
         return self.inertia * ang_acc + torch.cross(ang_vel, self.inertia * ang_vel, dim=-1)
 
 

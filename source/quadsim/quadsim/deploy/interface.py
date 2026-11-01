@@ -140,6 +140,30 @@ class ObservationBuilder:
         return np.concatenate([rel_b, np.sin(e)[..., None], np.cos(e)[..., None]], -1)
 
     @staticmethod
+    def track_task(pos_w, q_wb, ref_pos_h, ref_vel_now):
+        """``TrackingEnv._task_obs``: reference positions at the look-ahead instants (H, 3) relative to the vehicle and
+        the current reference velocity, both in the estimated body frame -> (3 H + 3,)."""
+        q_inv = q_conj(q_wb)
+        rel = np.asarray(ref_pos_h, dtype=np.float64) - np.asarray(pos_w)[..., None, :]
+        rel_b = q_rotate(np.broadcast_to(q_inv[..., None, :], rel.shape[:-1] + (4,)), rel)
+        return np.concatenate([rel_b.reshape(rel_b.shape[:-2] + (-1,)), q_rotate(q_inv, ref_vel_now)], -1)
+
+    @staticmethod
+    def waypoint_task(pos_w, q_wb, wp_current, wp_next, remaining_frac, max_obs_distance=5.0):
+        """``WaypointEnv._task_obs``: current waypoint relative to the vehicle and next waypoint relative to the current
+        one (body frame, clipped to ``max_obs_distance``), fraction of waypoints remaining -> (7,)."""
+        q_inv = q_conj(q_wb)
+
+        def clip(rel):
+            d = np.linalg.norm(rel, axis=-1, keepdims=True)
+            return rel * np.minimum(max_obs_distance / np.maximum(d, 1e-6), 1.0)
+
+        rel0 = clip(q_rotate(q_inv, np.asarray(wp_current) - pos_w))
+        rel1 = clip(q_rotate(q_inv, np.asarray(wp_next) - np.asarray(wp_current)))
+        return np.concatenate([rel0, rel1, np.asarray(remaining_frac, dtype=np.float64).reshape(rel0.shape[:-1] + (1,))],
+                              -1)
+
+    @staticmethod
     def nav_task(pos_w, q_wb, goal, range_ring=None, range_max=8.0):
         rel_b = q_rotate(q_conj(q_wb), goal - pos_w)
         d = np.linalg.norm(rel_b, axis=-1, keepdims=True)
@@ -153,6 +177,81 @@ class ObservationBuilder:
 
     def update_last_action(self, action):
         self.last_action = np.asarray(action, dtype=np.float32)
+
+
+# ----------------------------------------------------------------------------- task references / sensing
+class SinusoidReference:
+    """``p(t) = c + sum_k A_k sin(w_k t + phi_k)`` per axis (``TrackingEnv.reference``); amp/freq/phase (K, 3), freq in
+    rad/s, world ENU."""
+
+    def __init__(self, amp, freq, phase, center):
+        self.amp, self.freq, self.phase = (np.asarray(x, dtype=np.float64).reshape(-1, 3) for x in (amp, freq, phase))
+        self.center = np.asarray(center, dtype=np.float64)
+
+    def __call__(self, t):
+        """t (...) -> pos, vel, acc (..., 3)."""
+        tt = np.asarray(t, dtype=np.float64)[..., None, None]
+        arg = self.freq * tt + self.phase
+        pos = (self.amp * np.sin(arg)).sum(-2) + self.center
+        vel = (self.amp * self.freq * np.cos(arg)).sum(-2)
+        acc = (-self.amp * self.freq ** 2 * np.sin(arg)).sum(-2)
+        return pos, vel, acc
+
+    @classmethod
+    def shape(cls, kind: str, radius: float, freq_hz: float, z_amp: float = 0.0, start=(0.0, 0.0, 2.0)):
+        """Circle / figure-8 of ``TrackingEnv._sample_reference`` (vertical motion on the last harmonic), shifted so that
+        ``p(0) = start``."""
+        w = 2.0 * np.pi * freq_hz
+        amp, freq, phase = np.zeros((3, 3)), np.zeros((3, 3)), np.zeros((3, 3))
+        if kind == "circle":
+            amp[0, :2], freq[0, :2], phase[0, 0] = radius, w, np.pi / 2
+        elif kind == "figure8":
+            amp[0, 0], amp[0, 1], freq[0, 0], freq[0, 1] = radius, 0.5 * radius, w, 2 * w
+        else:
+            raise ValueError(kind)
+        amp[-1, 2], freq[-1, 2] = z_amp, w
+        ref = cls(amp, freq, phase, np.zeros(3))
+        ref.center = np.asarray(start, dtype=np.float64) - ref(0.0)[0]
+        return ref
+
+
+class WaypointSequence:
+    """Waypoint index logic of ``WaypointEnv``: advance when closer than ``reach_radius``; finished after the last."""
+
+    def __init__(self, waypoints, reach_radius: float = 0.3):
+        self.wps = np.asarray(waypoints, dtype=np.float64).reshape(-1, 3)
+        self.reach_radius = reach_radius
+        self.idx, self.done = 0, False
+
+    def update(self, pos) -> bool:
+        """Returns True when a waypoint was reached at this call."""
+        if self.done or np.linalg.norm(self.wps[self.idx] - pos) >= self.reach_radius:
+            return False
+        if self.idx == len(self.wps) - 1:
+            self.done = True
+        else:
+            self.idx += 1
+        return True
+
+    def current(self):
+        return self.wps[self.idx]
+
+    def next(self):
+        return self.wps[min(self.idx + 1, len(self.wps) - 1)]
+
+    def remaining_frac(self) -> float:
+        return (len(self.wps) - self.idx) / len(self.wps)
+
+
+def ring_from_scan(ranges, angle_min: float, angle_increment: float, num_rays: int = 32, range_max: float = 8.0):
+    """LaserScan (angles CCW about +z of a yaw-aligned FLU frame) -> the training range ring: rays at azimuths
+    ``2 pi k / num_rays`` (``lidar_ray_dirs``), nearest beam, non-finite / out-of-range returns read as ``range_max``."""
+    r = np.asarray(ranges, dtype=np.float64)
+    beam_az = angle_min + angle_increment * np.arange(len(r))
+    az = 2.0 * np.pi * np.arange(num_rays) / num_rays
+    diff = np.abs((az[:, None] - beam_az[None, :] + np.pi) % (2.0 * np.pi) - np.pi)
+    out = r[np.argmin(diff, axis=1)]
+    return np.where(np.isfinite(out) & (out > 0.0), np.minimum(out, range_max), range_max)
 
 
 # ----------------------------------------------------------------------------- actions

@@ -67,6 +67,12 @@ class DomainRandCfg:
     omega_max_scale: tuple[float, float] = (0.92, 1.0)  # battery sag
     drag_scale: tuple[float, float] = (0.5, 1.5)
     sensor_noise_scale: tuple[float, float] = (0.5, 1.5)
+    # sim-to-real extensions (None = off; also not in the critic's DR summary, so v0 checkpoints stay compatible)
+    rate_gain_scale: tuple[float, float] | None = None
+    """per-episode scale of the onboard rate PID (flight-controller rate-loop mismatch, PX4 SITL: docs/PROGRESS.md)"""
+    thrust_gain_scale: tuple[float, float] | None = None
+    """per-episode gain of the collective around the nominal hover thrust: ``C = C_h + g (C_cmd - C_h)``
+    (thrust-curve / calibration error of the deployed thrust map; linear map on the gz x500: g ~ 1.6)"""
 
 
 @configclass

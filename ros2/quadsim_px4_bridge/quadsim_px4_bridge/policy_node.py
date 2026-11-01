@@ -17,9 +17,14 @@ stale estimate or a fence violation hands control back to PX4's failsafe.
 Thrust map: ``thrust_curve`` = ascending polynomial coefficients of the vehicle's normalized thrust curve
 (default ``[0, 1]`` = linear; gz x500: ``[0.0225, 0.255, 0.7225]``), see ``quadsim.deploy.interface.ThrustCurve``.
 
-Runtime parameters: ``goal_enu``, ``goal_yaw_enu``, ``thrust_scale`` and ``thrust_curve`` can be changed while flying
-(``ros2 param set /quadsim_policy goal_enu "[1.0, 0.0, 2.5]"``). ``log_path`` (optional) writes one CSV row per
-policy step with the policy's inputs and outputs (columns: ``LOG_COLUMNS``).
+Tasks (``task``, must match the policy): ``hover`` (``goal_enu``, ``goal_yaw_enu``); ``track`` (``track_shape`` circle |
+figure8, ``track_radius``, ``track_freq_hz``, ``track_z_amp``, reference starting at ``track_start_enu`` at the
+hand-over); ``waypoint`` (``waypoints_enu`` = flattened x, y, z list); ``nav`` (``goal_enu`` + a
+``sensor_msgs/LaserScan`` on ``scan_topic``, resampled to the training range ring; velocity interface).
+
+Runtime parameters (all except ``policy_dir``, ``task``, limits and ``log_path``) can be changed while flying, e.g.
+``ros2 param set /quadsim_policy goal_enu "[1.0, 0.0, 2.5]"``; task definitions are rebuilt on change.
+``log_path`` (optional) writes one CSV row per policy step with the policy's inputs and outputs (``LOG_COLUMNS``).
 """
 
 from __future__ import annotations
@@ -33,13 +38,17 @@ import onnxruntime as ort
 import rclpy
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleOdometry, VehicleRatesSetpoint, VehicleStatus
 from rcl_interfaces.msg import SetParametersResult
+from sensor_msgs.msg import LaserScan
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 
-from quadsim.deploy.interface import px4_topic, px4_vehicle_odometry_to_sim
-from quadsim.deploy.interface import ThrustCurve
-from quadsim.deploy.offboard import LOG_COLUMNS, OffboardPolicy
+from quadsim.deploy.interface import (SinusoidReference, ThrustCurve, px4_topic, px4_vehicle_odometry_to_sim,
+                                     ring_from_scan)
+from quadsim.deploy.offboard import LOG_COLUMNS, HoverTask, NavTask, OffboardPolicy, TrackTask, WaypointTask
+
+TASK_PARAMS = ("goal_enu", "goal_yaw_enu", "track_shape", "track_radius", "track_freq_hz", "track_z_amp",
+               "track_start_enu", "waypoints_enu", "waypoint_reach_radius")
 
 
 def topic(base: str, msg_type) -> str:
@@ -52,16 +61,24 @@ class PolicyNode(Node):
         self.declare_parameters("", [
             ("policy_dir", ""), ("task", "hover"), ("goal_enu", [0.0, 0.0, 1.5]), ("goal_yaw_enu", 0.0),
             ("thrust_scale", 1.0), ("thrust_curve", [0.0, 1.0]), ("max_odom_age_s", 0.05), ("geofence_radius_m", 3.0),
-            ("log_path", ""),
+            ("log_path", ""), ("track_shape", "circle"), ("track_radius", 1.0), ("track_freq_hz", 0.2),
+            ("track_z_amp", 0.0), ("track_start_enu", [0.0, 0.0, 2.0]), ("waypoints_enu", [0.0, 0.0, 2.0]),
+            ("waypoint_reach_radius", -1.0), ("scan_topic", "/quadsim/scan"), ("max_sensor_age_s", 0.2),
         ])
         get = lambda n: self.get_parameter(n).value  # noqa: E731
+        self.params = {n: get(n) for n in TASK_PARAMS}
         d = get("policy_dir")
         contract = json.load(open(os.path.join(d, "contract.json")))
+        self.task_params = contract.get("task_params", {})  # task constants of training (horizon, radii, ...)
         sess = ort.InferenceSession(os.path.join(d, "policy.onnx"), providers=["CPUExecutionProvider"])
-        self.core = OffboardPolicy(contract, lambda obs: sess.run(None, {"obs": obs})[0], task=get("task"),
-                                   goal=get("goal_enu"), goal_yaw=get("goal_yaw_enu"),
+        self.task_name = get("task")
+        self.core = OffboardPolicy(contract, lambda obs: sess.run(None, {"obs": obs})[0], task=self._build_task(),
                                    thrust_scale=get("thrust_scale"), max_odom_age_s=get("max_odom_age_s"),
-                                   geofence_radius_m=get("geofence_radius_m"), thrust_curve=get("thrust_curve"))
+                                   geofence_radius_m=get("geofence_radius_m"), thrust_curve=get("thrust_curve"),
+                                   max_sensor_age_s=get("max_sensor_age_s"))
+        self.scan_t = -1e9
+        if self.task_name == "nav":
+            self.create_subscription(LaserScan, get("scan_topic"), self.on_scan, 1)
         self.log = None
         if get("log_path"):
             self.log = open(get("log_path"), "w", buffering=1)  # line-buffered
@@ -82,18 +99,44 @@ class PolicyNode(Node):
         self.odom, self.odom_t, self.offboard = None, 0.0, False
         self.odom_stamp, self.odom_rx = 0.0, 0.0
         self.create_timer(1.0 / contract["policy_rate_hz"], self.step)
-        self.get_logger().info(f"policy {d} mode={self.core.mode} rate={contract['policy_rate_hz']} Hz "
-                               f"thrust_scale={self.core.thrust_scale} goal={self.core.goal.tolist()}")
+        self.get_logger().info(f"policy {d} task={self.task_name} mode={self.core.mode} "
+                               f"rate={contract['policy_rate_hz']} Hz thrust_scale={self.core.thrust_scale}")
+
+    def _build_task(self):
+        p = self.params
+        if self.task_name == "hover":
+            return HoverTask(p["goal_enu"], p["goal_yaw_enu"])
+        if self.task_name == "track":
+            ref = SinusoidReference.shape(p["track_shape"], p["track_radius"], p["track_freq_hz"], p["track_z_amp"],
+                                          p["track_start_enu"])
+            return TrackTask(ref, self.task_params.get("horizon_s", (0.0, 0.1, 0.2, 0.4, 0.6, 1.0)))
+        if self.task_name == "waypoint":
+            tp = self.task_params
+            reach = p["waypoint_reach_radius"] if p["waypoint_reach_radius"] > 0 else tp.get("reach_radius", 0.3)
+            return WaypointTask(np.asarray(p["waypoints_enu"], dtype=np.float64).reshape(-1, 3), reach,
+                                tp.get("max_obs_distance", 5.0))
+        if self.task_name == "nav":
+            return NavTask(p["goal_enu"], range_max=self.task_params.get("range_max", 8.0))
+        raise ValueError(f"unknown task {self.task_name!r}")
 
     def on_params(self, params) -> SetParametersResult:
         c = self.core
         for p in params:
-            if p.name == "goal_enu":
-                if len(p.value) != 3:
-                    return SetParametersResult(successful=False, reason="goal_enu needs 3 values")
-                c.goal = np.asarray(p.value, dtype=np.float64)
-            elif p.name == "goal_yaw_enu":
-                c.goal_yaw = float(p.value)
+            if p.name in TASK_PARAMS:
+                if p.name in ("goal_enu", "track_start_enu") and len(p.value) != 3:
+                    return SetParametersResult(successful=False, reason=f"{p.name} needs 3 values")
+                if p.name == "waypoints_enu" and len(p.value) % 3:
+                    return SetParametersResult(successful=False, reason="waypoints_enu needs 3 N values")
+                self.params[p.name] = p.value
+                if p.name == "goal_enu":
+                    c.goal = np.asarray(p.value, dtype=np.float64)  # keep the task state (in-flight goal change)
+                elif p.name == "goal_yaw_enu":
+                    c.goal_yaw = float(p.value)
+                else:
+                    try:
+                        c.task = self._build_task()
+                    except ValueError as e:
+                        return SetParametersResult(successful=False, reason=str(e))
             elif p.name == "thrust_scale":
                 c.thrust_scale = float(p.value)
             elif p.name == "thrust_curve":
@@ -101,7 +144,8 @@ class PolicyNode(Node):
                     c.thrust_curve = ThrustCurve(p.value)
                 except ValueError as e:
                     return SetParametersResult(successful=False, reason=str(e))
-            elif p.name in ("policy_dir", "task", "max_odom_age_s", "geofence_radius_m", "log_path"):
+            elif p.name in ("policy_dir", "task", "max_odom_age_s", "geofence_radius_m", "log_path", "scan_topic",
+                            "max_sensor_age_s"):
                 return SetParametersResult(successful=False, reason=f"{p.name} is fixed at start-up")
         self.get_logger().info(f"goal={c.goal.tolist()} yaw={c.goal_yaw:.3f} thrust_scale={c.thrust_scale} "
                                f"thrust_curve={c.thrust_curve.p.coef.tolist()}")
@@ -118,6 +162,12 @@ class PolicyNode(Node):
         self.odom_t = time.monotonic()
         self.odom_stamp, self.odom_rx = m.timestamp_sample * 1e-6, time.time()
 
+    def on_scan(self, m: LaserScan):
+        tp = self.task_params
+        self.core.task.ring = ring_from_scan(m.ranges, m.angle_min, m.angle_increment, tp.get("range_rays", 32),
+                                             tp.get("range_max", 8.0))
+        self.scan_t = time.monotonic()
+
     def on_status(self, m: VehicleStatus):
         self.offboard = m.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD
 
@@ -125,8 +175,9 @@ class PolicyNode(Node):
         return int(self.get_clock().now().nanoseconds / 1000)
 
     def step(self):
-        r = self.core.step(self.odom, time.monotonic() - self.odom_t, self.offboard)
-        if r.reason in ("stale_odometry", "geofence"):
+        now = time.monotonic()
+        r = self.core.step(self.odom, now - self.odom_t, self.offboard, now=now, sensor_age_s=now - self.scan_t)
+        if r.reason in ("stale_odometry", "stale_sensor", "geofence"):
             self.get_logger().warn(f"{r.reason}: heartbeat and set-points stopped (PX4 failsafe takes over)",
                                    throttle_duration_sec=1.0)
         if r.heartbeat:

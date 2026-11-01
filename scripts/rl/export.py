@@ -39,7 +39,7 @@ def main():
             obs, *_ = env.step(pol(obs))
     u = env.unwrapped
     contract = contract_from_env(u, args.task)
-    contract["checkpoint"] = os.path.abspath(ckpt)
+    contract["checkpoint"] = os.path.realpath(ckpt)
     out = args.out or os.path.join(os.path.dirname(os.path.abspath(ckpt)), "exported")
     img = obs.get("image")
     rep = export_policy(pol.policy, contract, out, obs["policy"][:32].clone(), None if img is None else img[:32].clone())

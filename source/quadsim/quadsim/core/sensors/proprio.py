@@ -174,6 +174,14 @@ class OdometryCfg:
     ang_vel_from_imu: bool = True  # policy body rates come from the (noisy) gyro
     delay_steps_max: int = 2  # physics steps of estimator latency (uniform per episode)
     enabled: bool = True
+    # EKF-like correlated errors (all 0 = white-noise model above only). Identified from PX4 EKF2 in SITL
+    # (docs/PROGRESS.md "estimator model"): per-flight position bias, slow Gauss-Markov position error,
+    # correlated velocity error.
+    pos_bias_std: tuple[float, float, float] = (0.0, 0.0, 0.0)  # m, constant per episode, per axis
+    pos_gm_std: float = 0.0  # m, stationary std of the Gauss-Markov position error
+    pos_gm_tau: float = 2.5  # s
+    vel_gm_std: float = 0.0  # m/s
+    vel_gm_tau: float = 0.5  # s
 
 
 PROFILES = {
@@ -191,12 +199,23 @@ class OdometryModel:
         self.cfg = cfg
         self.sim_dt = sim_dt
         self.drift = GaussMarkov((num_envs, 3), 0.0, None, device, random_walk_sigma=cfg.pos_drift_rw)
+        self.pos_gm = GaussMarkov((num_envs, 3), cfg.pos_gm_std, cfg.pos_gm_tau, device)
+        self.vel_gm = GaussMarkov((num_envs, 3), cfg.vel_gm_std, cfg.vel_gm_tau, device)
+        self.bias_std = torch.tensor(cfg.pos_bias_std, device=device)
+        self.bias = torch.zeros(num_envs, 3, device=device)
         self.delay = DelayBuffer(num_envs, max(cfg.delay_steps_max, 0), (13,), device)
         self.device = device
         self.noise_scale = torch.ones(num_envs, 1, device=device)
 
     def reset(self, env_ids, state13: torch.Tensor):
         self.drift.reset(env_ids, initial_std=0.0)
+        # only draw random numbers for active terms: the v0 (white-noise) model keeps its exact random stream
+        if self.cfg.pos_gm_std > 0:
+            self.pos_gm.reset(env_ids)  # stationary start
+        if self.cfg.vel_gm_std > 0:
+            self.vel_gm.reset(env_ids)
+        if any(x > 0 for x in self.cfg.pos_bias_std):
+            self.bias[env_ids] = torch.randn(len(env_ids), 3, device=self.device) * self.bias_std
         n = len(env_ids)
         self.delay.set_delay(torch.randint(0, self.cfg.delay_steps_max + 1, (n,), device=self.device), env_ids)
         self.delay.reset(env_ids, state13)
@@ -206,8 +225,9 @@ class OdometryModel:
         c = self.cfg
         if c.enabled:
             s = self.noise_scale
-            pos_w = pos_w + self.drift.step(self.sim_dt) + s * torch.randn_like(pos_w) * c.pos_noise_std
-            lin_vel_w = lin_vel_w + s * torch.randn_like(lin_vel_w) * c.vel_noise_std
+            pos_w = pos_w + self.drift.step(self.sim_dt) + s * (torch.randn_like(pos_w) * c.pos_noise_std + self.bias
+                                                                 + self.pos_gm.step(self.sim_dt))
+            lin_vel_w = lin_vel_w + s * (torch.randn_like(lin_vel_w) * c.vel_noise_std + self.vel_gm.step(self.sim_dt))
             dq = quat_exp_rotvec(s * torch.randn_like(pos_w) * c.att_noise_std)
             quat_w = quat_mul(quat_w, dq)
         return self.delay.push(torch.cat([pos_w, quat_w, lin_vel_w, ang_vel_b], -1))

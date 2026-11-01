@@ -38,6 +38,21 @@ class CnnPolicyExport(nn.Module):
         return torch.clamp(self.actor(x), -1.0, 1.0)
 
 
+def task_params(env) -> dict:
+    """Task constants a deployment needs to rebuild the task observation (quadsim.deploy.offboard)."""
+    c, name = env.cfg, type(env).__name__
+    if name == "TrackingEnv":
+        return {"horizon_s": list(c.horizon_s)}
+    if name == "WaypointEnv":
+        return {"num_waypoints": c.num_waypoints, "reach_radius": c.reach_radius,
+                "max_obs_distance": c.max_obs_distance}
+    if name == "NavEnv":
+        return {"range_rays": c.range_rays, "range_max": c.range_max, "goal_radius": c.goal_radius,
+                "goal_dist_clip": 10.0, "vehicle_radius": c.vehicle_radius,
+                "range_ring_frame": "yaw-aligned, CCW from heading, azimuth 2 pi k / range_rays"}
+    return {}
+
+
 def contract_from_env(env, task: str) -> dict:
     """Describe exactly how the policy observation/action are built in simulation."""
     c = env.cfg
@@ -90,6 +105,7 @@ def contract_from_env(env, task: str) -> dict:
             "domain_randomization": c.randomization.to_dict() if hasattr(c.randomization, "to_dict") else str(c.randomization),
         },
         "vehicle": asdict(p),
+        "task_params": task_params(env),
     }
     if c.vision.mode != "none":
         v = c.vision

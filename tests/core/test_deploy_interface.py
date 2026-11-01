@@ -170,3 +170,63 @@ def test_action_decoder_thrust_curve_makes_thrust_linear():
     assert 1.55 < gain_ratio < 1.65
     # linear map saturates (u = 1) above 1 / thrust_scale = 81 % of T_max; the curve keeps the full range
     assert u_lin[-1] == 1.0 and np.all(np.diff(u_lin) >= 0) and u[-1] < 1.0 and np.all(np.diff(u) > 0)
+
+
+def test_sinusoid_reference_shapes_and_derivatives():
+    from quadsim.deploy.interface import SinusoidReference
+
+    start = np.array([1.0, -2.0, 2.5])
+    circ = SinusoidReference.shape("circle", 1.5, 0.2, z_amp=0.3, start=start)
+    t = np.linspace(0, 10, 2001)
+    p, v, a = circ(t)
+    assert np.allclose(p[0], start)
+    c_xy = circ.center[:2]
+    assert np.allclose(np.linalg.norm(p[:, :2] - c_xy, axis=-1), 1.5)  # constant radius
+    dt = t[1] - t[0]
+    assert np.allclose(np.gradient(p, dt, axis=0)[1:-1], v[1:-1], atol=1e-3)
+    assert np.allclose(np.gradient(v, dt, axis=0)[1:-1], a[1:-1], atol=1e-3)
+    f8 = SinusoidReference.shape("figure8", 2.0, 0.1, start=start)
+    p8, _, _ = f8(t)
+    assert np.allclose(p8[0], start) and abs(np.ptp(p8[:, 0]) - 4.0) < 1e-3 and abs(np.ptp(p8[:, 1]) - 2.0) < 1e-2
+
+
+def test_track_and_waypoint_task_obs():
+    rng = np.random.default_rng(5)
+    q = _rand_q(1, rng)[0]
+    pos = np.array([0.3, -0.2, 1.8])
+    ref_h = rng.normal(size=(6, 3))
+    v0 = rng.normal(size=3)
+    o = ObservationBuilder.track_task(pos, q, ref_h, v0)
+    ref = np.concatenate([q_rotate(q_conj(q), r - pos) for r in ref_h] + [q_rotate(q_conj(q), v0)])
+    assert o.shape == (21,) and np.allclose(o, ref)
+    wp0, wp1 = np.array([10.0, 0.0, 2.0]), np.array([10.0, 1.0, 2.0])
+    o = ObservationBuilder.waypoint_task(pos, np.array([1.0, 0, 0, 0]), wp0, wp1, 0.6)
+    assert np.isclose(np.linalg.norm(o[:3]), 5.0)  # clipped to max_obs_distance
+    assert np.allclose(o[3:6], [0.0, 1.0, 0.0]) and o[6] == 0.6
+
+
+def test_waypoint_sequence_logic():
+    from quadsim.deploy.interface import WaypointSequence
+
+    s = WaypointSequence([[0, 0, 1], [1, 0, 1], [2, 0, 1]], reach_radius=0.3)
+    assert s.remaining_frac() == 1.0 and np.allclose(s.next(), [1, 0, 1])
+    assert not s.update(np.array([0.0, 0.31, 1.0]))
+    assert s.update(np.array([0.0, 0.29, 1.0])) and s.idx == 1 and np.isclose(s.remaining_frac(), 2 / 3)
+    assert s.update(np.array([1.0, 0.0, 1.0])) and s.idx == 2 and np.allclose(s.next(), [2, 0, 1])
+    assert s.update(np.array([2.0, 0.0, 1.0])) and s.done and s.idx == 2
+    assert not s.update(np.array([2.0, 0.0, 1.0]))  # finished: nothing more to reach
+
+
+def test_ring_from_scan_resampling():
+    from quadsim.deploy.interface import ring_from_scan
+
+    n = 360  # 1 deg LaserScan from -pi, CCW
+    ang = -np.pi + np.arange(n) * (2 * np.pi / n)
+    ranges = 2.0 + np.cos(ang)  # nearest at the back, farthest ahead
+    ranges[(np.abs(ang - np.pi / 2) < 1e-6)] = np.inf  # no return at +90 deg (left)
+    ring = ring_from_scan(ranges, -np.pi, 2 * np.pi / n, num_rays=32, range_max=8.0)
+    az = 2 * np.pi * np.arange(32) / 32
+    exp = 2.0 + np.cos(az)
+    exp[8] = 8.0  # ray 8 = +90 deg reads max range
+    assert np.allclose(ring, exp, atol=0.01)  # nearest 1-deg beam: |d angle| <= 0.5 deg -> |d range| < 0.009 m
+    assert np.allclose(ring_from_scan(np.full(16, 20.0), 0.0, np.pi / 8, 32, 8.0), 8.0)  # clipped to range_max

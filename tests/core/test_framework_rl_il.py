@@ -238,3 +238,67 @@ def test_bc_film_cnn_forward():
     assert out.shape == (5, 4) and out.abs().max() <= 1.0
     assert math.isfinite(out.sum().item())
     _ = types  # keep import used
+
+
+class _OffPolicyEnv:
+    """Minimal vectorized env for the off-policy learner (random observations and rewards)."""
+
+    def __init__(self, n=8, act_dim=2):
+        self.n = n
+        self.unwrapped = types.SimpleNamespace(num_envs=n, action_dim=act_dim, step_dt=0.02, device="cpu")
+        self.t = 0
+
+    def reset(self):
+        return {"policy": torch.randn(self.n, 3), "critic": torch.randn(self.n, 5)}, {}
+
+    def step(self, a):
+        self.t += 1
+        term = torch.zeros(self.n, dtype=torch.bool)
+        trunc = torch.zeros(self.n, dtype=torch.bool)
+        trunc[0] = self.t % 5 == 0
+        term[1] = self.t % 7 == 0
+        return {"policy": torch.randn(self.n, 3), "critic": torch.randn(self.n, 5)}, torch.randn(self.n), term, trunc, {}
+
+
+def _small_offpolicy_cfg(algo, **kw):
+    from quadsim.rl.offpolicy import OffPolicyCfg
+
+    c = dict(device="cpu", batch_size=32, learning_starts=1, buffer_steps=16, actor_hidden_dims=[16],
+             critic_hidden_dims=[16], updates_per_step=1)
+    return OffPolicyCfg(algo=algo, **{**c, **kw})
+
+
+@pytest.mark.parametrize("algo,updates", [("sac", 1), ("td3", 2)])
+def test_offpolicy_target_update_rate(algo, updates):
+    """Target critic moves by exactly tau toward the online critic per update (SAC) / per delayed update (TD3)."""
+    from quadsim.rl.offpolicy import OffPolicyLearner
+
+    torch.manual_seed(0)
+    learner = OffPolicyLearner(_OffPolicyEnv(), _small_offpolicy_cfg(algo, tau=0.005), None)
+    learner.learn(3)
+    while (learner.updates + updates) % updates:  # TD3: next update is a delayed (target) update
+        learner._update()
+    t0 = [p.detach().clone() for p in learner.critic_t.parameters()]
+    for _ in range(updates):
+        learner._update()
+    p1 = [p.detach().clone() for p in learner.critic.parameters()]
+    t1 = [p.detach().clone() for p in learner.critic_t.parameters()]
+    num = sum(((b - a) * (c - a)).sum() for a, b, c in zip(t0, t1, p1))
+    den = sum(((c - a) ** 2).sum() for a, c in zip(t0, p1))
+    assert float(num / den) == pytest.approx(0.005, rel=1e-3)
+
+
+def test_offpolicy_resume_keeps_policy_and_config(tmp_path):
+    from quadsim.rl.offpolicy import OffPolicyLearner
+
+    torch.manual_seed(0)
+    cfg = _small_offpolicy_cfg("sac", learning_starts=4)
+    a = OffPolicyLearner(_OffPolicyEnv(), cfg, None)
+    a.learn(10)
+    a.save(str(tmp_path / "model_10.pt"))
+    b = OffPolicyLearner(_OffPolicyEnv(), _small_offpolicy_cfg("sac", learning_starts=4), None)
+    b.load(str(tmp_path / "model_10.pt"))
+    assert b.step == 10 and b.cfg.learning_starts == 4  # the config is not inflated
+    assert b.random_until == 0 and b.update_from == 14  # refill with the loaded policy, no random actions
+    oa = torch.randn(8, 3)
+    assert torch.allclose(b.actor(oa), a.actor(oa))

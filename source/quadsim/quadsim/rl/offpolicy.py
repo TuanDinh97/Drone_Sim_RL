@@ -14,7 +14,7 @@ competitive on GPU simulators, e.g. FastTD3, Seo et al. 2025):
   rewards would otherwise be ~50x smaller than SAC's entropy bonus.
 
 Checkpoints ``model_<step>.pt`` hold networks, optimizers and normalizers (not the replay buffer: a resumed run
-refills it during ``learning_starts`` steps).
+refills it with its own policy for ``learning_starts`` steps before updating again).
 """
 
 from __future__ import annotations
@@ -45,6 +45,7 @@ class OffPolicyCfg:
     learning_starts: int = 64
     gamma: float = 0.99
     tau: float = 0.005
+    """Polyak rate of the target networks, one update per gradient step (SAC) or per actor update (TD3)"""
     actor_lr: float = 3e-4
     critic_lr: float = 3e-4
     weight_decay: float = 0.0
@@ -186,6 +187,8 @@ class OffPolicyLearner:
                                                                 "oc2": self.critic_dim, "term": 1}, self.dev)
         self.reward_scale = cfg.reward_scale or 1.0 / u.step_dt
         self.step, self.updates = 0, 0
+        self.random_until = cfg.learning_starts  # uniform random actions before this step (fresh runs only)
+        self.update_from = cfg.learning_starts  # gradient updates from this step on
         self._obs = obs
         self.writer = None
         if log_dir:
@@ -198,7 +201,7 @@ class OffPolicyLearner:
     def act(self, oa, explore=True):
         if not explore:
             return self.actor(oa)
-        if self.step < self.cfg.learning_starts:
+        if self.step < self.random_until:
             return torch.rand(self.n, self.act_dim, device=self.dev) * 2 - 1
         if self.cfg.algo == "sac":
             return self.actor.sample(oa)[0]
@@ -254,10 +257,6 @@ class OffPolicyLearner:
                         continue
                     for p, pt in zip(net.parameters(), tgt.parameters()):
                         pt.lerp_(p, c.tau)
-        if c.algo == "sac":  # SAC: target critic every step
-            with torch.no_grad():
-                for p, pt in zip(self.critic.parameters(), self.critic_t.parameters()):
-                    pt.lerp_(p, c.tau)
         return out
 
     def _sync_norms(self):
@@ -294,7 +293,7 @@ class OffPolicyLearner:
                 logs[k] = v
             obs = obs2
             self.step += 1
-            if self.step >= c.learning_starts:
+            if self.step >= self.update_from:
                 for _ in range(c.updates_per_step):
                     out = self._update()
             if self.writer and self.step % c.log_interval == 0:
@@ -305,15 +304,15 @@ class OffPolicyLearner:
                     r = torch.cat(rets).mean().item()
                     self.writer.add_scalar("train/episode_return", r, self.step)
                     rets.clear()
-                if self.step >= c.learning_starts:
+                if self.step >= self.update_from:
                     for k, v in out.items():
                         self.writer.add_scalar(k, float(v), self.step)
                 for k, v in logs.items():
                     self.writer.add_scalar(k, float(v), self.step)
                 print(f"[{c.algo}] step {self.step}/{end}  {fps:,.0f} env-steps/s  "
                       + (f"return {r:.3f}  " if 'r' in locals() else "")
-                      + " ".join(f"{k} {float(v):.3g}" for k, v in out.items()) if self.step >= c.learning_starts
-                      else f"[{c.algo}] step {self.step} (random warm-up)", flush=True)
+                      + " ".join(f"{k} {float(v):.3g}" for k, v in out.items()) if self.step >= self.update_from
+                      else f"[{c.algo}] step {self.step} (filling the replay buffer)", flush=True)
             if self.log_dir and (self.step % c.save_interval == 0 or self.step == end):
                 self.save(os.path.join(self.log_dir, f"model_{self.step}.pt"))
         self._obs = obs
@@ -341,7 +340,8 @@ class OffPolicyLearner:
         with torch.no_grad():
             self.log_alpha.copy_(ck["log_alpha"])
         self.step = ck["step"]
-        self.cfg.learning_starts = self.step + self.cfg.learning_starts  # refill the (unsaved) replay buffer
+        self.random_until = 0  # refill the (unsaved) replay buffer with the loaded policy, then update again
+        self.update_from = self.step + self.cfg.learning_starts
 
 
 def load_actor(checkpoint: str, device="cpu") -> Actor:

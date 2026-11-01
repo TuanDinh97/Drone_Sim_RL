@@ -109,6 +109,13 @@ class _OffPolicy(Algorithm):
 class SAC(_OffPolicy):
     name = "sac"
 
+    def default_cfg(self, task):
+        cfg = super().default_cfg(task)
+        # the published SAC run updated its target critic twice per gradient step at tau = 0.005 (effective
+        # 1 - 0.995^2 = 0.00998); with one update per step this default reproduces it
+        cfg.tau = 0.01
+        return cfg
+
 
 @ALGORITHMS.register("td3")
 class TD3(_OffPolicy):

@@ -88,7 +88,8 @@ aggregated data. External VLA models plug in through an adapter $(\text{images},
 LeRobot's own loader.
 
 \paragraph{Benchmarks.} A suite fixes a task, a set of conditions labelled in-distribution (training distribution)
-or out-of-distribution (wind and pushes, harsh dynamics, sensor noise $\times2$--3, \SIrange{20}{30}{ms} latency,
+or out-of-distribution (wind and pushes, harsh dynamics, sensor noise $\times2$--3, \SIrange{20}{30}{ms} command plus
+\SIrange{0}{30}{ms} estimate latency,
 unseen layouts or phrasings), metrics and seeds. Every controller is evaluated per condition in a fresh simulator
 process with the same seed; the report gives each metric with its 95\,\% CI and the generalization gap
 $\text{id}-\overline{\text{ood}}$ of the primary metric.
@@ -101,7 +102,7 @@ not fit it (memory model calibrated on the RTX~5060 measurements; never raised u
 term machinery, the reference evaluations (hover, tracking, waypoint, range navigation; PPO policies and the cascade,
 SE(3) and potential-field baselines) were re-run: all 59 metrics are bit-identical to the pre-refactor run, both
 after the refactor and with the final code.
-\paragraph{Unit and example tests.} 124 CPU unit tests (registries, vehicle files and frames, allocation rank, Isaac Lab
+\paragraph{Unit and example tests.} 124 CPU unit tests at the framework milestone (141 after the review) (registries, vehicle files and frames, allocation rank, Isaac Lab
 conversion, hover action of every interface on every vehicle, closed-loop position control of a hexarotor and a
 racer on the reference integrator, sensor-term rate/latency/history, the PID multiplier, the squashed-Gaussian
 log-likelihood, replay buffer, hardware model, tokenizer, datasets, BC language grounding) and an example check that
@@ -117,43 +118,141 @@ from the PPO policy and the cascade baseline (1000 episodes per point, same seed
 \input{generated/fw_results.tex}
 
 \subsection{Findings}
+All numbers below are the values re-measured after the review (\cref{sec:review}); racing, the swarm, the Lagrangian
+and the language tasks are given over three seeds.
 \begin{itemize}
 \item \textbf{Algorithms (\cref{tab:fw_offpolicy,tab:fw_algos,fig:fw_bench}).} With the changes above SAC matches
-PPO's in-distribution hover success (99.9\,\%) in 21 instead of 8 minutes, with a slightly larger position error and a
+PPO's in-distribution hover success ($\approx$100\,\%) in 21 instead of 8 minutes, with a slightly larger position error and a
 much larger yaw error (its entropy term makes it indifferent to the weakly rewarded yaw). Out of distribution, PPO is
-the most sensitive to latency beyond its training range (67\,\% vs 82--83\,\% for SAC and the BC student), so the
+the most sensitive to latency beyond its training range (70\,\% vs 81--83\,\% for SAC and the BC student), so the
 benchmark exposes a property that the in-distribution number hides. TD3 with the SAC configuration did not learn;
-with smaller exploration noise, a smaller reward scale and 8 updates per step it reaches 99.6\,\%. A plug-in Augmented
-Random Search (linear policy) reaches 46.5\,\% in 12 minutes.
+with smaller exploration noise, a smaller reward scale and 8 updates per step it reaches 99.9\,\%. A plug-in Augmented
+Random Search (linear policy) reaches 46.8\,\% in 12 minutes.
 \item \textbf{Generality (\cref{tab:fw_vehicles}).} A six-rotor vehicle generated from a frame description trains to
 99.8\,\% with the unchanged task, and the extension examples (vehicle files, sensor terms, a new task, a new control
 interface, a new algorithm) run through the unmodified scripts.
-\item \textbf{Racing (\cref{tab:fw_race}).} PPO completes two laps on 95\,\% of unseen random circuits at
-\SI{11.8}{m/s} mean speed (\SI{2.4}{s} per lap), transfers to a fixed reference circuit and to wind, but fails
-completely on the figure-8: the training circuits only turn counter-clockwise, the figure-8 alternates directions.
-Retraining with half of the circuits mirrored (both turning directions, same budget) raises the figure-8 completion
-from 0 to 54\,\% while keeping 93--98\,\% elsewhere --- the benchmark located the gap, a one-line change of the training
-distribution closed most of it.
-The classical cascade with gate-aligned waypoints passes about 6 of 14 gates in the episode (15\,s per lap, 40\,\%
+\item \textbf{Racing (\cref{tab:fw_race,tab:fw_multiseed}).} PPO completes two laps on $96\pm2$\,\% of unseen random
+circuits at \SI{11.9}{m/s} mean speed (\SI{2.5}{s} per lap), transfers to a fixed reference circuit and to wind, but
+rarely completes the figure-8 ($4\pm3$\,\%): the training circuits only turn counter-clockwise, the figure-8
+alternates directions. Retraining with half of the circuits mirrored (both turning directions, same budget) raises the
+figure-8 completion to $73\pm6$\,\% while keeping 95--98\,\% elsewhere --- the benchmark located the gap, a one-line
+change of the training distribution closed most of it.
+The classical cascade with gate-aligned waypoints passes about 7 of 14 gates in the episode (15\,s per lap, 25\,\%
 crashes); its first version (straight to the gate centre) crashed into the frames in 99\,\% of the episodes.
 \item \textbf{Multi-agent (\cref{tab:fw_swarm}).} The shared PPO policy coordinates four agents through the
-antipodal swap (agent collisions 45\,\% for uncoordinated straight lines, 0.4\,\% for PPO) and is 3.4 times faster
-than a tuned potential field, which is, however, more reliable (100 vs 87.5\,\% group success). The potential field's
+antipodal swap (agent collisions 36\,\% for uncoordinated straight lines, $1.7\pm2.3$\,\% for PPO) and is 3.4 times
+faster than a tuned potential field, which is, however, more reliable (100 vs $89.6\pm2.4$\,\% group success). The potential field's
 gains were selected on the training scenario after its first setting failed (0\,\%, 53\,\% collisions).
-\item \textbf{Constraints (\cref{tab:fw_safe}).} The Lagrangian keeps the over-speed time below its budget
-(0.082 vs \SI{0.1}{s}) while the unconstrained policy spends \SI{5.3}{s} per course above the limit; the price is a
-slower course and a lower completion rate within the episode limit.
+\item \textbf{Constraints (\cref{tab:fw_safe,tab:fw_multiseed}).} The Lagrangian keeps the over-speed time around its
+budget ($0.105\pm0.023$ vs \SI{0.1}{s} over three seeds) while the unconstrained policy spends \SI{5.4}{s} per course
+above the limit; the price is a slower course and, in one of three seeds, a policy that never learned to finish the
+course: its multiplier grew to $\approx$5 within 150 iterations, before the task was learned.
 \item \textbf{Imitation and language (\cref{tab:fw_il}).} An RL policy distils into a BC student without loss. For
 language-conditioned navigation, the last-action input makes BC copy its previous command and fail to stop (causal
-confusion~\cite{dehaan2019causal}); removing it, ignoring unknown words and two DAgger rounds reach the expert's
-100\,\%. A bag-of-words instruction encoder generalizes poorly to unseen phrasings ($\approx$60\,\%), whereas a frozen
-pretrained CLIP text tower, with the same data and policy, reaches 99.8\,\%. With the RGB camera instead of the
-landmark map (colours grounded in pixels), the FiLM-CNN policy reaches 82\,\% and, after one DAgger round, 100\,\% for
-both phrasings; all its failures before DAgger were collisions, never a wrong pillar. A model-free colour-servo
-adapter exercises the VLA interface (6--7\,\%: correct pillar, stopping rule outside the success zone).
+confusion~\cite{dehaan2019causal}); removing it and two DAgger rounds reach the expert's 100\,\%. A bag-of-words
+instruction encoder generalizes to unseen phrasings only if unknown words are ignored ($62\pm3$ vs $20\pm9$\,\% on the
+same checkpoints) and then reaches $74\pm15$\,\% after DAgger, whereas a frozen pretrained CLIP text tower, with the
+same data and policy, reaches $96.9\pm1.2$\,\%. With the RGB camera instead of the
+landmark map (colours grounded in pixels), the FiLM-CNN policy reaches $77\pm6$\,\% and, after one DAgger round,
+100\,\% (held-out phrasings $98\pm3$\,\%); its failures before DAgger were almost all collisions while approaching
+(a wrong pillar in 1 of 320 episodes). A model-free colour-servo adapter exercises the VLA interface (7\,\%: correct
+pillar, stopping rule outside the success zone).
 \item \textbf{Defects found by the checks.} The example check found that observation terms were evaluated before
 task buffers existed (now set up after the most-derived constructor) and that non-directory checkpoints (VLA
 factories) were mistaken for run directories; a crashed simulator process hung for minutes holding GPU memory
 (scripts now terminate after an exception). Demonstration collection stopping at a global episode count would bias
-datasets toward short episodes (now a per-environment quota). The regression check was re-run after these fixes.
+datasets toward short episodes (now a per-environment quota) --- the same stopping rule remained in the evaluator until
+the review (\cref{sec:review}). The regression check was re-run after these fixes.
 \end{itemize}
+
+\subsection{Review, corrections and multi-seed replication}\label{sec:review}
+\paragraph{Procedure.} After the framework milestone the code base was reviewed by three independent reviewers (one
+for the core, vehicles, control interfaces and export; one for the task environments, terms and baselines; one for
+the learning algorithms, imitation learning, evaluation and result tooling), each without access to the others'
+findings, and the documentation was checked mechanically (every referenced file and task exists). Every reported
+defect was reproduced before it was fixed --- on the CPU wherever possible, with a unit test that fails on the previous
+code and passes after the fix (124 $\to$ 141 tests). The fixes were developed in a separate checkout while the
+multi-seed training queue kept running on the unchanged code, so that all seeds of a task were trained with the same
+code. \Cref{tab:review} lists the defects and their effect on published results.
+
+\begin{table}[!htbp]\centering\small
+\caption{Defects found by the review (effect on the results published before it, and the fix).}\label{tab:review}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.2\linewidth}}\toprule
+Defect & Effect on published results & Fix\\\midrule
+Evaluator stopped at a global episode count and kept every finished episode: the episodes still running (the long
+ones) were dropped & every evaluation; largest where outcomes differ in episode length & per-environment quota,
+everything re-measured\\
+Cascade baseline: velocity integrator not reset between episodes & cascade on hover, tracking, waypoints, racing &
+reset per episode\\
+Initial angular velocity written to PhysX in the world frame but used as a body rate by gyro, odometry and rate loop &
+hover (first steps of an episode) & body-frame sample, rotated for PhysX\\
+SAC Polyak-averaged its target critic twice per gradient step & published SAC run used $\tau_\text{eff}=0.00998$
+(configuration said 0.005) & one update, default $\tau=0.01$\\
+Off-policy resume acted randomly while refilling the replay buffer & none & policy refills the buffer\\
+Curriculum averaged the last episode of every environment (mostly easier levels) and ran away & example only & judge
+each level on its own episodes\\
+Mixer used an equal collective split also for asymmetric layouts (torque at every thrust level) & none (presets
+symmetric) & zero-torque split\\
+\texttt{--plugins m.py env.a=b}: argparse attached the override to the plugin list & documented commands failed &
+overrides recovered\\
+Vehicle files: \texttt{1e-5} read as a string, invalid spins, \texttt{k\_f} together with thrust-to-weight, CoM
+outside the rotor polygon accepted & none & typed parsing, validation\\
+Hardware check counted the simulator's own memory twice & seed-42 safe-RL run used 3456 instead of 4096 environments &
+own memory added back\\
+Export: no plugins or overrides, exported network not taken from the algorithm, position contract incomplete & plug-in
+tasks not exportable & completed\\
+Result collector would have read the multi-seed tag as the curated race/swarm table; stale benchmark results reused
+after a failure & latent & fixed sources, stale files removed\\
+Rendered cameras: first frame of every episode showed the previous scene & RGB demonstrations ($\approx$0.7\,\% stale
+frames) & re-render after resets\\
+Race: 6.2\,\% of random circuits had overlapping gates, 0.22\,\% started inside a gate frame & random-circuit
+conditions & resampled\\
+LangNav: a dwell completed in a collision step counted as success and crash & 2 of 500 episodes & exclusive\\
+Minor: unbounded cost list without Lagrangian, multiplier integral wind-up, silent reward-term override, ignored
+\texttt{speed\_limit} override, BC on tiny datasets & none & fixed\\
+\bottomrule\end{tabularx}
+\end{table}
+
+\paragraph{Evaluation sampling bias.} The evaluator ran $N$ parallel environments until the number of finished
+episodes reached the requested $E$ and kept all of them. With $k=E/N\approx2$ episodes per environment this is a biased
+sample: an environment whose episodes end early (a crash, an early success) contributes more of them, and the
+episodes still running at the stopping time --- by the inspection paradox, preferentially the long ones --- are
+discarded. Outcomes that end episodes early are therefore over-represented. In the extreme, the counter-clockwise
+racing policy was reported at 0\,\% on the figure-8 because its few successful two-lap episodes ($\approx$\SI{7.4}{s})
+had not finished when the crashed environments ($\approx$\SI{1}{s}) had produced the requested count. The corrected
+evaluator takes the first $k=\lceil E/N\rceil$ episodes of every environment, which is unbiased because the
+inclusion of an episode no longer depends on its length (the demonstration collector already used this rule). All
+127 published evaluations (and 28 of the replication) were re-run from their recorded metadata; the median change of a success rate is 0.4
+points, the largest are listed in \cref{tab:reeval}.
+
+\paragraph{Regression evidence.} On the 59 reference metrics, the corrected evaluator alone leaves hover and tracking
+unchanged (their episodes end together at the time limit) and changes navigation and the waypoint cascade; the
+other fixes on top change exactly the metrics they act on (hover PPO and cascade through the reset frame, the
+cascade on tracking and waypoints through the integrator reset) and leave the tracking, waypoint and navigation
+policies and the SE(3) and potential-field baselines bit-identical.
+
+\begin{table}[!htbp]\centering\small
+\caption{Published vs.\ corrected values (largest changes; full record in
+\texttt{docs/results/framework/reevaluation.json}).}\label{tab:reeval}
+\begin{tabular}{lcc}\toprule
+Result & Published & Corrected\\\midrule
+Racing v0, figure-8 success & 0\,\% & 5.4\,\% \\
+Racing v1 (both directions), figure-8 success & 54.3\,\% & 73.8\,\% \\
+Racing cascade, crashes (random circuits) & 40\,\% & 25\,\% \\
+Swarm, straight lines: success / collisions & 18.3 / 44.6\,\% & 35.9 / 36.1\,\% \\
+Range navigation: PPO / potential field & 83.0 / 49.8\,\% & 84.4 / 39.4\,\% \\
+Landing cascade success & 52.0\,\% & 64.1\,\% \\
+LangNav BC with last action, held-out phrasing & 20.4\,\% & 41.0\,\% \\
+LangNav DAgger-2 (bag of words) / CLIP, held-out & 59.7 / 99.8\,\% & 56.2 / 97.0\,\% \\
+Hover cascade, nominal / wind + pushes & 88.7 / 78.6\,\% & 90.3 / 80.8\,\% \\
+\bottomrule\end{tabular}
+\end{table}
+
+\paragraph{Multi-seed replication.} Racing, the multi-agent swap, PPO-Lagrangian and the language-conditioned
+imitation policies were re-trained with two further seeds (identical code and configuration;
+\cref{tab:fw_multiseed}). Training on both turning directions raises figure-8 completion from $4\pm3$ to
+$73\pm6$\,\%; the shared swarm policy reaches $89.6\pm2.4$\,\% group success. The Lagrangian keeps the over-speed time
+around its budget ($0.105\pm0.023$\,s for a 0.1\,s budget), but one of three seeds never learned to finish the course:
+its multiplier grew while the policy was still learning the task. Ignoring unknown words in the bag-of-words encoder
+raises held-out-phrasing success from $20\pm9$ to $62\pm3$\,\% on the same checkpoints, and a frozen CLIP text tower
+reaches $96.9\pm1.2$\,\% against $73.5\pm15.1$\,\% for the bag of words after two DAgger rounds.

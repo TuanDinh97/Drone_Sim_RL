@@ -151,7 +151,7 @@ randomization, restores v0's white-noise level and adds a collective-rate penalt
 $-w\,(a_{0,k}-a_{0,k-1})^2\Delta t$ ($w=1$). It halves the collective chatter in quadsim (std 0.08 vs 0.15), keeps
 v0's hover precision, and \emph{none} of its 9 SITL flights (3 seeds, linear and curve maps) showed the limit cycle.
 The price is a less damped vertical step (overshoot 7--20\,\% for two seeds vs 1--2\,\% for v0), lower harsh-condition
-success (69\,\%) and a larger yaw error. No training distribution dominates: v0 with the thrust-curve map is the
+success (70 vs 78\,\% for v0) and a larger yaw error. No training distribution dominates: v0 with the thrust-curve map is the
 best-validated deployment configuration, v2 the more robust choice when only a linear thrust map is available.
 Across all nine policies, the collective chatter in the quadsim thrust-gain scenario ranks the policies as SITL does,
 which makes it a cheap pre-deployment screen.
@@ -168,7 +168,7 @@ Removing quadsim's body drag did not change its time (\SI{5.13}{s}); in SITL nei
 run-to-run spread. The cause remains open (candidates: EKF2's error at \SI{7}{m/s} acting on the estimate-based
 switching and approach geometry, motor saturation at full thrust).
 \begin{table}[!htbp]\centering\small
-\input{generated/sitl_tasks.tex}
+\begin{adjustbox}{max width=\linewidth}\input{generated/sitl_tasks.tex}\end{adjustbox}
 \caption{Tracking and waypoint policies (v0), quadsim (32 envs) vs PX4 SITL (2 runs each); RMSE after the first
 \SI{2}{s}. Source: \texttt{docs/results/sitl\_tasks.json}.}
 \label{tab:sitl-tasks}

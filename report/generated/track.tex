@@ -1,11 +1,11 @@
 \begin{tabular}{llcccc}\toprule
 Reference set & Controller & RMSE [cm] & max err [cm] & crash [\%] & episodes\\\midrule
 aggressive ($\le$4\,m/s) & PPO (ours) & 12.6 $\pm$ 1.5 & 40.6 $\pm$ 3.0 & 0.2 $\pm$ 0.4 & 500\\
-aggressive ($\le$4\,m/s) & Cascade PID & 46.6 $\pm$ 3.7 & 102.8 $\pm$ 7.2 & 3.2 $\pm$ 1.5 & 500\\
-aggressive ($\le$4\,m/s) & SE(3) geometric & 49.2 $\pm$ 3.9 & 97.7 $\pm$ 6.9 & 1.8 $\pm$ 1.2 & 500\\
+aggressive ($\le$4\,m/s) & Cascade PID & 46.6 $\pm$ 3.7 & 104.0 $\pm$ 7.3 & 3.0 $\pm$ 1.5 & 500\\
+aggressive ($\le$4\,m/s) & SE(3) geometric & 49.0 $\pm$ 3.8 & 97.6 $\pm$ 6.8 & 3.2 $\pm$ 1.5 & 500\\
 aggressive ($\le$4\,m/s) & SE(3) v1 (torque-level @50\,Hz)$^\dagger$ & 114.2 $\pm$ 5.0 & 221.8 $\pm$ 9.0 & 53.2 $\pm$ 4.4 & 500\\
 \midrule
 moderate ($\le$2\,m/s) & PPO (ours) & 5.8 $\pm$ 0.2 & 29.0 $\pm$ 0.8 & 0.0 $\pm$ 0.0 & 500\\
-moderate ($\le$2\,m/s) & Cascade PID & 17.4 $\pm$ 1.3 & 50.2 $\pm$ 3.7 & 0.0 $\pm$ 0.0 & 500\\
+moderate ($\le$2\,m/s) & Cascade PID & 17.6 $\pm$ 1.4 & 50.6 $\pm$ 3.8 & 0.2 $\pm$ 0.4 & 500\\
 moderate ($\le$2\,m/s) & SE(3) geometric & 22.7 $\pm$ 1.4 & 52.8 $\pm$ 3.8 & 0.2 $\pm$ 0.4 & 500\\
 \bottomrule\end{tabular}

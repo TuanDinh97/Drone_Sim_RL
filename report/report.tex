@@ -42,9 +42,9 @@ integrator to \SI{0.4}{mm} over \SI{1.5}{s} of open-loop flight, RTX-rendered de
 caster to \SI{7}{mm} median error, and the exported ONNX policy, driven by a NumPy deployment interface,
 reproduces simulator observations and actions to $10^{-6}$ in closed loop. PPO policies trained in 10--40 minutes on an
 8\,GB consumer GPU outperform classical cascade and geometric controllers under identical noise, latency and
-randomization (hover 99.9 vs 88.7\,\% success, tracking 12.6 vs 46.6\,cm RMSE); a 360$^\circ$ range-sensing navigation
-policy reaches 83\,\% success in a dense forest, and a depth-camera policy trained on analytic depth transfers
-without degradation to RTX-rendered depth (61 vs 67\,\% success). Negative results (no significant success gain from
+randomization (hover 99.9 vs 90.3\,\% success, tracking 12.6 vs 46.6\,cm RMSE); a 360$^\circ$ range-sensing navigation
+policy reaches 84\,\% success in a dense forest, and a depth-camera policy trained on analytic depth transfers
+without significant degradation to RTX-rendered depth (64 vs 60\,\% success). Negative results (no significant success gain from
 domain randomization on hover, an under-trained SAC baseline) are reported alongside. Finally, the exported
 policies were flown as PX4~v1.16 offboard controllers in software-in-the-loop simulation (Gazebo x500) through a ROS~2
 bridge: hover, tracking and waypoint policies transfer at the control level (hover \SIrange{0.8}{1.0}{cm}, tracking
@@ -60,10 +60,15 @@ history), rewards, terminations, costs, randomization events and curricula; GPU-
 critics; PPO-Lagrangian constrained RL; parameter-shared multi-agent training with a centralized critic; drone racing
 and language-conditioned navigation tasks; and an imitation-learning / vision-language-action data path (HDF5
 demonstrations, behaviour cloning, DAgger, LeRobot~v3.0 export, VLA adapters). A regression check shows the refactored
-core reproduces 59 reference metrics bit-exactly; the new SAC matches PPO on hover (99.9\,\%) where the earlier SAC
-failed; the Lagrangian keeps a speed constraint within its budget; and language-conditioned behaviour cloning reaches
-the expert's 100\,\% after two DAgger rounds, but only $\sim$60\,\% for unseen phrasings. We report what is verified
-and, explicitly, what is not (no hardware flight yet), and give a prioritized roadmap.
+core reproduces 59 reference metrics bit-exactly; the new SAC matches PPO on hover (100\,\%) where the earlier SAC
+failed; training a racing policy on both turning directions raises figure-8 completion from 4 to 73\,\% (3 seeds);
+the Lagrangian keeps a speed constraint around its budget, but one of three seeds never learns the task; and
+language-conditioned behaviour cloning reaches the expert's 100\,\% after two DAgger rounds, with $74\pm15$\,\% for
+unseen phrasings using a bag-of-words encoder and $97\pm1$\,\% with a frozen pretrained CLIP text encoder. A
+subsequent independent code review found and fixed about twenty defects --- the most consequential a sampling bias of
+the evaluator that over-weighted short episodes --- after which every result was re-measured
+(\cref{sec:review}). We report what is verified and, explicitly, what is not (no hardware flight yet), and give a
+prioritized roadmap.
 \end{abstract}
 
 \tableofcontents
@@ -446,19 +451,19 @@ from the vehicle centre to the nearest cylinder surface (collision below \SI{35}
 \end{table}
 Findings (\cref{tab:nav}):
 \begin{itemize}
-\item \textbf{Reward v2} raised the range-ring policy from 52.9 to \textbf{83.0\,\%} success and cut collisions from
-46.3 to 16.6\,\% at nearly the same speed (\SI{4.2}{s} to the goal).
-\item \textbf{Classical baseline.} The potential field rarely collides (4--5\,\%) but is trapped in local minima in
-42--52\,\% of the episodes and is $2.4\times$ slower. Two independent evaluation runs gave 49.8 and 39.3\,\% success;
-this spread exceeds the per-run CI because obstacle layouts are drawn from a random stream that the controllers consume
-differently, so episodes are not paired across runs and the CIs underestimate the between-run variance.
+\item \textbf{Reward v2} raised the range-ring policy from 57.8 to \textbf{84.4\,\%} success and cut collisions from
+42.2 to 15.6\,\% at nearly the same speed (\SI{4.3}{s} to the goal).
+\item \textbf{Classical baseline.} The potential field rarely collides (7\,\%) but is trapped in local minima in
+53--56\,\% of the episodes and is $2.5\times$ slower (36.6--39.4\,\% success in two runs). An earlier version of
+this report gave 49.8 and 39.3\,\% for the two runs and attributed the spread to unpaired episodes; the actual cause
+was the evaluator's sampling bias (\cref{sec:review}), which affected the run with two episodes per environment.
 \item \textbf{Depth policy.} With the forward-looking camera only ($87^\circ$ HFOV, no memory), the CNN policy reaches
-61.1\,\% success on its training sensor, below the $360^\circ$ range policy (83.0\,\%). A plausible but
+63.8\,\% success on its training sensor, below the $360^\circ$ range policy (84.4\,\%). A plausible but
 \emph{unverified} explanation is that a memoryless policy cannot account for obstacles that have left the camera's
 field of view; a recurrent policy or a wider camera are the natural next experiments.
 \item \textbf{Analytic vs rendered depth.} Evaluated zero-shot with RTX-rendered depth, the depth policy achieves
-66.7\,\% success / 32.7\,\% collisions, i.e.\ \emph{no degradation} relative to the analytic depth it was trained on
-(differences within the CIs). Together with the pixel-level agreement of \cref{tab:depth}, this justifies training
+60.0\,\% success / 39.7\,\% collisions against 63.8 / 35.8\,\% on the analytic depth it was trained on, a
+difference within the confidence intervals (no significant degradation). Together with the pixel-level agreement of \cref{tab:depth}, this justifies training
 depth policies with the fast analytic sensor (83\,k vs 6.8\,k env-steps/s, \cref{tab:bench}).
 \item \textbf{RGB / RGB-D.} The rendered RGB and RGB-D environments, image augmentation and the CNN actor-critic
 execute end to end (10-iteration PPO run with 64 environments). No RGB(-D) policy performance is claimed.
@@ -486,14 +491,13 @@ $\times[1.5,2]$, 10--20\,ms action delay, wind and gusts).
 \caption{DR ablation on the hover task (1000 episodes per row, identical seeds).}
 \label{tab:dr}
 \end{table}
-The DR policy has lower position error in every condition (e.g. \SI{1.38}{} vs \SI{2.05}{cm} under the training
-randomization, \SI{16.4}{} vs \SI{18.6}{cm} under harsh conditions) and fewer crashes under harsh conditions
-(3.9 vs 4.9\,\%), but the success-rate difference under harsh conditions (78.5 vs 77.2\,\%) is within the 95\,\%
-confidence interval. We therefore do \emph{not} claim a significant robustness gain from DR for this task. A plausible
+The DR policy has lower position error in every condition (e.g. \SI{1.26}{} vs \SI{1.92}{cm} under the training
+randomization, \SI{15.9}{} vs \SI{16.8}{cm} under harsh conditions), but crash rates (4.0 vs 3.4\,\%) and success
+rates (78.7 vs 78.2\,\%) under harsh conditions are within the 95\,\% confidence intervals. We therefore do \emph{not} claim a significant robustness gain from DR for this task. A plausible
 explanation is the CTBR interface: the onboard rate loop closes around the (real) gyro and absorbs much of the
 inertial and actuator variation, a robustness property reported for CTBR policies in~\cite{kaufmann2022benchmark}.
-The yaw error of the DR policy is 2--3$\times$ lower in all conditions; with one seed per arm this may be a
-training-run effect rather than a DR effect. Multi-seed ablations, and ablations with the direct motor interface where
+The yaw error of the DR policy is 2.3--2.7$\times$ lower in the ideal and training conditions but similar under harsh
+conditions; with one seed per arm this may be a training-run effect rather than a DR effect. Multi-seed ablations, and ablations with the direct motor interface where
 DR is expected to matter more, are planned (\cref{sec:roadmap}).
 
 \subsection{M6: export and deployment pipeline}
@@ -511,6 +515,8 @@ environments (\texttt{scripts/rl/train\_sac.py}). On the hover task with 256 env
 (still increasing; PPO reaches $\approx 11$ on the same reward). The deterministic policy never crashed but ended
 \SI{1.13}{m} from the target on average (0\,\% success over 1024 episodes). SAC is therefore \emph{executing and
 learning} but \emph{not competitive} within this budget; a higher update-to-data ratio and tuning are required.
+This baseline is superseded by the framework's GPU-native SAC/TD3, which reach 99.9 and 99.6\,\% hover success
+(\cref{sec:framework}, \cref{tab:fw_offpolicy}).
 
 \subsection{M7: throughput, memory and containerization}
 \Cref{tab:bench} lists environment-stepping throughput (no learning) on the idle RTX~5060 (8\,GB); VRAM is the whole
@@ -557,15 +563,23 @@ stereo-noise model; rendered depth agrees to \SI{7}{mm} median, but real sensor 
 IR interference, motion blur) are not modelled. RGB/RGB-D pipelines are implemented and execute end to end, but
 procedural scenes lack the texture/lighting diversity needed for transferable RGB policies.
 \item \textbf{Evaluation statistics.} The hover policies were trained with three seeds per training distribution
-(\cref{sec:v1}); the other tasks use a single seed (compute budget of an 8\,GB consumer GPU), so their confidence
-intervals quantify evaluation noise, not seed-to-seed variability. Classical baselines use
+(\cref{sec:v1}) and racing, the swarm, PPO-Lagrangian and the language tasks with three seeds (\cref{tab:fw_multiseed});
+the other tasks use a single seed (compute budget of an 8\,GB consumer GPU), so their confidence intervals quantify
+evaluation noise, not seed-to-seed variability --- which the replication showed to be large for some results (figure-8
+racing 67--79\,\%, held-out phrasings after DAgger 56--84\,\%). Swarm confidence intervals treat the four agents
+of a group as independent episodes, which they are not. Classical baselines use
 reasonable default gains, not systematically tuned gains, so the reported margins are upper bounds of the RL advantage.
-\item \textbf{Framework scope.} The racing, multi-agent, safe-RL, landing and language tasks are trained with one seed;
-presets other than the X500 and the Crazyflie (5-inch racer, hexarotor) are engineering approximations. The language
-encoder is a small bag-of-words model trained from eight instruction templates; no pretrained VLM/VLA was run (the
-adapter interface and the LeRobot export are validated, external models are not). The off-policy policies leave a
+\item \textbf{Framework scope.} The landing, hexarotor and off-policy results use one seed; presets other than the
+X500 and the Crazyflie (5-inch racer, hexarotor) are engineering approximations. In all published runs, reaching the
+goal or finishing the course is returned as a time-out (bootstrapped by the learners) rather than a terminal state;
+the option \texttt{task\_end\_is\_terminal} changes this for new runs. The
+instructions come from eight training and three held-out templates over a small vocabulary; the default encoder is
+a bag-of-words model, the alternative a frozen pretrained CLIP text tower (no fine-tuning). No pretrained
+vision-language(-action) model was run or fine-tuned (the adapter interface and the LeRobot export are validated,
+external models are not). The off-policy policies leave a
 large final yaw error on hover. Autonomous exploration and explicit adaptive-control tasks are not implemented (observation histories are
-available as terms). The Lagrangian is the reward-penalty form without a cost critic.
+available as terms). The Lagrangian is the reward-penalty form without a cost critic; its multiplier is not stored
+in checkpoints, and it can lock a seed into a policy that never learns the task (a constraint warm-up is provided).
 \item \textbf{Platform issues.} Isaac Lab v2.3.2 fails to initialize rigid bodies when a viewport is rendered
 (GUI, video); quadsim applies a version-gated runtime patch (\cref{sec:patch}). Interactive GUI and 4096-environment
 training do not fit simultaneously in 8\,GB VRAM. The first launch with rendering enabled crashed once in the shader
@@ -590,7 +604,8 @@ sim/real comparison.
 \item \textbf{Depth-based navigation transfer}: record real depth frames, extend the depth noise model or add
 image-space randomization, distill the state/range teacher into the depth student (DAgger) to reduce sample cost,
 then test in a real obstacle course.
-\item \textbf{Framework}: multi-seed results for the new tasks and algorithms; a cost critic for constrained RL;
+\item \textbf{Framework}: retrain the goal-reaching tasks with terminal task ends; multi-seed results for the
+off-policy algorithms and the remaining tasks; a cost critic for constrained RL;
 pretrained text/vision encoders and fine-tuning of an open VLA on the exported LeRobot data; texture and lighting
 randomization for RGB policies; exploration and adaptive-control benchmark tasks; recurrent policies for implicit
 system identification; migration to Isaac Lab 3.x once stable.

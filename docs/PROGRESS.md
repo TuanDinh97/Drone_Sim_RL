@@ -470,7 +470,7 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
 | # | Milestone | Acceptance criterion | Status |
 |---|---|---|---|
 | F1 | Extension core: registries + plugins, YAML / generic-frame vehicles, action interfaces as classes (+ `position`), configurable terms (obs with rate/latency/noise/history, reward, termination, cost, event, curriculum) | all reference evaluations bit-identical after the refactor; unit tests; a vehicle with ≠ 4 rotors trains | ✅ 59/59 metrics bit-identical; hexarotor PPO 99.8 % |
-| F2 | Algorithms + benchmark: one `--algo` CLI, GPU-native SAC/TD3 with asymmetric critic, suites with ID/OOD splits, hardware-aware `num_envs` | SAC competitive with PPO on hover; suite runs end to end and reports the generalization gap | ✅ SAC 99.9 % (TD3 ✗, negative) |
+| F2 | Algorithms + benchmark: one `--algo` CLI, GPU-native SAC/TD3 with asymmetric critic, suites with ID/OOD splits, hardware-aware `num_envs` | SAC competitive with PPO on hover; suite runs end to end and reports the generalization gap | ✅ SAC 99.9 %, TD3 99.6 % (2nd config; 1st: 0 %) |
 | F3 | Research tasks: drone racing, multi-agent swap, constrained RL (PPO-Lagrangian) | each trains and is evaluated against a baseline; constraint within budget | ✅ safe RL; racing / swarm see below |
 | F4 | IL / VLA: episode-structured demos (+ instructions), BC / DAgger, language-conditioned task, LeRobot export, VLA adapter | BC from an RL expert matches it; language-conditioned BC grounds instructions; export reloads with LeRobot's loader | ✅ (see below) |
 | F5 | Usability: examples, tutorials, troubleshooting, tests, docs, report | every example executes in the simulator; tests pass | ✅ 124 unit tests; examples 9/10 + VLA (see below) |
@@ -482,16 +482,22 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
   evaluated and not adopted (Nucleus USD assets unreachable here; first-order thrust lag without rotor drag / ground
   effect / gyroscopics; articulation per vehicle); `from_isaaclab_multirotor()` converts its configs instead.
 - Regression: `scripts/validation/regression_evals.sh` before/after (hover PPO+cascade 1000 episodes, tracking
-  PPO+cascade+SE(3), waypoint PPO+cascade, range navigation PPO+potential field): **59 metrics, max |diff| = 0**.
+  PPO+cascade+SE(3), waypoint PPO+cascade, range navigation PPO+potential field): **59 metrics, max |diff| = 0**,
+  both right after the refactor and again with the final code of the session (`docs/results/framework/regression.json`).
 - Generality: `hexa_x` (6 rotors, generated frame, auto inertia) hover PPO **99.8 %, 1.21 cm** vs cascade 96.5 %
-  (1000 episodes); closed-loop position control of `hexa_x` and `racer5` on the reference integrator (unit test,
+  (1000 episodes); the same vehicle with direct per-rotor control (6-D motor action) **100 %, 1.40 cm**; closed-loop position control of `hexa_x` and `racer5` on the reference integrator (unit test,
   < 5 cm after 6 s); every interface's hover action holds every vehicle (unit test).
 
-### F2 — algorithms and benchmarks ✅ (TD3 negative)
+### F2 — algorithms and benchmarks ✅
 - SAC (`quadsim.rl.offpolicy`, 1024 envs, 15 k steps, 21 min): **99.9 % success, 1.86 cm** on hover (PPO: 99.9 %,
   1.38 cm in 8 min); its final yaw error is large (0.51 rad vs 0.08). The earlier skrl SAC reached 0 %. Changes made
   together (not ablated): reward in per-second units, asymmetric LayerNorm twin critics, 4 updates/step, batch 16 k.
-- TD3 with the same recipe: **0 % success** (0.88 m final error) — negative result; a lower-noise variant is queued.
+- TD3 with the same recipe: **0 % success** (0.88 m final error, per-env exploration noise std 0.05-0.3, reward
+  scale 1/dt = 50, 4 updates/step). Second configuration (noise std 0.05-0.15, reward scale 10, 8 updates/step,
+  15 k steps, 28 min): **99.6 %, 2.9 cm** — but a 1.06 rad final yaw error (the hover reward barely weights yaw; SAC
+  shows the same trend). The first configuration's exploration noise on the collective was too large for hover.
+- Augmented Random Search (`examples/custom_algorithm.py`, plugin, linear policy, 150 iterations / 12 min):
+  46.5 % success, 0 % crash, 11.8 cm (still improving) — demonstrates the algorithm API, not competitive.
 - Hover benchmark suite (`docs/results/framework/bench_hover_algos.json`, 1000 episodes per cell, fresh process per
   controller and condition): success nominal / wind+push / harsh dynamics / sensor noise ×2–3 / latency 20–30 ms:
   PPO 99.9 / 97.3 / 90.1 / 96.0 / **67.2** %; SAC 99.9 / 96.9 / 87.8 / 98.4 / 82.0 %; BC-distilled 99.9 / 97.4 /
@@ -552,7 +558,12 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
   | privileged scripted expert | 100 % | — |
   | BC (FiLM CNN + bag of words, no last action) | 82.3 % (0 % wrong pillar, 17.7 % collisions) | 90.0 % (0 % wrong) |
   | + DAgger round 1 (1024 learner episodes, 175 k frames) | **100 %** | **100 %** |
-  The RGB policies never chose the wrong pillar; all BC failures were collisions while approaching (compounding error),
+  | same data, frozen CLIP text tower instead of the bag of words | 99.7 % | 98.3 % |
+  | VLA-adapter reference: model-free colour servo (`examples/vla_color_servo.py`) | 6.2 % (0 % wrong pillar) | 7.4 % |
+  With images, the pretrained text encoder brings no gain (the bag of words already generalized; differences within
+  noise). The colour-servo adapter always heads for the right colour but its width-based stopping rule stops outside
+  the success zone - it validates the VLA interface, it is not a competitive policy. The RGB policies never chose the
+  wrong pillar; all BC failures were collisions while approaching (compounding error),
   which one DAgger round removed. (Unlike the map-based variant, the bag-of-words encoder generalized to the held-out
   phrasings here; with 300 episodes the 82 vs 90 % difference between phrasings is not interpretable as a language
   effect, since the wrong-pillar rate is 0 in both.)
@@ -569,8 +580,19 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
   26 722 frames, state/action max error 0, all 32 instruction strings preserved → `pass`.
 
 ### F5 — usability ✅
-- `examples/` (custom vehicle YAML + plugin, GNSS sensor term, landing task, reward + curriculum, acceleration
-  interface, ARS algorithm, VLA adapter) executed by `scripts/validation/examples_check.py`; 124 CPU unit tests.
+- `examples/` (custom vehicle YAML + plugin, GNSS sensor term, 3-D LiDAR term, landing task, reward + curriculum,
+  acceleration interface, ARS algorithm, VLA adapter) executed by `scripts/validation/examples_check.py`
+  (**11/11 pass**, `docs/results/framework/examples_check.json`); 124 CPU unit tests (also inside the
+  Docker image). The first VLA-adapter check failed because `evaluate.py` treated every non-`.pt` checkpoint as a run
+  directory, and the failed Isaac process then hung for 10 minutes holding GPU memory: fixed (run directories are
+  resolved only if they are directories; simulator scripts now terminate after an exception instead of hanging).
+  The LiDAR check first failed because configurable observation terms were evaluated (to infer their size) inside the
+  base `__init__`, before the task subclass had created its obstacles: terms are now set up by `_post_init()`, which
+  runs once after the most-derived `__init__` (regression re-run: 59/59 metrics still bit-identical).
+- Plugins trained end to end with the unchanged scripts: acceleration interface (`examples/custom_action_interface.py`)
+  hover PPO **99.8 %, 1.38 cm**; landing task (`examples/custom_task.py`): first reward **0 %** (the policy hovered
+  above the pad to avoid the hard-touchdown penalty), reward v2 (per-second time penalty + "low and slow over the pad"
+  term) **94.1 %**, touchdown 0.41 m/s (limit 0.6), vs the cascade descent baseline 52.0 % (48 % hard touchdowns).
 
 ## Upstream issue found and patched (affects GUI / video)
 - Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the

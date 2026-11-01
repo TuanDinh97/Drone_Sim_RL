@@ -1107,6 +1107,206 @@
         "_source": "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_langnav_rgb_dagger1.json",
         "_overrides": []
       }
+    },
+    "langnav_rgb_dagger1_clip": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.0033333333333333335,
+          "ci95": 0.006522435355215331,
+          "n": 300
+        },
+        "time_out": {
+          "mean": 0.9966666666666667,
+          "ci95": 0.00652243535521533,
+          "n": 300
+        },
+        "episode_length_s": {
+          "mean": 2.9737332661946616,
+          "ci95": 0.06899330293085609,
+          "n": 300
+        },
+        "success": {
+          "mean": 0.9966666666666667,
+          "ci95": 0.00652243535521533,
+          "n": 300
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 300
+        },
+        "pillar_collision": {
+          "mean": 0.0033333333333333335,
+          "ci95": 0.006522435355215331,
+          "n": 300
+        },
+        "time_to_success": {
+          "mean": 2.971839397647309,
+          "ci95": 0.06912412147486309,
+          "n": 299
+        },
+        "layout_min_separation": {
+          "mean": 1.9270823800563812,
+          "ci95": 0.04491945907718716,
+          "n": 300
+        },
+        "target_collision": {
+          "mean": 0.0033333333333333335,
+          "ci95": 0.006522435355215331,
+          "n": 300
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-v0_langnav_rgb_dagger1_clip.json",
+        "_overrides": []
+      },
+      "Quadsim-LangNav-RGB-Heldout-v0": {
+        "crash": {
+          "mean": 0.016666666666666666,
+          "ci95": 0.014486724446374518,
+          "n": 300
+        },
+        "time_out": {
+          "mean": 0.9833333333333333,
+          "ci95": 0.014486724446374525,
+          "n": 300
+        },
+        "episode_length_s": {
+          "mean": 2.959533260265986,
+          "ci95": 0.06451266579543127,
+          "n": 300
+        },
+        "success": {
+          "mean": 0.9833333333333333,
+          "ci95": 0.014486724446374525,
+          "n": 300
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 300
+        },
+        "pillar_collision": {
+          "mean": 0.016666666666666666,
+          "ci95": 0.014486724446374518,
+          "n": 300
+        },
+        "time_to_success": {
+          "mean": 2.9581016213206923,
+          "ci95": 0.06461632899403044,
+          "n": 295
+        },
+        "layout_min_separation": {
+          "mean": 1.955312464237213,
+          "ci95": 0.043758956145351226,
+          "n": 300
+        },
+        "target_collision": {
+          "mean": 0.016666666666666666,
+          "ci95": 0.014486724446374518,
+          "n": 300
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_langnav_rgb_dagger1_clip.json",
+        "_overrides": []
+      }
+    },
+    "vla_color_servo": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.009345794392523364,
+          "ci95": 0.010526226483242909,
+          "n": 321
+        },
+        "time_out": {
+          "mean": 0.9906542056074766,
+          "ci95": 0.010526226483242909,
+          "n": 321
+        },
+        "episode_length_s": {
+          "mean": 9.638691153481743,
+          "ci95": 0.1426749045280444,
+          "n": 321
+        },
+        "success": {
+          "mean": 0.06230529595015576,
+          "ci95": 0.026442150233110674,
+          "n": 321
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 321
+        },
+        "pillar_collision": {
+          "mean": 0.009345794392523364,
+          "ci95": 0.010526226483242909,
+          "n": 321
+        },
+        "time_to_success": {
+          "mean": 5.084999847412109,
+          "ci95": 0.7027187257608997,
+          "n": 20
+        },
+        "layout_min_separation": {
+          "mean": 1.9315036642959929,
+          "ci95": 0.040557420658038225,
+          "n": 321
+        },
+        "target_collision": {
+          "mean": 0.009345794392523364,
+          "ci95": 0.010526226483242909,
+          "n": 321
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-v0_vla_color_servo.json",
+        "_overrides": []
+      },
+      "Quadsim-LangNav-RGB-Heldout-v0": {
+        "crash": {
+          "mean": 0.015479876160990712,
+          "ci95": 0.01346327913128094,
+          "n": 323
+        },
+        "time_out": {
+          "mean": 0.9845201238390093,
+          "ci95": 0.01346327913128094,
+          "n": 323
+        },
+        "episode_length_s": {
+          "mean": 9.522476356465011,
+          "ci95": 0.16789545691807475,
+          "n": 323
+        },
+        "success": {
+          "mean": 0.07430340557275542,
+          "ci95": 0.028601809048226734,
+          "n": 323
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 323
+        },
+        "pillar_collision": {
+          "mean": 0.015479876160990712,
+          "ci95": 0.01346327913128094,
+          "n": 323
+        },
+        "time_to_success": {
+          "mean": 4.999166578054428,
+          "ci95": 0.6798179086292642,
+          "n": 24
+        },
+        "layout_min_separation": {
+          "mean": 1.912403712331695,
+          "ci95": 0.041544324113072115,
+          "n": 323
+        },
+        "target_collision": {
+          "mean": 0.015479876160990712,
+          "ci95": 0.01346327913128094,
+          "n": 323
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_vla_color_servo.json",
+        "_overrides": []
+      }
     }
   },
   "datasets": {

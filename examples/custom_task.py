@@ -38,6 +38,10 @@ class LandEnvCfg(QuadrotorEnvCfg):
     w_crash: float = 10.0
     w_descent: float = 0.5
     w_action_rate: float = 0.05
+    w_time: float = 1.0
+    """per-second penalty until touchdown (reward v2: without it the first policy learned to hover above the pad)"""
+    w_soft: float = 2.0
+    """per-second reward for being low *and* slow over the pad (reward v2)"""
 
     def __post_init__(self):
         super().__post_init__()
@@ -86,8 +90,13 @@ class LandEnv(QuadrotorEnv):
         progress = self.prev_dist - dist
         self.prev_dist = dist
         vz = self.robot.data.root_lin_vel_w[:, 2]
-        near = torch.exp(-self.local_pos()[:, 2] / 0.5)  # descent-rate penalty grows near the ground
+        z = self.local_pos()[:, 2]
+        near = torch.exp(-z / 0.5)  # descent-rate penalty grows near the ground
+        over_pad = ((self.local_pos()[:, :2] - self.pad[:, :2]).norm(dim=-1) < c.pad_radius).float()
+        soft = over_pad * torch.exp(-z / 0.3) * torch.exp(-(vz / 0.5) ** 2)
         return {"progress": c.w_progress * progress,
+                "time": -c.w_time * dt * torch.ones_like(z),
+                "low_and_slow": c.w_soft * soft * dt,
                 "success": c.w_success * self.landed_ok.float(),
                 "descent_rate": -c.w_descent * near * vz.clamp(max=0.0).square() * dt,
                 "action_rate": -c.w_action_rate * (self.actions - self.prev_actions).square().sum(-1) * dt,

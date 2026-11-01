@@ -1,9 +1,1 @@
-[
-  "logs/eval/algos/Quadsim-Hover-v0_td3b_s42.json",
-  "logs/eval/algos/Quadsim-Hover-v0_ars_s42.json",
-  "logs/eval/vehicles/Quadsim-Hover-Hexa-Motor-v0_hexa_motor_s42.json",
-  "logs/eval/vehicles/Quadsim-Hover-v0_accel_s42.json",
-  "logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json",
-  "logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json",
-  "benchmark swarm"
-]
+[]

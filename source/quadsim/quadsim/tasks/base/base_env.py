@@ -20,6 +20,7 @@ Observation groups returned by ``_get_observations``:
 
 from __future__ import annotations
 
+import functools
 import math
 
 import gymnasium as gym
@@ -50,6 +51,23 @@ from quadsim.registry import ACTION_INTERFACES
 
 from .base_env_cfg import QuadrotorEnvCfg
 from .terms import TermManager
+
+
+def _run_post_init_after(init):
+    """Wrap ``__init__`` so that ``_post_init`` runs exactly once, after the outermost (most-derived) ``__init__``."""
+
+    @functools.wraps(init)
+    def wrapped(self, *args, **kwargs):
+        depth = self.__dict__.get("_init_depth", 0)
+        self._init_depth = depth + 1
+        try:
+            init(self, *args, **kwargs)
+        finally:
+            self._init_depth = depth
+        if depth == 0:
+            self._post_init()
+
+    return wrapped
 
 
 class QuadrotorEnv(DirectRLEnv):
@@ -141,9 +159,17 @@ class QuadrotorEnv(DirectRLEnv):
         self.crashed = torch.zeros(n, dtype=torch.bool, device=dev)
         self.last_episode_metrics: dict[str, torch.Tensor] = {}
         """Per-env metrics of the most recently finished episodes (NaN where none finished yet); curricula use it."""
+        # configurable terms are set up in _post_init(), after the task's own __init__ created its buffers
 
-        # ---------------- configurable extra terms ----------------
-        self.terms = TermManager(self, cfg.terms, cfg.safety)
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if "__init__" in cls.__dict__:
+            cls.__init__ = _run_post_init_after(cls.__dict__["__init__"])
+
+    def _post_init(self):
+        """Runs once after the most-derived ``__init__``: configurable terms (their functions may read task state,
+        e.g. obstacles, to infer observation sizes) and debug visualization."""
+        self.terms = TermManager(self, self.cfg.terms, self.cfg.safety)
         if self.terms.policy_dim:
             self._refresh_observation_space()
         self.set_debug_vis(self.cfg.debug_vis)
@@ -579,3 +605,6 @@ class QuadrotorEnv(DirectRLEnv):
     def world_to_est_body(self, vec_w: torch.Tensor) -> torch.Tensor:
         return qm.quat_rotate_inverse(self.est_quat(), vec_w)
 
+
+
+QuadrotorEnv.__init__ = _run_post_init_after(QuadrotorEnv.__init__)

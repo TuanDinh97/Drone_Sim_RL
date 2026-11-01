@@ -315,7 +315,7 @@ def framework():
     if o:
         rows = []
         for k, lab in (("ppo_reference", "PPO (rsl\\_rl), 4096 envs, 600 it."), ("sac", "SAC (quadsim), 1024 envs, 15k steps"),
-                       ("td3", "TD3 (quadsim), 1024 envs, 15k steps"), ("td3b", "TD3, low exploration noise, 8 updates/step"),
+                       ("td3", "TD3 (quadsim), 1024 envs, 15k steps"), ("td3b", "TD3, noise 0.05-0.15, reward scale 10, 8 upd./step"),
                        ("ars", "ARS (plugin example), 150 it.")):
             if k in o and o[k].get("eval"):
                 e = o[k]["eval"]
@@ -332,7 +332,8 @@ def framework():
                        ("hexa_ctbr_cascade", "hexa\\_x, cascade baseline"),
                        ("hexa_motor_ppo", "hexa\\_x, motor-level (6-D action), PPO"),
                        ("accel_interface_ppo", "x500, acceleration interface (plugin example), PPO"),
-                       ("landing_ppo", "landing task (plugin example), PPO"),
+                       ("landing_ppo_reward_v1", "landing task (plugin example), PPO, first reward"),
+                       ("landing_ppo", "landing task, PPO, reward v2 (time penalty, low-and-slow term)"),
                        ("landing_cascade", "landing task, cascade baseline")):
             e = v.get(k)
             if e:

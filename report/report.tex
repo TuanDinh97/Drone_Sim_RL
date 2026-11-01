@@ -562,8 +562,8 @@ reasonable default gains, not systematically tuned gains, so the reported margin
 \item \textbf{Framework scope.} The racing, multi-agent, safe-RL, landing and language tasks are trained with one seed;
 presets other than the X500 and the Crazyflie (5-inch racer, hexarotor) are engineering approximations. The language
 encoder is a small bag-of-words model trained from eight instruction templates; no pretrained VLM/VLA was run (the
-adapter interface and the LeRobot export are validated, external models are not). TD3 with the SAC recipe did not
-learn hover. Autonomous exploration and explicit adaptive-control tasks are not implemented (observation histories are
+adapter interface and the LeRobot export are validated, external models are not). The off-policy policies leave a
+large final yaw error on hover. Autonomous exploration and explicit adaptive-control tasks are not implemented (observation histories are
 available as terms). The Lagrangian is the reward-penalty form without a cost critic.
 \item \textbf{Platform issues.} Isaac Lab v2.3.2 fails to initialize rigid bodies when a viewport is rendered
 (GUI, video); quadsim applies a version-gated runtime patch (\cref{sec:patch}). Interactive GUI and 4096-environment

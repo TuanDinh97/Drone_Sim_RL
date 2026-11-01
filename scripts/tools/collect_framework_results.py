@@ -63,8 +63,9 @@ veh = {"hexa_ctbr_ppo": ev("logs/eval/vehicles/Quadsim-Hover-Hexa-v0_hexa_ctbr_s
        "hexa_ctbr_cascade": ev("logs/eval/vehicles/Quadsim-Hover-Hexa-v0_hexa_ctbr_s42.json", "cascade"),
        "hexa_motor_ppo": ev("logs/eval/vehicles/Quadsim-Hover-Hexa-Motor-v0_hexa_motor_s42.json"),
        "accel_interface_ppo": ev("logs/eval/vehicles/Quadsim-Hover-v0_accel_s42.json"),
-       "landing_ppo": ev("logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json", "policy"),
-       "landing_cascade": ev("logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json", "cascade")}
+       "landing_ppo_reward_v1": ev("logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json", "policy"),
+       "landing_ppo": ev("logs/eval/vehicles/Quadsim-Example-Land-v0_land_v2_s42.json", "policy"),
+       "landing_cascade": ev("logs/eval/vehicles/Quadsim-Example-Land-v0_land_v2_s42.json", "cascade")}
 dump("vehicles_interfaces.json", veh)
 
 # ---- safe RL

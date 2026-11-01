@@ -14,6 +14,8 @@ Algorithm & Success & Pos. err [cm] & Yaw err [rad] & Train [min]\\\midrule
 PPO (rsl\_rl), 4096 envs, 600 it. & 99.9\,\% & 1.38\,$\pm$\,0.26 & 0.08\,$\pm$\,0.00 & 8\\
 SAC (quadsim), 1024 envs, 15k steps & 99.9\,\% & 1.86\,$\pm$\,0.37 & 0.51\,$\pm$\,0.01 & 21\\
 TD3 (quadsim), 1024 envs, 15k steps & 0.0\,\% & 88.37\,$\pm$\,1.94 & 0.62\,$\pm$\,0.02 & 19\\
+TD3, noise 0.05-0.15, reward scale 10, 8 upd./step & 99.6\,\% & 2.90\,$\pm$\,0.33 & 1.06\,$\pm$\,0.01 & 28\\
+ARS (plugin example), 150 it. & 46.5\,\% & 11.82\,$\pm$\,0.39 & 0.58\,$\pm$\,0.04 & 12\\
 \bottomrule\end{tabular}}
 \end{table}
 
@@ -22,6 +24,11 @@ TD3 (quadsim), 1024 envs, 15k steps & 0.0\,\% & 88.37\,$\pm$\,1.94 & 0.62\,$\pm$
 Configuration & Success & Pos. err [cm] & Crash\\\midrule
 hexa\_x (6 rotors, generated frame), CTBR, PPO & 99.8\,\% & 1.21\,$\pm$\,0.03 & 0.0\,\%\\
 hexa\_x, cascade baseline & 96.5\,\% & 4.40\,$\pm$\,0.50 & 0.3\,\%\\
+hexa\_x, motor-level (6-D action), PPO & 100.0\,\% & 1.40\,$\pm$\,0.04 & 0.0\,\%\\
+x500, acceleration interface (plugin example), PPO & 99.8\,\% & 1.38\,$\pm$\,0.04 & 0.0\,\%\\
+landing task (plugin example), PPO, first reward & 0.0\,\% & -- & 0.5\,\%\\
+landing task, PPO, reward v2 (time penalty, low-and-slow term) & 94.1\,\% & -- & 5.9\,\%\\
+landing task, cascade baseline & 52.0\,\% & -- & 48.0\,\%\\
 \bottomrule\end{tabular}}
 \end{table}
 
@@ -48,6 +55,21 @@ ppo & wind (ood) & 94.2\,\% & 2.45\,$\pm$\,0.02 & 13.42\,$\pm$\,0.22 & 5.8\,\%\\
 \bottomrule\end{tabular}}
 \end{table}
 
+\begin{table}[!htbp]\centering\small\caption{Four-agent antipodal swap (shared policy, centralized critic). Source: \texttt{bench\_swarm.json}.}\label{tab:fw_swarm}
+\resizebox{\linewidth}{!}{\begin{tabular}{llcccc}\toprule
+Controller & Condition & success & agent\_collision & min\_separation & time\_to\_goal\\\midrule
+cascade & swap4 (id) & 18.3\,\% & 44.6\,\% & 0.90\,$\pm$\,0.02 & 2.24\,$\pm$\,0.03\\
+cascade & wind (ood) & 0.0\,\% & 55.2\,\% & 0.87\,$\pm$\,0.01 & --\\
+cascade & latency (ood) & 19.4\,\% & 42.8\,\% & 0.91\,$\pm$\,0.02 & 2.24\,$\pm$\,0.03\\
+ppo & swap4 (id) & 87.5\,\% & 0.4\,\% & 1.39\,$\pm$\,0.02 & 2.04\,$\pm$\,0.04\\
+ppo & wind (ood) & 89.8\,\% & 0.8\,\% & 1.37\,$\pm$\,0.02 & 2.09\,$\pm$\,0.06\\
+ppo & latency (ood) & 80.5\,\% & 1.2\,\% & 1.38\,$\pm$\,0.02 & 2.16\,$\pm$\,0.07\\
+swarm\_potential & swap4 (id) & 100.0\,\% & 0.0\,\% & 1.28\,$\pm$\,0.01 & 6.89\,$\pm$\,0.08\\
+swarm\_potential & wind (ood) & 96.9\,\% & 0.0\,\% & 1.29\,$\pm$\,0.01 & 6.80\,$\pm$\,0.07\\
+swarm\_potential & latency (ood) & 96.1\,\% & 0.0\,\% & 1.24\,$\pm$\,0.01 & 6.94\,$\pm$\,0.08\\
+\bottomrule\end{tabular}}
+\end{table}
+
 \begin{table}[!htbp]\centering\small\caption{Imitation learning. Hover: RL-to-BC distillation (last column: final position error [cm]). LangNav: success with training / held-out instruction phrasings and wrong-landmark rate (training phrasing). Source: \texttt{imitation.json}.}\label{tab:fw_il}
 \resizebox{\linewidth}{!}{\begin{tabular}{llccc}\toprule
 Task & Policy & Success (train phr.) & Success (held-out) & Wrong / pos. err\\\midrule
@@ -65,6 +87,8 @@ langnav (map) & same data, frozen CLIP text encoder & 100.0\,\% & 99.8\,\% & 0.0
 langnav (RGB) & scripted expert (privileged) & 100.0\,\% & -- & 0.0\,\%\\
 langnav (RGB) & BC, FiLM-CNN + instruction & 82.3\,\% & 90.0\,\% & 0.0\,\%\\
 langnav (RGB) & + DAgger round 1 & 100.0\,\% & 100.0\,\% & 0.0\,\%\\
+langnav (RGB) & same data, frozen CLIP text encoder & 99.7\,\% & 98.3\,\% & 0.0\,\%\\
+langnav (RGB) & VLA adapter: colour servo & 6.2\,\% & 7.4\,\% & 0.0\,\%\\
 \bottomrule\end{tabular}}
 \end{table}
 
@@ -76,11 +100,12 @@ vehicle\_yaml\_inherit & pass & 61\,\%\\
 vehicle\_plugin\_quad250 & pass & 63\,\%\\
 sensor\_gnss & pass & --\\
 task\_landing & pass & --\\
-task\_landing\_baseline & pass & 0\,\%\\
+task\_landing\_baseline & pass & 41\,\%\\
 reward\_curriculum & pass & --\\
 action\_interface\_accel & pass & --\\
 algorithm\_ars & pass & --\\
-vla\_adapter\_color\_servo & FAIL & --\\
+vla\_adapter\_color\_servo & pass & 4\,\%\\
+sensor\_lidar\_nav & FAIL & --\\
 \bottomrule\end{tabular}}
 \end{table}
 

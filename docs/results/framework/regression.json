@@ -2,5 +2,9 @@
   "regress_after_f1_vs_before": {
     "metrics": 59,
     "max_abs_diff": 0.0
+  },
+  "regress_final_vs_before": {
+    "metrics": 59,
+    "max_abs_diff": 0.0
   }
 }

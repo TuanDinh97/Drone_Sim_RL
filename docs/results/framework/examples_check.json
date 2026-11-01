@@ -54,14 +54,14 @@
   },
   "task_landing_baseline": {
     "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/evaluate.py --headless --task Quadsim-Example-Land-v0 --controllers cascade --episodes 100 --num_envs 100 --out_dir logs/validation/examples --tag excheck_task_landing_baseline --plugins examples/custom_task.py",
-    "wall_s": 10.17890977859497,
+    "wall_s": 9.282918214797974,
     "pass": true,
     "metrics": {
-      "crash": 1.0,
-      "time_out": 0.0,
-      "episode_length_s": 1.4213725158981247,
-      "success": 0.0,
-      "touchdown_speed": 1.9293457187858283
+      "crash": 0.59,
+      "time_out": 0.41,
+      "episode_length_s": 2.143199939131737,
+      "success": 0.41,
+      "touchdown_speed": 1.5202999567985536
     }
   },
   "reward_curriculum": {
@@ -87,7 +87,23 @@
   },
   "vla_adapter_color_servo": {
     "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/evaluate.py --headless --task Quadsim-LangNav-RGB-v0 --controllers policy --episodes 100 --num_envs 64 --out_dir logs/validation/examples --tag excheck_vla_adapter_color_servo --enable_cameras --algo vla --checkpoint examples/vla_color_servo.py:make_adapter",
-    "wall_s": 627.881760597229,
+    "wall_s": 40.68257689476013,
+    "pass": true,
+    "metrics": {
+      "crash": 0.015625,
+      "time_out": 0.984375,
+      "episode_length_s": 9.693905809894204,
+      "success": 0.0390625,
+      "wrong_landmark": 0.0,
+      "pillar_collision": 0.015625,
+      "time_to_success": 3.9359999179840086,
+      "layout_min_separation": 1.9224352687597275,
+      "target_collision": 0.015625
+    }
+  },
+  "sensor_lidar_nav": {
+    "cmd": "/home/tuan/miniconda3/envs/quadsim/bin/python scripts/rl/evaluate.py --headless --task Quadsim-Example-Nav-Lidar-v0 --controllers potential_field --episodes 100 --num_envs 100 --out_dir logs/validation/examples --tag excheck_sensor_lidar_nav env.curriculum=False --plugins examples/custom_sensor.py",
+    "wall_s": 5.732158422470093,
     "pass": false
   }
 }

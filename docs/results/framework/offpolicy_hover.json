@@ -73,6 +73,80 @@
     },
     "train_wall_s": 1147.2
   },
+  "td3b": {
+    "eval": {
+      "crash": {
+        "mean": 0.0,
+        "ci95": 0.0,
+        "n": 1000
+      },
+      "time_out": {
+        "mean": 1.0,
+        "ci95": 0.0,
+        "n": 1000
+      },
+      "episode_length_s": {
+        "mean": 7.980000019073486,
+        "ci95": 0.0,
+        "n": 1000
+      },
+      "final_pos_err": {
+        "mean": 0.028979814067366532,
+        "ci95": 0.0033238760754385446,
+        "n": 1000
+      },
+      "final_yaw_err": {
+        "mean": 1.0569472906589508,
+        "ci95": 0.005942135174561372,
+        "n": 1000
+      },
+      "success": {
+        "mean": 0.996,
+        "ci95": 0.00391215214428069,
+        "n": 1000
+      },
+      "_source": "logs/eval/algos/Quadsim-Hover-v0_td3b_s42.json",
+      "_overrides": []
+    },
+    "train_wall_s": 1661.7
+  },
+  "ars": {
+    "eval": {
+      "crash": {
+        "mean": 0.0,
+        "ci95": 0.0,
+        "n": 1000
+      },
+      "time_out": {
+        "mean": 1.0,
+        "ci95": 0.0,
+        "n": 1000
+      },
+      "episode_length_s": {
+        "mean": 7.980000019073486,
+        "ci95": 0.0,
+        "n": 1000
+      },
+      "final_pos_err": {
+        "mean": 0.11824186153709888,
+        "ci95": 0.003939702569544859,
+        "n": 1000
+      },
+      "final_yaw_err": {
+        "mean": 0.5826034080982209,
+        "ci95": 0.03665916665210353,
+        "n": 1000
+      },
+      "success": {
+        "mean": 0.465,
+        "ci95": 0.03091430154475433,
+        "n": 1000
+      },
+      "_source": "logs/eval/algos/Quadsim-Hover-v0_ars_s42.json",
+      "_overrides": []
+    },
+    "train_wall_s": 713.9
+  },
   "ppo_reference": {
     "eval": {
       "crash": {

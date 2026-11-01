@@ -18,7 +18,7 @@ Ordered by dependency; each milestone has explicit acceptance criteria that are 
 | # | Milestone | Acceptance criteria | Status |
 |---|---|---|---|
 | F1 | Extension core (registries, plugins, vehicles, action interfaces, configurable terms) | reference evaluations bit-identical after the refactor; a non-quadrotor vehicle trains | ✅ 59/59 bit-identical; hexarotor 99.8 % |
-| F2 | Algorithms + benchmarks (SAC/TD3, unified CLI, ID/OOD suites, hardware-aware defaults) | SAC competitive with PPO on hover; suites report generalization gaps | ✅ SAC 99.9 %; TD3 ✗ (negative) |
+| F2 | Algorithms + benchmarks (SAC/TD3, unified CLI, ID/OOD suites, hardware-aware defaults) | SAC competitive with PPO on hover; suites report generalization gaps | ✅ SAC 99.9 %, TD3 99.6 % (2nd configuration) |
 | F3 | Research tasks (racing, multi-agent, constrained RL) | trained + evaluated against baselines; constraint within budget | ✅ safe RL (0.082 s ≤ 0.1 s); racing / swarm in PROGRESS |
 | F4 | Imitation learning / VLA (demos with instructions, BC/DAgger, LeRobot export, VLA adapter) | BC matches an RL expert; language grounding; export reloads in LeRobot | ✅ |
 | F5 | Usability (examples, tutorials, troubleshooting, Docker, tests, report) | every example executes; tests pass in Docker | ✅ |
@@ -26,8 +26,8 @@ Ordered by dependency; each milestone has explicit acceptance criteria that are 
 ## Beyond the current scope (future work, prioritized)
 0. Framework follow-ups: multi-seed results for racing / swarm / safe RL / language tasks; a cost critic and other
    constrained-RL algorithms; pretrained text/vision encoders and fine-tuning an open VLA on the exported LeRobot data;
-   texture/lighting randomization for RGB; exploration and adaptive-control benchmark tasks; making TD3 work with the
-   many-environment recipe (lower exploration noise, distributional critic).
+   texture/lighting randomization for RGB; exploration and adaptive-control benchmark tasks; distributional critics and
+   yaw-aware rewards for the off-policy learners.
 1. Real-flight system identification (thrust stand, k_f, k_m, τ; bifilar pendulum inertia) for the target vehicle; update presets.
 2. PX4 SITL/HITL loop: run exported policy as an offboard ROS 2 node against PX4 SITL (gz x500) to cross-check dynamics.
    **SITL done** for hover, tracking, waypoint and range-navigation policies (docs/PROGRESS.md, sessions 2–3), incl.

@@ -99,7 +99,8 @@ not fit it (memory model calibrated on the RTX~5060 measurements; never raised u
 \subsection{Validation of the framework}
 \paragraph{Regression.} After moving the action interfaces into classes, the vehicles into a registry and adding the
 term machinery, the reference evaluations (hover, tracking, waypoint, range navigation; PPO policies and the cascade,
-SE(3) and potential-field baselines) were re-run: all 59 metrics are bit-identical to the pre-refactor run.
+SE(3) and potential-field baselines) were re-run: all 59 metrics are bit-identical to the pre-refactor run, both
+after the refactor and with the final code.
 \paragraph{Unit and example tests.} 124 CPU unit tests (registries, vehicle files and frames, allocation rank, Isaac Lab
 conversion, hover action of every interface on every vehicle, closed-loop position control of a hexarotor and a
 racer on the reference integrator, sensor-term rate/latency/history, the PID multiplier, the squashed-Gaussian
@@ -121,8 +122,9 @@ from the PPO policy and the cascade baseline (1000 episodes per point, same seed
 PPO's in-distribution hover success (99.9\,\%) in 21 instead of 8 minutes, with a slightly larger position error and a
 much larger yaw error (its entropy term makes it indifferent to the weakly rewarded yaw). Out of distribution, PPO is
 the most sensitive to latency beyond its training range (67\,\% vs 82--83\,\% for SAC and the BC student), so the
-benchmark exposes a property that the in-distribution number hides. TD3 with the same recipe did not learn
-(negative result).
+benchmark exposes a property that the in-distribution number hides. TD3 with the SAC configuration did not learn;
+with smaller exploration noise, a smaller reward scale and 8 updates per step it reaches 99.6\,\%. A plug-in Augmented
+Random Search (linear policy) reaches 46.5\,\% in 12 minutes.
 \item \textbf{Generality (\cref{tab:fw_vehicles}).} A six-rotor vehicle generated from a frame description trains to
 99.8\,\% with the unchanged task, and the extension examples (vehicle files, sensor terms, a new task, a new control
 interface, a new algorithm) run through the unmodified scripts.
@@ -142,5 +144,13 @@ slower course and a lower completion rate within the episode limit.
 language-conditioned navigation, the last-action input makes BC copy its previous command and fail to stop (causal
 confusion~\cite{dehaan2019causal}); removing it, ignoring unknown words and two DAgger rounds reach the expert's
 100\,\%. A bag-of-words instruction encoder generalizes poorly to unseen phrasings ($\approx$60\,\%), whereas a frozen
-pretrained CLIP text tower, with the same data and policy, reaches 99.8\,\%.
+pretrained CLIP text tower, with the same data and policy, reaches 99.8\,\%. With the RGB camera instead of the
+landmark map (colours grounded in pixels), the FiLM-CNN policy reaches 82\,\% and, after one DAgger round, 100\,\% for
+both phrasings; all its failures before DAgger were collisions, never a wrong pillar. A model-free colour-servo
+adapter exercises the VLA interface (6--7\,\%: correct pillar, stopping rule outside the success zone).
+\item \textbf{Defects found by the checks.} The example check found that observation terms were evaluated before
+task buffers existed (now set up after the most-derived constructor) and that non-directory checkpoints (VLA
+factories) were mistaken for run directories; a crashed simulator process hung for minutes holding GPU memory
+(scripts now terminate after an exception). Demonstration collection stopping at a global episode count would bias
+datasets toward short episodes (now a per-environment quota). The regression check was re-run after these fixes.
 \end{itemize}

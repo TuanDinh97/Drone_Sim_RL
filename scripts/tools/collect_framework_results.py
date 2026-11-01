@@ -35,11 +35,6 @@ def wall(log):
     return float(m[-1]) if m else None
 
 
-def latest(pattern):
-    g = sorted(glob.glob(pattern))
-    return g[-1] if g else None
-
-
 def dump(name, obj):
     with open(os.path.join(OUT, name), "w") as f:
         json.dump(obj, f, indent=2)
@@ -55,7 +50,7 @@ for algo, tag, log in (("sac", "sac_s42", "logs/train_fw_sac.log"), ("td3", "td3
     if e:
         offp[algo] = {"eval": e, "train_wall_s": wall(log)}
 offp["ppo_reference"] = {"eval": ev("logs/eval/reverify/Quadsim-Hover-v0_regress_final.json", "policy"),
-                         "train_wall_s": wall("logs/train_hover_ctbr_s1.log"), "note": "600 iterations, 4096 envs"}
+                         "train_wall_s": wall("logs/train_hover_ctbr_s42.log"), "note": "600 iterations, 4096 envs"}
 dump("offpolicy_hover.json", offp)
 
 # ---- vehicles and control interfaces
@@ -76,10 +71,10 @@ dump("safe_rl.json", {
     "ppo_lagrangian": ev("logs/eval/safe/Quadsim-Waypoint-SpeedCost-v0_safe_lagrangian_s42.json"),
     "train_wall_s": wall("logs/train_fw_safe.log")})
 
-# ---- racing, swarm (benchmark suites)
+# ---- racing, swarm (benchmark suites; the curated tag, not e.g. the multi-seed "seeds" tag)
 for suite in ("race", "swarm"):
-    p = latest(f"logs/benchmark_suites/{suite}/*/summary.json")
-    dump(f"bench_{suite}.json", json.load(open(p)) if p else missing.append(f"benchmark {suite}"))
+    p = f"logs/benchmark_suites/{suite}/final/summary.json"
+    dump(f"bench_{suite}.json", json.load(open(p)) if os.path.exists(p) else missing.append(p))
 
 # ---- imitation learning
 il = {"hover_distillation": {

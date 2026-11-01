@@ -6,7 +6,8 @@ Examples:
     python scripts/benchmark/run.py --suite race --policy ppo=logs/rsl_rl/quadsim_race/<run> --baselines cascade
     python scripts/benchmark/run.py --list
 Each condition runs scripts/rl/evaluate.py in a fresh process (same seed for every controller). Output:
-logs/benchmark_suites/<suite>/<tag>/{<label>__<condition>.json, summary.json, summary.md}
+logs/benchmark_suites/<suite>/<tag>/{<label>__<condition>.json, summary.json, summary.md}; the summary covers every
+label evaluated under the same tag (runs with different labels accumulate).
 """
 
 import argparse
@@ -47,9 +48,11 @@ def _run(suite, cond, label, controller, ckpt=None, algo=None):
         cmd += ["--plugins", *args.plugins]
     print(f"[bench] {suite.name}/{cond.name}: {label}", flush=True)
     log = os.path.join(out_dir, f"{tag}.log")
+    res = os.path.join(out_dir, f"{task}_{tag}.json")
+    if os.path.exists(res):  # never report a stale result if this evaluation fails
+        os.remove(res)
     with open(log, "w") as f:
         subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT, env={**os.environ, "OMNI_KIT_ACCEPT_EULA": "YES"})
-    res = os.path.join(out_dir, f"{task}_{tag}.json")
     if not os.path.exists(res):
         print(f"[bench]   FAILED (see {log})", flush=True)
         return None

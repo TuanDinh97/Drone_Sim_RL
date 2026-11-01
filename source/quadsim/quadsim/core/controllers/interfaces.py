@@ -111,6 +111,9 @@ class MotorThrust(ActionInterface):
         return params.num_rotors
 
     def hover_action(self):
+        m = self.fc.mixer
+        if not m.symmetric:  # zero-torque thrust split of an asymmetric frame
+            return (2.0 * self.fc.params.weight * m.collective_split / m.t_max - 1.0).to(self.fc.device)
         frac = self.fc.params.weight / self.fc.t_max_nominal
         return torch.full((self.fc.params.num_rotors,), 2.0 * frac - 1.0, device=self.fc.device)
 

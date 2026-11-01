@@ -28,8 +28,9 @@ Vehicle-file schema (all keys optional except what is needed to define thrust)::
     ... any other QuadrotorParams field (k_m, tau_up, tau_down, rotor_radius, rotor_drag_coeff, body_drag_quad, ...)
 
 Rotor ordering: 4-rotor ``x`` frames follow PX4 Quad-X (0 FR ccw, 1 RL ccw, 2 FL cw, 3 RR cw), so they match the
-PX4 bridge. Other frames are numbered counter-clockwise starting at the first arm with alternating spin (CCW first);
-the mixer (pseudo-inverse allocation) handles any rotor geometry.
+PX4 bridge. Other frames are numbered counter-clockwise starting at the first arm with alternating spin (CCW first)
+and need an even number of rotors. The mixer (pseudo-inverse allocation) handles any rotor geometry whose
+zero-torque hover split is positive on every rotor (CoM inside the rotor polygon), including asymmetric ones.
 """
 
 from __future__ import annotations

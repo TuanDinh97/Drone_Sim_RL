@@ -23,6 +23,10 @@ class Mixer:
         a = torch.stack([torch.ones_like(spin), pos[:, 1], -pos[:, 0], -spin * params.k_m], dim=0)
         self.A = a
         self.A_inv = torch.linalg.pinv(a)  # (R, 4)
+        # per-rotor thrust per newton of collective (zero torque); 1/R on symmetric frames
+        self.collective_split = self.A_inv[:, 0].clone()
+        d = self.collective_split
+        self.symmetric = bool((d.max() - d.min()) <= 1e-4 * d.abs().max())  # float32 pinv noise ~1e-6
         self.t_min = params.k_f * params.omega_min**2
         self.t_max = params.k_f * params.omega_max**2
         self.k_f = params.k_f
@@ -44,12 +48,18 @@ class Mixer:
         s = torch.clamp(span / rp_spread.clamp_min(1e-9), max=1.0)
         t_rp = t_rp * s[:, None]
 
-        # shift collective so roll/pitch fits (keeps per-rotor collective equal)
-        c = t_coll.mean(-1)
-        c_lo = self.t_min - t_rp.min(-1).values
-        c_hi = self.t_max - t_rp.max(-1).values
-        c = torch.minimum(torch.maximum(c, c_lo), c_hi)
-        base = c[:, None] + t_rp
+        if self.symmetric:  # shift collective so roll/pitch fits (keeps per-rotor collective equal)
+            c = t_coll.mean(-1)
+            c_lo = self.t_min - t_rp.min(-1).values
+            c_hi = self.t_max - t_rp.max(-1).values
+            c = torch.minimum(torch.maximum(c, c_lo), c_hi)
+            base = c[:, None] + t_rp
+        else:  # asymmetric geometry: an equal split would produce a torque; shift along the zero-torque split
+            d = self.collective_split
+            s_lo = ((self.t_min - t_rp) / d).max(-1).values
+            s_hi = ((self.t_max - t_rp) / d).min(-1).values
+            s = torch.minimum(torch.maximum(collective, s_lo), s_hi)
+            base = s[:, None] * d + t_rp
 
         # largest feasible yaw scale
         room_up = (self.t_max - base) / t_yaw.clamp_min(1e-12)

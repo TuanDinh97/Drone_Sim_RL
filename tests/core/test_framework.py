@@ -175,3 +175,43 @@ def test_overrides_after_list_options():
     assert split_overrides(args, overrides, argv) == ["env.a=1", "env.control.mode=acceleration", "env.b=(1,2)",
                                                       "agent.c=3"]
     assert args.plugins == ["x.py"] and args.controllers == ["cascade"]
+
+
+def test_mixer_asymmetric_frame_hovers_without_torque():
+    """CoM off the geometric centre (short rear arms): the hover split must not produce a torque."""
+    from quadsim.core.controllers.mixer import Mixer
+
+    x500 = get_vehicle("x500")
+    pos = tuple((x * (1.0 if x > 0 else 0.75), y, z) for x, y, z in x500.rotor_positions)
+    p = x500.copy(name="x500_short_rear", rotor_positions=pos)
+    m = Mixer(p)
+    assert not m.symmetric and Mixer(x500).symmetric
+    t = m.allocate(torch.tensor([p.weight]), torch.zeros(1, 3))
+    w = m.wrench_from_thrusts(t)[0]
+    assert w[0] == pytest.approx(p.weight, rel=1e-5) and w[1:].abs().max() < 1e-5
+    cfg = _ctrl_cfg()
+    fc = FlightController(p, cfg, 1, 0.005, "cpu")
+    iface = ACTION_INTERFACES.get("motor")(fc)
+    t_h = iface(iface.hover_action()[None], torch.tensor([[1.0, 0, 0, 0]]), torch.zeros(1, 13), torch.zeros(1, 3))
+    assert m.wrench_from_thrusts(t_h)[0, 1:].abs().max() < 1e-5
+
+
+def test_position_hold_asymmetric_frame():
+    """Position interface on the asymmetric frame: holds the set-point without a saturated rate integrator."""
+    x500 = get_vehicle("x500")
+    pos = tuple((x * (1.0 if x > 0 else 0.75), y, z) for x, y, z in x500.rotor_positions)
+    p = x500.copy(name="x500_short_rear", rotor_positions=pos)
+    cfg = _ctrl_cfg(position_center=(0.0, 0.0, 0.0), position_range=(2.0, 2.0, 2.0))
+    dt = 0.005
+    fc = FlightController(p, cfg, 1, dt, "cpu")
+    iface = ACTION_INTERFACES.get("position")(fc)
+    sim = ReferenceQuadrotorSim(QuadrotorModel(p, 1, "cpu"), dt)
+    sim.state.pos[:] = torch.tensor([[0.0, 0.0, 1.0]])
+    sim.model.reset(None, p.hover_omega)
+    fc.reset(torch.arange(1), sim.state.quat, torch.zeros(1, 3))
+    a = torch.tensor([[0.0, 0.0, 0.5, 0.0]])  # hold (0, 0, 1)
+    for _ in range(int(4.0 / dt)):
+        s = sim.state
+        thrust = iface(a, s.quat, torch.cat([s.pos, s.quat, s.lin_vel, s.ang_vel], -1), s.ang_vel)
+        sim.step(fc.mixer.thrust_to_omega(thrust))
+    assert (sim.state.pos[0] - torch.tensor([0.0, 0.0, 1.0])).norm().item() < 0.02

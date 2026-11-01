@@ -5,8 +5,8 @@ Examples:
     python scripts/rl/train.py --task Quadsim-Hover-v0 --headless --algo sac --max_iterations 20000
     python scripts/rl/train.py --task Quadsim-Track-v0 --headless --num_envs 4096 --max_iterations 1500 --seed 1
     python scripts/rl/train.py --task Quadsim-Track-v0 --headless --resume logs/rsl_rl/quadsim_track/<run>
-    python scripts/rl/train.py --task Quadsim-Hover-v0 --headless --plugins examples/custom_vehicle_plugin.py \
-        env.dynamics.preset=my_quad
+    python scripts/rl/train.py --task Quadsim-Hover-v0 --headless --plugins examples/custom_vehicle.py \
+        env.dynamics.preset=quad_250
 
 Run directory: logs/rsl_rl/<experiment>/<timestamp>_<run_name>/ (PPO) or logs/<algo>/<experiment>/... containing
 model_<it>.pt checkpoints, TensorBoard events, params/env.yaml + params/agent.yaml (exact configuration), git commit
@@ -44,9 +44,10 @@ from isaaclab.utils.io import dump_yaml  # noqa: E402
 from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
 from quadsim.registry import ALGORITHMS, import_plugins  # noqa: E402
 from quadsim.rl import algorithms as _algos  # noqa: E402,F401  (registers ppo / sac / td3)
-from quadsim.rl.overrides import apply_overrides  # noqa: E402
+from quadsim.rl.overrides import apply_overrides, split_overrides  # noqa: E402
 from quadsim.utils.hardware import auto_num_envs  # noqa: E402
 
+overrides = split_overrides(args, overrides, sys.argv[1:])  # `--plugins my.py env.a=b`: argparse took env.a=b
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 

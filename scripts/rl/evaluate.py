@@ -23,7 +23,8 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--task", required=True)
-parser.add_argument("--controllers", nargs="+", default=["policy"], help="policy | cascade | geometric | potential_field")
+parser.add_argument("--controllers", nargs="+", default=["policy"],
+                    help="policy (needs --checkpoint) and/or registered baselines (quadsim.registry.BASELINES)")
 parser.add_argument("--checkpoint", default=None, help="run dir or .pt (needed for 'policy')")
 parser.add_argument("--episodes", type=int, default=500)
 parser.add_argument("--num_envs", type=int, default=500)
@@ -42,11 +43,13 @@ import torch  # noqa: E402
 
 import quadsim.tasks  # noqa: E402,F401
 from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
-from quadsim.rl.overrides import apply_overrides  # noqa: E402
+from quadsim.rl.overrides import apply_overrides, split_overrides  # noqa: E402
 from quadsim.registry import BASELINES, import_plugins  # noqa: E402
 from quadsim.rl.algorithms import load_any_policy  # noqa: E402
 from quadsim.rl.policy_io import agent_cfg_for, latest_checkpoint  # noqa: E402
 from quadsim.tasks import baselines as _baselines  # noqa: E402,F401  (registers the classical controllers)
+
+overrides = split_overrides(args, overrides, sys.argv[1:])  # `--controllers cascade env.a=b`: argparse took env.a=b
 
 
 def summarize(records):

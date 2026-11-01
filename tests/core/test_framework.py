@@ -156,3 +156,22 @@ def test_import_plugins_from_file(tmp_path):
     import_plugins([str(f)])
     assert get_vehicle("test_plugin_racer").name == "racer5"
     validate_params(get_vehicle("test_plugin_racer"))
+
+
+def test_overrides_after_list_options():
+    """`--plugins my.py env.a=b` / `--controllers cascade env.a=b`: argparse attaches the override to the list."""
+    import argparse
+
+    from quadsim.rl.overrides import split_overrides
+
+    p = argparse.ArgumentParser()
+    p.add_argument("--task")
+    p.add_argument("--plugins", nargs="*", default=[])
+    p.add_argument("--controllers", nargs="+", default=["policy"])
+    argv = ["--task", "T", "env.a=1", "--plugins", "x.py", "env.control.mode=acceleration", "--controllers",
+            "cascade", "env.b=(1,2)", "agent.c=3"]
+    args, overrides = p.parse_known_args(argv)
+    assert "env.control.mode=acceleration" in args.plugins  # the argparse behaviour being corrected
+    assert split_overrides(args, overrides, argv) == ["env.a=1", "env.control.mode=acceleration", "env.b=(1,2)",
+                                                      "agent.c=3"]
+    assert args.plugins == ["x.py"] and args.controllers == ["cascade"]

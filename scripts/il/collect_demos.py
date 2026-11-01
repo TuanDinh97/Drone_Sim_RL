@@ -47,7 +47,9 @@ from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
 from quadsim.il.dataset import DemoWriter, summarize  # noqa: E402
 from quadsim.registry import BASELINES, import_plugins  # noqa: E402
 from quadsim.rl.algorithms import load_any_policy  # noqa: E402
-from quadsim.rl.overrides import apply_overrides  # noqa: E402
+from quadsim.rl.overrides import apply_overrides, split_overrides  # noqa: E402
+
+overrides = split_overrides(args, overrides, sys.argv[1:])  # `--plugins my.py env.a=b`: argparse took env.a=b
 
 
 def main():

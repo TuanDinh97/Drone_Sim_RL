@@ -496,8 +496,9 @@ class QuadrotorEnv(DirectRLEnv):
         super()._reset_idx(env_ids)
 
         self._randomize_episode(env_ids)
-        pos, quat, lin_vel, ang_vel = self._sample_initial_state(env_ids)
-        root = torch.cat([pos + self.env_origins[env_ids], quat, lin_vel, ang_vel], -1)
+        pos, quat, lin_vel, ang_vel = self._sample_initial_state(env_ids)  # lin_vel world, ang_vel body (gyro) frame
+        ang_vel_w = qm.quat_rotate(quat, ang_vel) if bool(ang_vel.any()) else ang_vel  # PhysX wants world frame
+        root = torch.cat([pos + self.env_origins[env_ids], quat, lin_vel, ang_vel_w], -1)
         self.robot.write_root_state_to_sim(root, env_ids)
         # rotor speeds start at (randomized-model) hover
         self.model.reset(env_ids)
@@ -527,6 +528,8 @@ class QuadrotorEnv(DirectRLEnv):
 
     # ======================================================================== task hooks
     def _sample_initial_state(self, env_ids):
+        """``(pos, quat, lin_vel, ang_vel)`` of the new episodes: position in the env-local frame, linear velocity in
+        the world frame, angular velocity in the body frame (what the gyro measures)."""
         k = len(env_ids)
         dev = self.device
         pos = torch.zeros(k, 3, device=dev)

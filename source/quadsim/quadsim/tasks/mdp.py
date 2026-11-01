@@ -190,21 +190,27 @@ def random_velocity_kick(env, env_ids, max_speed: float = 1.0) -> None:
 def attribute_curriculum(env, env_ids, attr: str, start: float, end: float, step: float, metric: str = "success",
                          threshold: float = 0.8, min_episodes: int = 256) -> float:
     """Moves the task config attribute ``attr`` from ``start`` toward ``end`` by ``step`` whenever the mean of
-    ``metric`` over the most recently finished episodes (``env.last_episode_metrics``) exceeds ``threshold``.
+    ``metric`` over at least ``min_episodes`` finished episodes *that started at the current level* exceeds
+    ``threshold`` (episodes still running when the level changes are not counted toward the new level).
     State lives on the env (``env.curriculum_state``), so it is checkpoint-agnostic and restarts at ``start``."""
     st = env.__dict__.setdefault("curriculum_state", {})
     if attr not in st:
-        st[attr] = {"value": start, "seen": 0}
+        st[attr] = {"value": start, "sum": 0.0, "count": 0,
+                    "episode_level": torch.full((env.num_envs,), float(start), device=env.device)}
         setattr(env.cfg, attr, start)
     s = st[attr]
-    s["seen"] += len(env_ids)
     m = env.last_episode_metrics.get(metric)
-    if m is not None and s["seen"] >= min_episodes:
-        vals = m[torch.isfinite(m)]
-        if len(vals) and vals.mean().item() > threshold and s["value"] != end:
+    if m is not None and len(env_ids):
+        v = m[env_ids]  # the episodes finishing now (``env_ids`` = played episodes)
+        v = v[torch.isfinite(v) & (s["episode_level"][env_ids] == s["value"])]
+        s["sum"] += float(v.sum())
+        s["count"] += len(v)
+    if s["count"] >= min_episodes and s["value"] != end:
+        if s["sum"] / s["count"] > threshold:
             s["value"] = min(s["value"] + step, end) if end > start else max(s["value"] - step, end)
-            s["seen"] = 0
             setattr(env.cfg, attr, s["value"])
+        s["sum"], s["count"] = 0.0, 0  # judge the next window on fresh episodes
+    s["episode_level"][env_ids] = s["value"]  # these envs start their next episode at the current level
     return s["value"]
 
 

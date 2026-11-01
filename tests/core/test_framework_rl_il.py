@@ -302,3 +302,30 @@ def test_offpolicy_resume_keeps_policy_and_config(tmp_path):
     assert b.random_until == 0 and b.update_from == 14  # refill with the loaded policy, no random actions
     oa = torch.randn(8, 3)
     assert torch.allclose(b.actor(oa), a.actor(oa))
+
+
+def _load_mdp():
+    """quadsim.tasks.mdp without importing quadsim.tasks (which needs Isaac Sim)."""
+    root = os.path.join(os.path.dirname(__file__), "..", "..", "source", "quadsim", "quadsim", "tasks", "mdp.py")
+    spec = importlib.util.spec_from_file_location("quadsim_mdp_for_tests", root)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_attribute_curriculum_judges_current_level_only():
+    """Success 95 % up to 0.6 rad initial tilt, 40 % above: the curriculum must stop at 0.75 rad, not run away on
+    the stale successes of envs whose episodes started at easier levels."""
+    mdp = _load_mdp()
+    torch.manual_seed(0)
+    n = 4096
+    env = types.SimpleNamespace(num_envs=n, device="cpu", cfg=types.SimpleNamespace(init_max_tilt=0.3),
+                                last_episode_metrics={"success": torch.full((n,), float("nan"))})
+    level_at_start = torch.full((n,), 0.3)
+    for _ in range(2000):  # reset batches of 64 finished episodes
+        ids = torch.randperm(n)[:64]
+        p = torch.where(level_at_start[ids] <= 0.6 + 1e-6, 0.95, 0.4)
+        env.last_episode_metrics["success"][ids] = (torch.rand(64) < p).float()
+        value = mdp.attribute_curriculum(env, ids, "init_max_tilt", 0.3, 1.2, 0.15)
+        level_at_start[ids] = env.cfg.init_max_tilt
+    assert value == pytest.approx(0.75)

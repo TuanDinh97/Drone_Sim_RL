@@ -5,9 +5,9 @@
 
 * reward: energy efficiency (``mdp.rotor_power``) and an upright bonus;
 * termination: leaving a 3 m box is a failure;
-* curriculum: the hover task's initial tilt grows from 0.3 rad to 1.2 rad whenever the recent success rate
-  exceeds 80 % (``mdp.attribute_curriculum`` changes ``cfg.init_max_tilt`` on the live config; logged as
-  ``Curriculum/init_tilt`` in TensorBoard).
+* curriculum: the hover task's initial tilt grows from 0.3 rad to 1.2 rad in 0.15 rad steps whenever the success
+  rate of at least 256 episodes started at the current level exceeds 80 % (``mdp.attribute_curriculum`` changes
+  ``cfg.init_max_tilt`` on the live config; logged as ``Curriculum/init_tilt`` in TensorBoard).
 """
 
 import gymnasium as gym

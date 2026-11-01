@@ -62,8 +62,8 @@ python scripts/rl/train.py --headless --task Quadsim-Example-Land-v0 --plugins e
 ## 5. Rewards, terminations, curricula without touching task code
 
 `examples/custom_reward_curriculum.py` adds an energy penalty and an upright bonus, a box termination and a
-curriculum that raises the initial tilt whenever the recent success rate exceeds 80 % (`Curriculum/init_tilt`
-in TensorBoard). Reusable term functions: `quadsim.tasks.mdp`.
+curriculum that raises the initial tilt whenever at least 256 episodes started at the current level succeed more
+than 80 % of the time (`Curriculum/init_tilt` in TensorBoard). Reusable term functions: `quadsim.tasks.mdp`.
 
 ## 6. A custom control interface
 

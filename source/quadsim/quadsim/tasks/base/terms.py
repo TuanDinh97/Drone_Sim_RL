@@ -9,7 +9,7 @@ Every task (``QuadrotorEnvCfg.terms``) accepts extra terms in the spirit of Isaa
     cfg.terms.terminations["ceiling"] = TerminationTermCfg(func=mdp.above_height, params={"height": 3.0})
     cfg.terms.costs["speed"] = CostTermCfg(func=mdp.speed_violation, params={"limit": 2.0})
     cfg.terms.events["gust"] = EventTermCfg(func=mdp.random_push, mode="interval", interval_steps=100)
-    cfg.terms.curricula["tilt"] = CurriculumTermCfg(func=mdp.init_tilt_curriculum, params={...})
+    cfg.terms.curricula["tilt"] = CurriculumTermCfg(func=mdp.attribute_curriculum, params={"attr": "init_max_tilt", ...})
 
 Conventions (identical to the built-in task terms):
 * policy-step rewards are ``weight * func(env) * step_dt`` (Isaac Lab convention); costs likewise
@@ -90,8 +90,9 @@ class EventTermCfg:
 @dataclass
 class CurriculumTermCfg:
     func: Callable = MISSING
-    """``func(env, env_ids, **params) -> float | None``, called before the reset of ``env_ids``; the returned value
-    is logged as ``Curriculum/<name>``. Finished-episode metrics are in ``env.last_episode_metrics``."""
+    """``func(env, env_ids, **params) -> float | None``, called before ``env_ids`` (the environments whose episode just
+    finished) are reset; their metrics are in ``env.last_episode_metrics[...][env_ids]``. The returned value is
+    logged as ``Curriculum/<name>``."""
     params: dict = field(default_factory=dict)
 
 
@@ -248,7 +249,7 @@ class TermManager:
         """Curricula (see finished-episode metrics) and episode-cost logging; returns log entries."""
         log = {}
         for k, c in self.cfg.curricula.items():
-            v = c.func(self.env, env_ids, **c.params)
+            v = c.func(self.env, env_ids[played], **c.params)
             if v is not None:
                 log[f"Curriculum/{k}"] = float(v)
         if self.has_costs:

@@ -71,7 +71,7 @@ term convention `func(env, **params)`:
 | `TerminationTermCfg` | failure, or truncation with `time_out=True` | |
 | `CostTermCfg` | constraint cost rate; episode cost in seconds of violation | `extras["cost"]`, metric `cost` |
 | `EventTermCfg` | `startup` / `reset` / `interval` randomization or perturbation | custom DR, pushes, wind |
-| `CurriculumTermCfg` | called before resets with the finished-episode metrics | `mdp.attribute_curriculum` |
+| `CurriculumTermCfg` | called before resets with the metrics of the episodes that just finished | `mdp.attribute_curriculum` (judges each level only on episodes started at that level) |
 
 `quadsim.tasks.mdp` is a library of reusable term functions (rangefinder, barometer, accelerometer, estimated
 position/velocity, ESC rotor speeds, energy, upright, box/height terminations, speed/tilt/altitude/keep-out costs,

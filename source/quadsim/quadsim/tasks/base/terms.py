@@ -8,7 +8,7 @@ Every task (``QuadrotorEnvCfg.terms``) accepts extra terms in the spirit of Isaa
     cfg.terms.rewards["energy"] = RewardTermCfg(func=mdp.rotor_power, weight=-1e-4)
     cfg.terms.terminations["ceiling"] = TerminationTermCfg(func=mdp.above_height, params={"height": 3.0})
     cfg.terms.costs["speed"] = CostTermCfg(func=mdp.speed_violation, params={"limit": 2.0})
-    cfg.terms.events["gust"] = EventTermCfg(func=mdp.random_push, mode="interval", interval_steps=100)
+    cfg.terms.events["bump"] = EventTermCfg(func=mdp.random_velocity_kick, mode="interval", interval_steps=100)
     cfg.terms.curricula["tilt"] = CurriculumTermCfg(func=mdp.attribute_curriculum, params={"attr": "init_max_tilt", ...})
 
 Conventions (identical to the built-in task terms):
@@ -218,7 +218,7 @@ class TermManager:
             jc = torch.cat(self._finished_costs).mean().item()
             self._finished_costs.clear()
             err = jc - s.cost_limit
-            self._i_term = max(0.0, self._i_term + s.ki * err)
+            self._i_term = min(max(0.0, self._i_term + s.ki * err), s.lambda_max)  # anti-windup
             d = max(0.0, jc - self._prev_cost)
             self._prev_cost = jc
             self.lagrange = min(max(0.0, s.kp * err + self._i_term + s.kd * d), s.lambda_max)
@@ -255,7 +255,8 @@ class TermManager:
         if self.has_costs:
             done = self.episode_cost[env_ids][played]
             if len(done):
-                self._finished_costs.append(done.clone())
+                if self.safety.lagrangian:  # consumed (and cleared) by the multiplier update
+                    self._finished_costs.append(done.clone())
                 log["Safety/episode_cost"] = done.mean().item()
             log["Safety/lambda"] = self.lagrange
             for k, v in self.cost_sums.items():

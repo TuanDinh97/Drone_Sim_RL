@@ -164,7 +164,8 @@ def keep_out_cylinder(env, center_xy: tuple[float, float], radius: float) -> tor
 
 # ============================================================================ events
 def randomize_wind_mean(env, env_ids, speed_range: tuple[float, float] = (0.0, 3.0)) -> None:
-    """Horizontal mean wind of random direction and speed for each new episode (adds to the configured wind)."""
+    """Horizontal mean wind of random direction and speed for each new episode. Replaces the episode's mean wind
+    and acts only when the wind model is enabled (``env.wind.enabled=True``)."""
     k = len(env_ids)
     th = torch.rand(k, device=env.device) * 2 * torch.pi
     s = speed_range[0] + (speed_range[1] - speed_range[0]) * torch.rand(k, device=env.device)

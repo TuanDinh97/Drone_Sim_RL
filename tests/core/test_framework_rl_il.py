@@ -365,3 +365,27 @@ def test_export_policy_leaves_the_callers_module_untouched(tmp_path):
     rep = export_policy(actor, {"task": "test"}, str(tmp_path), torch.randn(4, 5))
     assert actor.training  # export works on a copy (eval mode, CPU)
     assert os.path.exists(rep["onnx"]) and rep.get("verified", True)
+
+
+def test_cost_logging_without_lagrangian_does_not_accumulate():
+    env = _FakeEnv(4)
+    cfg = terms.TermsCfg(costs={"c": terms.CostTermCfg(func=lambda e: torch.ones(e.num_envs))})
+    tm = terms.TermManager(env, cfg, terms.SafetyCfg(lagrangian=False))
+    for _ in range(100):
+        tm.compute_cost()
+        log = tm.before_reset(torch.arange(4), torch.ones(4, dtype=torch.bool))
+    assert "Safety/episode_cost" in log and len(tm._finished_costs) == 0
+
+
+def test_lagrangian_integral_anti_windup():
+    env = _FakeEnv(4)
+    cfg = terms.TermsCfg(costs={"c": terms.CostTermCfg(func=lambda e: torch.ones(e.num_envs))})
+    safety = terms.SafetyCfg(lagrangian=True, cost_limit=0.5, ki=10.0, lambda_max=5.0, update_period_steps=1)
+    tm = terms.TermManager(env, cfg, safety)
+    for _ in range(50):  # long violation: the integral must not grow beyond lambda_max ...
+        tm._finished_costs.append(torch.ones(4))
+        tm.shape_reward(torch.zeros(4))
+    assert tm._i_term <= 5.0 and tm.lagrange == 5.0
+    tm._finished_costs.append(torch.zeros(4))  # ... so that lambda reacts as soon as the constraint holds
+    tm.shape_reward(torch.zeros(4))
+    assert tm.lagrange < 5.0

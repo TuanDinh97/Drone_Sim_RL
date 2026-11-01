@@ -67,10 +67,10 @@ term convention `func(env, **params)`:
 | Term | Effect | Notes |
 |---|---|---|
 | `ObsTermCfg` | appended to the `policy` (deployable) or `critic` (`privileged=True`) observation | `noise_std`, `period_steps` (sensor rate, sample-and-hold), `delay_steps` (latency), `scale`, `clip`; history reset per episode |
-| `RewardTermCfg` | `weight * func * step_dt` added to the task reward, logged per term | |
+| `RewardTermCfg` | `weight * func * step_dt` added to the task reward, logged per term | names must differ from the task's own reward terms |
 | `TerminationTermCfg` | failure, or truncation with `time_out=True` | |
 | `CostTermCfg` | constraint cost rate; episode cost in seconds of violation | `extras["cost"]`, metric `cost` |
-| `EventTermCfg` | `startup` / `reset` / `interval` randomization or perturbation | custom DR, pushes, wind |
+| `EventTermCfg` | `startup` / `reset` / `interval` randomization or perturbation | custom DR, velocity kicks, mean wind (needs the wind model enabled) |
 | `CurriculumTermCfg` | called before resets with the metrics of the episodes that just finished | `mdp.attribute_curriculum` (judges each level only on episodes started at that level) |
 
 `quadsim.tasks.mdp` is a library of reusable term functions (rangefinder, barometer, accelerometer, estimated
@@ -156,7 +156,10 @@ Neighbour information in the policy observation comes from the other agents' *es
 Cost terms produce per-step cost rates; `SafetyCfg(lagrangian=True, cost_limit=...)` turns any algorithm into its
 Lagrangian variant: the environment returns `(r - λ c) / (1 + λ)` and updates `λ ≥ 0` with a PID rule on the mean
 episode cost of finished episodes (Stooke et al. 2020). The raw reward and cost remain in `extras`, the multiplier
-is logged as `Safety/lambda`. (This is the reward-penalty form without a separate cost critic.)
+is logged as `Safety/lambda`. (This is the reward-penalty form without a separate cost critic.) The multiplier lives
+in the environment: it is not stored in checkpoints (a resumed run restarts from `lambda_init`), and an off-policy
+replay buffer keeps rewards shaped with earlier multipliers; the published PPO-Lagrangian runs are on-policy and
+were not resumed.
 
 ## Learning algorithms
 

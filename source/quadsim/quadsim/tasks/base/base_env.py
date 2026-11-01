@@ -433,7 +433,12 @@ class QuadrotorEnv(DirectRLEnv):
     def _get_rewards(self) -> torch.Tensor:
         terms = self._compute_task_reward()
         if self.terms.cfg.rewards:
-            terms.update(self.terms.rewards())
+            extra = self.terms.rewards()
+            clash = terms.keys() & extra.keys()
+            if clash:
+                raise ValueError(f"reward terms {sorted(clash)} already exist in the task's reward; configured terms "
+                                 "are added to it and need their own names")
+            terms.update(extra)
         reward = torch.zeros(self.num_envs, device=self.device)
         for k, v in terms.items():
             reward += v

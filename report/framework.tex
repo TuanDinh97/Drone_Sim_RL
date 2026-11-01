@@ -126,6 +126,15 @@ benchmark exposes a property that the in-distribution number hides. TD3 with the
 \item \textbf{Generality (\cref{tab:fw_vehicles}).} A six-rotor vehicle generated from a frame description trains to
 99.8\,\% with the unchanged task, and the extension examples (vehicle files, sensor terms, a new task, a new control
 interface, a new algorithm) run through the unmodified scripts.
+\item \textbf{Racing (\cref{tab:fw_race}).} PPO completes two laps on 95\,\% of unseen random circuits at
+\SI{11.8}{m/s} mean speed (\SI{2.4}{s} per lap), transfers to a fixed reference circuit and to wind, but fails
+completely on the figure-8: the training circuits only turn counter-clockwise, the figure-8 alternates directions.
+The classical cascade with gate-aligned waypoints passes about 6 of 14 gates in the episode (15\,s per lap, 40\,\%
+crashes); its first version (straight to the gate centre) crashed into the frames in 99\,\% of the episodes.
+\item \textbf{Multi-agent (\cref{tab:fw_swarm}).} The shared PPO policy coordinates four agents through the
+antipodal swap (agent collisions 45\,\% for uncoordinated straight lines, 0.4\,\% for PPO) and is 3.4 times faster
+than a tuned potential field, which is, however, more reliable (100 vs 87.5\,\% group success). The potential field's
+gains were selected on the training scenario after its first setting failed (0\,\%, 53\,\% collisions).
 \item \textbf{Constraints (\cref{tab:fw_safe}).} The Lagrangian keeps the over-speed time below its budget
 (0.082 vs \SI{0.1}{s}) while the unconstrained policy spends \SI{5.3}{s} per course above the limit; the price is a
 slower course and a lower completion rate within the episode limit.

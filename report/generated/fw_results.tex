@@ -34,6 +34,20 @@ PPO-Lagrangian (PID multiplier) & 87.7\,\% & 0.082\,$\pm$\,0.017 & 11.86\,$\pm$\
 \bottomrule\end{tabular}}
 \end{table}
 
+\begin{table}[!htbp]\centering\small\caption{Drone racing (2 laps, 7 gates, 5-inch racer); trained on random circuits. Source: \texttt{bench\_race.json}.}\label{tab:fw_race}
+\resizebox{\linewidth}{!}{\begin{tabular}{llcccc}\toprule
+Controller & Condition & success & lap\_time & gates\_passed & crash\\\midrule
+cascade & random\_tracks (id) & 0.7\,\% & 15.09\,$\pm$\,0.33 & 5.72\,$\pm$\,0.27 & 40.0\,\%\\
+cascade & ellipse (ood) & 0.0\,\% & 15.00\,$\pm$\,0.31 & 6.76\,$\pm$\,0.27 & 21.1\,\%\\
+cascade & figure8 (ood) & 0.0\,\% & 18.40\,$\pm$\,0.17 & 5.91\,$\pm$\,0.22 & 18.9\,\%\\
+cascade & wind (ood) & 0.7\,\% & 15.20\,$\pm$\,0.32 & 5.81\,$\pm$\,0.27 & 38.6\,\%\\
+ppo & random\_tracks (id) & 95.2\,\% & 2.44\,$\pm$\,0.01 & 13.49\,$\pm$\,0.21 & 4.8\,\%\\
+ppo & ellipse (ood) & 99.6\,\% & 2.49\,$\pm$\,0.01 & 13.96\,$\pm$\,0.06 & 0.4\,\%\\
+ppo & figure8 (ood) & 0.0\,\% & 3.78 & 1.00\,$\pm$\,0.09 & 100.0\,\%\\
+ppo & wind (ood) & 94.2\,\% & 2.45\,$\pm$\,0.02 & 13.42\,$\pm$\,0.22 & 5.8\,\%\\
+\bottomrule\end{tabular}}
+\end{table}
+
 \begin{table}[!htbp]\centering\small\caption{Imitation learning. Hover: RL-to-BC distillation (last column: final position error [cm]). LangNav: success with training / held-out instruction phrasings and wrong-landmark rate (training phrasing). Source: \texttt{imitation.json}.}\label{tab:fw_il}
 \resizebox{\linewidth}{!}{\begin{tabular}{llccc}\toprule
 Task & Policy & Success (train phr.) & Success (held-out) & Wrong / pos. err\\\midrule
@@ -47,6 +61,10 @@ langnav (map) & BC, no last action & 81.0\,\% & 34.4\,\% & 0.0\,\%\\
 langnav (map) & + unknown words ignored & 81.0\,\% & 65.3\,\% & 0.0\,\%\\
 langnav (map) & + DAgger round 1 & 100.0\,\% & 54.5\,\% & 0.0\,\%\\
 langnav (map) & + DAgger round 2 & 100.0\,\% & 59.7\,\% & 0.0\,\%\\
+langnav (map) & same data, frozen CLIP text encoder & 100.0\,\% & 99.8\,\% & 0.0\,\%\\
+langnav (RGB) & scripted expert (privileged) & 100.0\,\% & -- & 0.0\,\%\\
+langnav (RGB) & BC, FiLM-CNN + instruction & 82.3\,\% & 90.0\,\% & 0.0\,\%\\
+langnav (RGB) & + DAgger round 1 & 100.0\,\% & 100.0\,\% & 0.0\,\%\\
 \bottomrule\end{tabular}}
 \end{table}
 

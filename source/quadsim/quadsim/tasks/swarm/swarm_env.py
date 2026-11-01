@@ -206,9 +206,10 @@ class SwarmEnv(QuadrotorEnv):
 
 class SwarmPotentialBaseline:
     """Classical decentralized baseline (velocity mode): goal attraction + inverse-distance repulsion from the
-    communicated positions of the other group members (artificial potential field)."""
+    communicated positions of the other group members (artificial potential field). Gains from a 3-point sweep on the
+    4-agent swap (influence 1.5 m: 0 % success / 53 % collisions; 2.5 m: 100 % / 0 %; docs/PROGRESS.md)."""
 
-    def __init__(self, env, speed: float = 1.5, influence: float = 1.5, k_rep: float = 2.0):
+    def __init__(self, env, speed: float = 1.5, influence: float = 2.5, k_rep: float = 4.0):
         self.env, self.speed, self.influence, self.k_rep = env, speed, influence, k_rep
 
     def reset(self, env_ids=None):

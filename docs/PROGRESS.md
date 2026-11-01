@@ -504,7 +504,29 @@ validated core. Architecture: `docs/FRAMEWORK.md`; recipes: `docs/TUTORIALS.md`;
 - Constrained waypoint racing (speed ≤ 2 m/s, budget 0.1 s of over-speed flight per episode, PID Lagrangian,
   1500 iterations): PPO-Lagrangian **episode cost 0.082 s**, success 87.7 %, 0 % crash, 11.9 s per course;
   unconstrained PPO: cost **5.31 s**, success 99.4 %, 6.6 s; cascade: 6.48 s, 92.8 %. λ settled at ≈ 19.
-- Racing and multi-agent: see the results added below when the queued trainings finish.
+- Drone racing (`Quadsim-Race-v0`, 5-inch racer, CTBR, 2 laps × 7 gates, random elliptic counter-clockwise
+  circuits, PPO 2000 iterations / 25 min; suite `race`, 500 episodes per cell, `docs/results/framework/bench_race.json`):
+  | controller | random circuits (id) | fixed ellipse (ood) | figure-8 (ood) | wind (ood) |
+  |---|---|---|---|---|
+  | PPO success / lap time | **95.2 %** / 2.44 s | 99.6 % / 2.49 s | **0 %** (1 gate, then crash) | 94.2 % / 2.45 s |
+  | cascade (gate-aligned waypoints) success / gates passed | 0.7 % / 5.7 of 14 (40 % crash, 15 s per lap) | 0 % / 6.8 | 0 % / 5.9 | 0.7 % / 5.8 |
+  PPO flies at 11.8 m/s mean speed. The figure-8 failure is a generalization gap the benchmark exposes: the training
+  circuits only turn counter-clockwise, the figure-8 alternates turning directions. Follow-up `Quadsim-Race-v1`
+  (circuits of both directions) — results below. The first cascade racing baseline (straight to the gate centre)
+  crashed into the frames in 99 % of the episodes; the gate-aligned version (approach point 1.5 m in front of the gate,
+  then along the normal) is the one reported.
+- Multi-agent swap (`Quadsim-Swarm-v0`: 4 x500 agents per group, velocity interface, shared policy, centralized critic,
+  PPO 1500 iterations / 4096 envs = 1024 groups; suite `swarm`, 256 episodes per cell = 64 groups):
+  | controller | group success id / wind / latency | agent collisions (id) | min. separation | time to goal |
+  |---|---|---|---|---|
+  | PPO (shared policy) | 87.5 / 89.8 / 80.5 % | 0.4 % | 1.39 m | **2.0 s** |
+  | artificial potential field (tuned) | **100 / 96.9 / 96.1 %** | 0 % | — | 6.9 s |
+  | straight lines (cascade, no coordination) | 18.3 / 0 / 19.4 % | 44.6 % | 0.90 m | 2.2 s |
+  Honest reading: the learned policy coordinates (collisions 45 % → 0.4 %) and is 3.4× faster than the potential field,
+  but the tuned potential field is more reliable in this symmetric scenario. The potential field's first gains
+  (influence 1.5 m) gave 0 % success with 53 % collisions (closing speed too high for the velocity-loop lag); its gains
+  were then chosen from a 3-point sweep on the training scenario (influence 2.5 m, k_rep 4) — so the baseline had
+  scenario-specific tuning that the policy did not get.
 
 ### F4 — imitation learning and VLA ✅
 - RL → BC distillation (hover, 1021 successful PPO episodes, 407 k transitions): BC **99.9 %, 1.44 cm** (teacher

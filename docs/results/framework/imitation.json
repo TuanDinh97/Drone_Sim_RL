@@ -754,9 +754,361 @@
         "_source": "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_dagger2.json",
         "_overrides": []
       }
+    },
+    "langnav_sym_dagger2_clip": {
+      "Quadsim-LangNav-v0": {
+        "crash": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 500
+        },
+        "time_out": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 500
+        },
+        "episode_length_s": {
+          "mean": 2.9408399310112,
+          "ci95": 0.0495171639012363,
+          "n": 500
+        },
+        "success": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 500
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 500
+        },
+        "pillar_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 500
+        },
+        "time_to_success": {
+          "mean": 2.9408399310112,
+          "ci95": 0.0495171639012363,
+          "n": 500
+        },
+        "layout_min_separation": {
+          "mean": 1.9537422223091125,
+          "ci95": 0.03333846565995828,
+          "n": 500
+        },
+        "target_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 500
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_dagger2_clip.json",
+        "_overrides": []
+      },
+      "Quadsim-LangNav-Heldout-v0": {
+        "crash": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 501
+        },
+        "time_out": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 501
+        },
+        "episode_length_s": {
+          "mean": 2.9975648066716754,
+          "ci95": 0.05204314496702026,
+          "n": 501
+        },
+        "success": {
+          "mean": 0.998003992015968,
+          "ci95": 0.00390826933155401,
+          "n": 501
+        },
+        "wrong_landmark": {
+          "mean": 0.001996007984031936,
+          "ci95": 0.00390826933155401,
+          "n": 501
+        },
+        "pillar_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 501
+        },
+        "time_to_success": {
+          "mean": 2.9977199366092684,
+          "ci95": 0.05214634305127021,
+          "n": 500
+        },
+        "layout_min_separation": {
+          "mean": 1.9462407667955715,
+          "ci95": 0.032954740175972386,
+          "n": 501
+        },
+        "target_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 501
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-Heldout-v0_langnav_sym_dagger2_clip.json",
+        "_overrides": []
+      }
     }
   },
-  "langnav_rgb": {},
+  "langnav_rgb": {
+    "expert": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "time_out": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "episode_length_s": {
+          "mean": 2.8778736892332666,
+          "ci95": 0.06350978422357556,
+          "n": 301
+        },
+        "success": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "pillar_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "time_to_success": {
+          "mean": 2.8778736892332666,
+          "ci95": 0.06350978422357556,
+          "n": 301
+        },
+        "layout_min_separation": {
+          "mean": 1.9253976020306052,
+          "ci95": 0.04219544836358872,
+          "n": 301
+        },
+        "target_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-v0_expert.json",
+        "_overrides": []
+      }
+    },
+    "langnav_rgb_bc": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.17666666666666667,
+          "ci95": 0.043157929446094534,
+          "n": 300
+        },
+        "time_out": {
+          "mean": 0.8233333333333334,
+          "ci95": 0.043157929446094534,
+          "n": 300
+        },
+        "episode_length_s": {
+          "mean": 3.436733251810074,
+          "ci95": 0.10732856691244085,
+          "n": 300
+        },
+        "success": {
+          "mean": 0.8233333333333334,
+          "ci95": 0.043157929446094534,
+          "n": 300
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 300
+        },
+        "pillar_collision": {
+          "mean": 0.17666666666666667,
+          "ci95": 0.043157929446094534,
+          "n": 300
+        },
+        "time_to_success": {
+          "mean": 3.289311662376651,
+          "ci95": 0.1149885160371266,
+          "n": 247
+        },
+        "layout_min_separation": {
+          "mean": 1.9120652655760446,
+          "ci95": 0.041626627080362764,
+          "n": 300
+        },
+        "target_collision": {
+          "mean": 0.17,
+          "ci95": 0.04250685278085562,
+          "n": 300
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-v0_langnav_rgb_bc.json",
+        "_overrides": []
+      },
+      "Quadsim-LangNav-RGB-Heldout-v0": {
+        "crash": {
+          "mean": 0.09966777408637874,
+          "ci95": 0.03384165554859554,
+          "n": 301
+        },
+        "time_out": {
+          "mean": 0.9003322259136213,
+          "ci95": 0.03384165554859554,
+          "n": 301
+        },
+        "episode_length_s": {
+          "mean": 3.4793354660965674,
+          "ci95": 0.1012907647724627,
+          "n": 301
+        },
+        "success": {
+          "mean": 0.9003322259136213,
+          "ci95": 0.03384165554859554,
+          "n": 301
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "pillar_collision": {
+          "mean": 0.09966777408637874,
+          "ci95": 0.03384165554859554,
+          "n": 301
+        },
+        "time_to_success": {
+          "mean": 3.425387370630384,
+          "ci95": 0.10311662354402429,
+          "n": 271
+        },
+        "layout_min_separation": {
+          "mean": 1.940867707974887,
+          "ci95": 0.04178679087963389,
+          "n": 301
+        },
+        "target_collision": {
+          "mean": 0.08970099667774087,
+          "ci95": 0.032282227328912845,
+          "n": 301
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_langnav_rgb_bc.json",
+        "_overrides": []
+      }
+    },
+    "langnav_rgb_dagger1": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 300
+        },
+        "time_out": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 300
+        },
+        "episode_length_s": {
+          "mean": 2.9011332654953,
+          "ci95": 0.06637609676098745,
+          "n": 300
+        },
+        "success": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 300
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 300
+        },
+        "pillar_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 300
+        },
+        "time_to_success": {
+          "mean": 2.9011332654953,
+          "ci95": 0.06637609676098745,
+          "n": 300
+        },
+        "layout_min_separation": {
+          "mean": 1.908661098877589,
+          "ci95": 0.04235770491089892,
+          "n": 300
+        },
+        "target_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 300
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-v0_langnav_rgb_dagger1.json",
+        "_overrides": []
+      },
+      "Quadsim-LangNav-RGB-Heldout-v0": {
+        "crash": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "time_out": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "episode_length_s": {
+          "mean": 3.1034550785622326,
+          "ci95": 0.06891320744964782,
+          "n": 301
+        },
+        "success": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "pillar_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "time_to_success": {
+          "mean": 3.1034550785622326,
+          "ci95": 0.06891320744964782,
+          "n": 301
+        },
+        "layout_min_separation": {
+          "mean": 1.927006138123547,
+          "ci95": 0.040426796725979514,
+          "n": 301
+        },
+        "target_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 301
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_langnav_rgb_dagger1.json",
+        "_overrides": []
+      }
+    }
+  },
   "datasets": {
     "hover_ppo_expert.h5": {
       "file": "datasets/il/hover_ppo_expert.h5",
@@ -780,6 +1132,54 @@
         "true/quat"
       ],
       "wall_s": 44.381059408187866
+    },
+    "langnav_rgb_dagger1.h5": {
+      "file": "datasets/il/langnav_rgb_dagger1.h5",
+      "task": "Quadsim-LangNav-RGB-v0",
+      "expert": "langnav_expert",
+      "episodes": 1024,
+      "episodes_seen": 1024,
+      "transitions": 175127,
+      "mean_length": 171.0224609375,
+      "success_rate": 0.83203125,
+      "distinct_instructions": 32,
+      "keys": [
+        "action",
+        "est/odom",
+        "image",
+        "obs/critic",
+        "obs/policy",
+        "reward",
+        "true/ang_vel_b",
+        "true/lin_vel_w",
+        "true/pos",
+        "true/quat"
+      ],
+      "wall_s": 137.24634861946106
+    },
+    "langnav_rgb_expert.h5": {
+      "file": "datasets/il/langnav_rgb_expert.h5",
+      "task": "Quadsim-LangNav-RGB-v0",
+      "expert": "langnav_expert",
+      "episodes": 2048,
+      "episodes_seen": 2048,
+      "transitions": 297675,
+      "mean_length": 145.34912109375,
+      "success_rate": 1.0,
+      "distinct_instructions": 32,
+      "keys": [
+        "action",
+        "est/odom",
+        "image",
+        "obs/critic",
+        "obs/policy",
+        "reward",
+        "true/ang_vel_b",
+        "true/lin_vel_w",
+        "true/pos",
+        "true/quat"
+      ],
+      "wall_s": 211.65923881530762
     },
     "langnav_sym_dagger1.h5": {
       "file": "datasets/il/langnav_sym_dagger1.h5",
@@ -852,6 +1252,32 @@
     }
   },
   "lerobot_exports": {
+    "langnav_rgb": {
+      "source": "/home/tuan/Desktop/drone_ws/.claude/worktrees/frosty-swartz-ab3133/datasets/il/langnav_rgb_expert.h5",
+      "out": "/home/tuan/Desktop/drone_ws/.claude/worktrees/frosty-swartz-ab3133/datasets/lerobot/langnav_rgb",
+      "repo_id": "quadsim/langnav_rgb",
+      "lerobot_codebase_version": "v3.0",
+      "fps": 50,
+      "episodes": 300,
+      "frames": 42199,
+      "expected_frames": 42199,
+      "features": [
+        "observation.state",
+        "action",
+        "observation.images.front",
+        "timestamp",
+        "frame_index",
+        "episode_index",
+        "index",
+        "task_index"
+      ],
+      "num_tasks": 32,
+      "max_abs_err_state_action": 0.0,
+      "images_identical": true,
+      "tasks_match": true,
+      "export_wall_s": 46.572265625,
+      "pass": true
+    },
     "langnav_sym": {
       "source": "/home/tuan/Desktop/drone_ws/.claude/worktrees/frosty-swartz-ab3133/datasets/il/langnav_sym_expert.h5",
       "out": "/home/tuan/Desktop/drone_ws/.claude/worktrees/frosty-swartz-ab3133/datasets/lerobot/langnav_sym",

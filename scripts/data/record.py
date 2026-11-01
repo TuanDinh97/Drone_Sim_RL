@@ -37,7 +37,7 @@ import torch  # noqa: E402
 import quadsim.tasks  # noqa: E402,F401
 from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
 from quadsim.data.recorder import EpisodeRecorder, load  # noqa: E402
-from quadsim.tasks.baselines import BASELINES  # noqa: E402
+from quadsim.registry import BASELINES  # noqa: E402
 
 
 def main():
@@ -49,12 +49,12 @@ def main():
     env = gym.make(args.task, cfg=cfg)
     u = env.unwrapped
     if args.checkpoint:
-        from quadsim.rl.policy_io import load_policy
+        from quadsim.rl.algorithms import load_any_policy as load_policy
 
         policy = load_policy(args.checkpoint, env, task=args.task)
         ctrl_name = "policy"
     else:
-        ctrl = BASELINES[args.controller](u)
+        ctrl = BASELINES.get(args.controller)(u)
         ctrl_name = args.controller
         policy = None
     os.makedirs("datasets", exist_ok=True)

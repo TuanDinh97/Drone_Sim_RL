@@ -24,6 +24,8 @@ parser.add_argument("--video", action="store_true")
 parser.add_argument("--out", default="outputs/videos")
 parser.add_argument("--no_follow", action="store_true", help="fixed camera at the env origin instead of a chase camera")
 parser.add_argument("--seed", type=int, default=0)
+parser.add_argument("--algo", default=None, help="algorithm of --checkpoint (default: inferred)")
+parser.add_argument("--plugins", nargs="*", default=[])
 AppLauncher.add_app_launcher_args(parser)
 args, overrides = parser.parse_known_args()
 app = AppLauncher(args).app
@@ -35,13 +37,14 @@ import quadsim.tasks  # noqa: E402,F401
 from isaaclab.envs import ViewerCfg  # noqa: E402
 from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
 from quadsim.rl.overrides import apply_overrides  # noqa: E402
-from quadsim.rl.policy_io import agent_cfg_for, latest_checkpoint, load_policy  # noqa: E402
-from quadsim.tasks.baselines import BASELINES  # noqa: E402
+from quadsim.registry import BASELINES, import_plugins  # noqa: E402
+from quadsim.rl.algorithms import load_any_policy  # noqa: E402
 
 
 def main():
+    import_plugins(args.plugins)
     cfg = parse_env_cfg(args.task, device=args.device, num_envs=args.num_envs)
-    apply_overrides(cfg, agent_cfg_for(args.task), overrides)
+    apply_overrides(cfg, None, overrides)
     cfg.seed = args.seed
     cfg.debug_vis = True
     # start with a fixed origin: following an asset during start-up reads PhysX poses before they exist
@@ -58,12 +61,11 @@ def main():
     if not args.no_follow and u.viewport_camera_controller is not None:
         u.viewport_camera_controller.update_view_to_asset_root("robot")  # chase camera, now that physics is live
     if args.checkpoint:
-        ckpt = args.checkpoint if args.checkpoint.endswith(".pt") else latest_checkpoint(args.checkpoint)
-        pol = load_policy(ckpt, env, task=args.task)
+        pol = load_any_policy(args.checkpoint, env, task=args.task, algo=args.algo)
         obs, _ = env.reset()
         act = lambda o: pol(o)  # noqa: E731
     else:
-        ctrl = BASELINES[args.controller](u)
+        ctrl = BASELINES.get(args.controller)(u)
         act = lambda o: ctrl()  # noqa: E731
     step = 0
     while app.is_running() and step < args.steps:

@@ -116,7 +116,11 @@ class BCPolicy(nn.Module):
 
 def train_bc(policy: BCPolicy, train, val=None, epochs: int = 30, batch_size: int = 1024, lr: float = 1e-3,
              device="cuda:0", log=print, weight_decay: float = 1e-5) -> dict:
-    """Supervised regression of the expert action (MSE), Adam + cosine schedule; returns the loss history."""
+    """Supervised regression of the expert action (MSE), Adam + cosine schedule; returns the loss history.
+
+    Low-dimensional data live on the GPU; camera frames stay in (pinned) host memory and are transferred per batch,
+    so datasets larger than the GPU memory train. Instruction embeddings are a small table indexed per transition
+    (``train.text_table`` (I, D), ``train.text_idx`` (N,))."""
     policy.to(device).train()
     policy.set_normalizer(train.obs.to(device))
     opt = torch.optim.AdamW(policy.parameters(), lr, weight_decay=weight_decay)
@@ -125,14 +129,19 @@ def train_bc(policy: BCPolicy, train, val=None, epochs: int = 30, batch_size: in
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, steps)
     hist = {"train": [], "val": []}
     obs, act = train.obs.to(device), train.action.to(device)
-    img = train.image.to(device) if (train.image is not None and policy.cnn is not None) else None
-    temb = train.text_emb.to(device) if policy.text_proj is not None else None
+    img = train.image if (train.image is not None and policy.cnn is not None) else None
+    if img is not None and str(device).startswith("cuda") and not img.is_pinned():
+        img = img.pin_memory()
+    table = train.text_table.to(device) if policy.text_proj is not None else None
+    tidx = train.text_idx.to(device) if policy.text_proj is not None else None
     for ep in range(epochs):
-        perm = torch.randperm(n, device=device)
+        perm = torch.randperm(n)
+        perm_d = perm.to(device)
         tot = 0.0
         for i in range(0, n - batch_size + 1, batch_size):
-            b = perm[i: i + batch_size]
-            pred = policy(obs[b], img[b] if img is not None else None, temb[b] if temb is not None else None)
+            b = perm_d[i: i + batch_size]
+            im = img[perm[i: i + batch_size]].to(device, non_blocking=True) if img is not None else None
+            pred = policy(obs[b], im, table[tidx[b]] if table is not None else None)
             loss = (pred - act[b]).square().mean()
             opt.zero_grad(set_to_none=True)
             loss.backward()
@@ -155,7 +164,7 @@ def evaluate_bc_loss(policy, ds, device, batch_size=4096):
     for i in range(0, n, batch_size):
         o = ds.obs[i: i + batch_size].to(device)
         im = ds.image[i: i + batch_size].to(device) if (ds.image is not None and policy.cnn is not None) else None
-        te = ds.text_emb[i: i + batch_size].to(device) if policy.text_proj is not None else None
+        te = ds.text_table[ds.text_idx[i: i + batch_size]].to(device) if policy.text_proj is not None else None
         tot += (policy(o, im, te) - ds.action[i: i + batch_size].to(device)).square().sum().item()
     policy.train()
     return tot / (n * ds.action.shape[1])

@@ -92,9 +92,8 @@ class QuadrotorEnv(DirectRLEnv):
         self.fc = FlightController(p, c, n, self.physics_dt, dev, thrust_gain_enabled=r.thrust_gain_scale is not None)
         self.action_iface = self._iface_cls(self.fc)
         # aliases (baselines, validation scripts and tasks use them)
-        self.mixer, self.rate_ctrl, self.att_ctrl, self.pos_ctrl = fc_parts = (
+        self.mixer, self.rate_ctrl, self.att_ctrl, self.pos_ctrl = (
             self.fc.mixer, self.fc.rate_ctrl, self.fc.att_ctrl, self.fc.pos_ctrl)
-        del fc_parts
         self.max_rate, self.max_vel, self.t_max_nominal = self.fc.max_rate, self.fc.max_vel, self.fc.t_max_nominal
         self.thrust_gain = self.fc.thrust_gain
         self.action_dim = gym.spaces.flatdim(self.single_action_space)

@@ -23,6 +23,7 @@ Problems met while building and validating quadsim, with their fixes.
 | A multi-task smoke test fails on the 2nd/3rd task with a PhysX backend error | run tasks in separate processes (`--tasks` one at a time) |
 | Measurements right after `sim.reset()` are off | reset performs two warm-up physics steps; re-write the root state before measuring |
 | Evaluation numbers differ slightly between `evaluate.py --controllers a b` and separate runs | a controller evaluated after another in the same process starts from a different simulator/RNG state; benchmark suites run every controller in a fresh process (cascade hover: 88.7 % vs 89.8 %, within the CI) |
+| One unit test fails only while a training runs | the CUDA variant of `test_raycast_warp` needs free GPU memory; run `CUDA_VISIBLE_DEVICES= pytest tests/core` (CPU only) or on an idle GPU |
 | `--num_envs` silently lower than the task default | `quadsim.utils.hardware` lowered it because the free GPU memory would not fit; pass `--num_envs` explicitly to override |
 
 ## Learning

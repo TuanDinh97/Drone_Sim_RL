@@ -35,6 +35,8 @@ class RaceEnvCfg(QuadrotorEnvCfg):
     laps: int = 2
     track: str = "random"
     """random | ellipse | figure8"""
+    random_direction: bool = False
+    """random circuits: also clockwise (mirrored) circuits, i.e. both turning directions (v1)"""
     radius_x: tuple[float, float] = (4.0, 7.0)
     radius_y: tuple[float, float] = (3.0, 5.0)
     gate_height_range: tuple[float, float] = (1.3, 2.5)
@@ -210,6 +212,9 @@ class RaceEnv(QuadrotorEnv):
             z = lo + (hi - lo) * rnd(k, g)
         x, y = a * torch.cos(th), b * torch.sin(th)
         dx, dy = -a * torch.sin(th), b * torch.cos(th)
+        if cfg.track == "random" and cfg.random_direction:  # mirror half of the circuits: clockwise laps
+            sgn = torch.where(rnd(k, 1) < 0.5, -1.0, 1.0)
+            y, dy = y * sgn, dy * sgn
         cr, sr = torch.cos(rot), torch.sin(rot)
         pos = torch.stack([cr * x - sr * y, sr * x + cr * y, z], -1)
         pos[..., :2] += jit_p
@@ -246,10 +251,17 @@ class RaceEnv(QuadrotorEnv):
 
     # ------------------------------------------------------------------ baselines / visualization
     def baseline_targets(self):
-        """Classical baseline: fly through the target gate centre along its normal at ``baseline_speed``."""
-        c, n, _ = self.gate_frames(self.target)
-        z = torch.zeros_like(c)
-        return c + 0.5 * n, n * getattr(self, "baseline_speed", 3.0), z, self.gate_yaw[self._ar, self.target]
+        """Classical baseline (gate-aligned waypoints): first an approach point ``approach`` m in front of the target
+        gate on its axis, then, once on the axis, through the centre along the normal at ``baseline_speed``."""
+        c, n, lat = self.gate_frames(self.target)
+        rel = self.est_pos() - c
+        x = (rel * n).sum(-1)
+        off = torch.maximum((rel * lat).sum(-1).abs(), rel[:, 2].abs())
+        approach = getattr(self, "baseline_approach", 1.5)
+        aligned = (x > -approach - 0.3) & (off < 0.25)
+        pos = torch.where(aligned[:, None], c + 1.0 * n, c - approach * n)
+        vel = torch.where(aligned[:, None], n * getattr(self, "baseline_speed", 3.0), torch.zeros_like(n))
+        return pos, vel, torch.zeros_like(c), self.gate_yaw[self._ar, self.target]
 
     def debug_points(self):
         c, _, _ = self.gate_frames(self.target)

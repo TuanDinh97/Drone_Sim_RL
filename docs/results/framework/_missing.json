@@ -5,6 +5,5 @@
   "logs/eval/vehicles/Quadsim-Hover-v0_accel_s42.json",
   "logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json",
   "logs/eval/vehicles/Quadsim-Example-Land-v0_land_s42.json",
-  "benchmark race",
   "benchmark swarm"
 ]

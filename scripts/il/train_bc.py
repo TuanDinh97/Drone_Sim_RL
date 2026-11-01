@@ -66,8 +66,11 @@ def main():
         texts = sorted(set(tr.instructions) | set(va.instructions))
         cache = dict(zip(texts, enc.embed(texts)))
         emb_dim = enc.out_dim
+        table = torch.stack([cache[t] for t in texts])
+        index = {t: i for i, t in enumerate(texts)}
         for d in (tr, va):
-            d.text_emb = torch.stack([cache[t] for t in d.instructions]) if len(d) else torch.zeros(0, emb_dim)
+            d.text_table = table
+            d.text_idx = torch.tensor([index[t] for t in d.instructions], dtype=torch.long)
         print(f"[bc] text encoder {args.text_encoder}: {len(texts)} instructions -> {emb_dim}-d embeddings")
     pol = BCPolicy(tr.obs_layout, tr.action.shape[1], vocab, img_shape, tuple(args.hidden), use_images=args.images,
                    drop_blocks=args.drop, text_emb_dim=emb_dim, text_encoder=args.text_encoder)

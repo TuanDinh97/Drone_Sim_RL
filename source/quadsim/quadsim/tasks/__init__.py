@@ -179,6 +179,16 @@ class RaceEllipseEnvCfg(RaceEnvCfg):
 
 
 @configclass
+class RaceV1EnvCfg(RaceEnvCfg):
+    """Random circuits in both turning directions (the v0 policy, trained on counter-clockwise circuits only, fails
+    on the figure-8)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.random_direction = True
+
+
+@configclass
 class RaceFigure8EnvCfg(RaceEnvCfg):
     """Fixed figure-8 circuit with a crossing (unseen layout family for random-circuit policies)."""
 
@@ -235,6 +245,7 @@ _TASKS = {
     "Quadsim-Hover-Hexa-v0": (HoverEnv, HoverHexaEnvCfg, "HoverHexaPPORunnerCfg"),
     "Quadsim-Hover-Hexa-Motor-v0": (HoverEnv, HoverHexaMotorEnvCfg, "HoverHexaPPORunnerCfg"),
     "Quadsim-Race-v0": (RaceEnv, RaceEnvCfg, "RacePPORunnerCfg"),
+    "Quadsim-Race-v1": (RaceEnv, RaceV1EnvCfg, "RacePPORunnerCfg"),
     "Quadsim-Race-Ellipse-v0": (RaceEnv, RaceEllipseEnvCfg, "RacePPORunnerCfg"),
     "Quadsim-Race-Figure8-v0": (RaceEnv, RaceFigure8EnvCfg, "RacePPORunnerCfg"),
     "Quadsim-Swarm-v0": (SwarmEnv, SwarmEnvCfg, "SwarmPPORunnerCfg"),

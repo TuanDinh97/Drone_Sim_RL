@@ -151,6 +151,10 @@ class QuadrotorEnvCfg(DirectRLEnvCfg):
     max_tilt_terminate: float = 3.2  # rad (> pi disables)
     max_lin_vel: float = 20.0
     max_ang_vel: float = 35.0
+    task_end_is_terminal: bool = False
+    """Episode ends decided by the task (``_task_timeout``: goal reached, course finished, wrong landmark) are terminal
+    states, i.e. not bootstrapped by the learners. False (the default) returns them as time-outs, as all published
+    runs were trained."""
 
     # observation options
     include_last_action: bool = True

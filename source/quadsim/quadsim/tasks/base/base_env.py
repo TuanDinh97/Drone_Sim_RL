@@ -465,11 +465,15 @@ class QuadrotorEnv(DirectRLEnv):
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         self.crashed = self._generic_crash() | self._task_crash()
         time_out = self.episode_length_buf >= self.max_episode_length - 1
-        time_out |= self._task_timeout()
+        task_end = self._task_timeout()
         if self.terms.cfg.terminations:
             fail, trunc = self.terms.terminations()
             self.crashed |= fail
             time_out |= trunc
+        if self.cfg.task_end_is_terminal:  # goal reached etc.: terminal, no value bootstrapping
+            terminated = self.crashed | task_end
+            return terminated, time_out & ~terminated
+        time_out |= task_end
         return self.crashed, time_out & ~self.crashed
 
     # ======================================================================== reset
@@ -483,7 +487,7 @@ class QuadrotorEnv(DirectRLEnv):
             v[env_ids] = 0.0
         played = self.episode_length_buf[env_ids] > 0
         metrics = {
-            "crash": self.reset_terminated[env_ids].float(),
+            "crash": self.crashed[env_ids].float(),  # = reset_terminated unless task ends are terminal
             "time_out": self.reset_time_outs[env_ids].float(),
             "episode_length_s": self.episode_length_buf[env_ids].float() * self.step_dt,
         }

@@ -79,6 +79,11 @@ class QuadrotorEnv(DirectRLEnv):
         cfg.robot.spawn.params = self.params
         self._iface_cls = ACTION_INTERFACES.get(cfg.control.mode)
         self._configure_spaces(cfg)
+        # rendered cameras: re-render after resets so that an episode's first image shows its own scene (Isaac Lab's
+        # default keeps the previous episode's frame)
+        self._rendered_camera = cfg.vision.mode != "none" and cfg.vision.source == "render"
+        if self._rendered_camera:
+            cfg.num_rerenders_on_reset = max(cfg.num_rerenders_on_reset, 1)
         super().__init__(cfg, render_mode, **kwargs)
         n, dev = self.num_envs, self.device
         self.env_origins = self.scene.env_origins.clone()
@@ -525,6 +530,8 @@ class QuadrotorEnv(DirectRLEnv):
             self.rgb_aug.reset(env_ids)
         self._reset_task(env_ids)
         self.terms.after_reset(env_ids)
+        if self._rendered_camera:  # DirectRLEnv.step re-renders after resets without syncing the new poses first
+            self.sim.forward()
 
     # ======================================================================== task hooks
     def _sample_initial_state(self, env_ids):

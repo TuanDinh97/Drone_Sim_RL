@@ -412,10 +412,15 @@ def framework():
             f = (lambda x: f"{100 * x:.1f}") if pct_ else (lambda x: f"{x:.{digits}f}")  # noqa: E731
             spread = (f"{f(st['mean'])}\\,$\\pm$\\,{f(st['std'])}" if st["std"] is not None
                       else f"{f(st['mean'])} (1 seed)")
-            return [lab] + ["--" if v is None else f(v) for v in st["per_seed"].values()] + [spread]
+            ci = st.get("mean_ci95_seeds")
+            ci = f"[{f(ci[0])}, {f(ci[1])}]" if ci else "--"
+            return [lab] + ["--" if v is None else f(v) for v in st["per_seed"].values()] + [spread, ci]
 
         rows = []
-        for var, name in (("v0_ccw_circuits", "Race-v0"), ("v1_both_directions", "Race-v1 (both directions)")):
+        for var, name in (("v0_ccw_circuits", "Race-v0"), ("v1_both_directions", "Race-v1 (both directions)"),
+                          ("v1_terminal_task_ends", "Race-v1, finish terminal")):
+            if var not in ms["race"]:
+                continue
             for c in ("random_tracks", "ellipse", "figure8", "wind"):
                 rows.append(srow(f"{name}, success [\\%], {c.replace('_', ' ')}", ms["race"][var][c]["success"]))
         for c in ("swap4", "wind", "latency"):
@@ -434,11 +439,33 @@ def framework():
                 for ph, phl in (("train_phrasing", "train phr."), ("heldout_phrasing", "held-out phr.")):
                     rows.append(srow(f"{name}, {lab}, success [\\%], {phl}", ms[fam][tag][ph]["success"]))
         out.append(_table("Multi-seed replication: the published single-seed runs (seed 42; BC seed 0) and two "
-                          "more seeds with identical configurations; mean $\\pm$ sample std over seeds. BC seeds "
-                          "vary initialization and train/validation split on the same demonstrations. Source: "
-                          "\\texttt{multiseed.json}.", "tab:fw_multiseed",
-                          ["Result", "Seed 42 / 0", "Seed 1", "Seed 2", "Mean $\\pm$ std"],
-                          [r for r in rows if r], "lcccc"))
+                          "more seeds with identical configurations; mean $\\pm$ sample std over seeds and a "
+                          "stratified bootstrap 95\\,\\% CI of the mean over seeds. BC seeds vary initialization and "
+                          "train/validation split on the same demonstrations. Source: \\texttt{multiseed.json}.",
+                          "tab:fw_multiseed", ["Result", "Seed 42 / 0", "Seed 1", "Seed 2", "Mean $\\pm$ std",
+                                               "95\\,\\% CI"], [r for r in rows if r], "lccccc"))
+        cmp = ms.get("comparisons", {})
+        labels = {"race_v1_vs_v0_figure8": "Race v1 vs v0, figure-8",
+                  "race_v1_vs_v0_all_conditions": "Race v1 vs v0, all 4 conditions",
+                  "race_v1_terminal_vs_timeout_all_conditions": "Race v1, finish terminal vs time-out, all 4 conditions",
+                  "langnav_clip_vs_bow_heldout": "LangNav map, CLIP vs bag of words (held-out phr.)",
+                  "langnav_unknown_words_ignored_vs_averaged_heldout": "LangNav map, unknown words ignored vs averaged",
+                  "langnav_rgb_dagger1_vs_bc": "LangNav RGB, DAgger-1 vs BC (both phrasings)"}
+        crow = []
+        for k, lab in labels.items():
+            v = cmp.get(k)
+            if v:
+                pct = lambda x: f"{100 * x:.1f}"  # noqa: E731
+                crow.append([lab, f"{v['p_improvement']:.2f} [{v['p_improvement_ci95'][0]:.2f}, "
+                                  f"{v['p_improvement_ci95'][1]:.2f}]",
+                             f"{pct(v['iqm_x'])} [{pct(v['iqm_x_ci95'][0])}, {pct(v['iqm_x_ci95'][1])}]",
+                             f"{pct(v['iqm_y'])} [{pct(v['iqm_y_ci95'][0])}, {pct(v['iqm_y_ci95'][1])}]"])
+        if crow:
+            out.append(_table("Comparisons over seeds (Agarwal et al.~\\cite{agarwal2021precipice}): probability that a "
+                              "random seed of X beats a random seed of Y on a random condition, and the interquartile "
+                              "mean of the success rate [\\%], each with a stratified bootstrap 95\\,\\% CI. Source: "
+                              "\\texttt{multiseed.json} (\\texttt{comparisons}).", "tab:fw_compare",
+                              ["Comparison X vs Y", "P(X $>$ Y)", "IQM X", "IQM Y"], crow, "lccc"))
     ex = L("examples_check.json")
     if ex:
         rows = [[k.replace("_", r"\_"), "pass" if r["pass"] else "FAIL",

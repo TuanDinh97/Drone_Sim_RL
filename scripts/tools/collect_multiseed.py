@@ -2,12 +2,18 @@
 
 Usage: python scripts/tools/collect_multiseed.py
 Every result lists its per-seed values (seed 42, or BC seed 0, is the published single-seed run), their mean, sample
-standard deviation (n-1), min and max over seeds. Missing sources are listed under "missing" (nothing is invented).
+standard deviation (n-1), min, max and a stratified-bootstrap 95 % CI of the mean over seeds; "comparisons" gives the
+probability of improvement and the IQM over conditions for the key pairs (quadsim.benchmark.stats, rliable
+definitions). Missing sources are listed under "missing" (nothing is invented).
 """
 
 import json
 import math
 import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "source", "quadsim"))
+from quadsim.benchmark import stats as bstats  # noqa: E402
 
 OUT = "docs/results/framework/multiseed.json"
 missing = []
@@ -19,7 +25,10 @@ def stats(per_seed):
         return None
     m = sum(v) / len(v)
     sd = math.sqrt(sum((x - m) ** 2 for x in v) / (len(v) - 1)) if len(v) > 1 else None  # undefined for one seed
-    return {"per_seed": per_seed, "n_seeds": len(v), "mean": m, "std": sd, "min": min(v), "max": max(v)}
+    out = {"per_seed": per_seed, "n_seeds": len(v), "mean": m, "std": sd, "min": min(v), "max": max(v)}
+    if len(v) > 1:
+        out["mean_ci95_seeds"] = list(bstats.stratified_bootstrap_ci(v, bstats.mean, reps=5000)[1:])
+    return out
 
 
 def bench(suite, tag, label):
@@ -76,6 +85,11 @@ result = {
                                                    2: ("seeds", "ppo_v1_s2")},
                                           ("random_tracks", "ellipse", "figure8", "wind"),
                                           ("success", "crash", "lap_time", "mean_speed")),
+        "v1_terminal_task_ends": suite_seeds("race", {42: ("terminal", "ppo_v1_term_s42"),
+                                                      1: ("terminal", "ppo_v1_term_s1"),
+                                                      2: ("terminal", "ppo_v1_term_s2")},
+                                             ("random_tracks", "ellipse", "figure8", "wind"),
+                                             ("success", "crash", "lap_time", "mean_speed")),
     },
     "swarm": {"ppo": suite_seeds("swarm", {42: ("final", "ppo"), 1: ("seeds", "ppo_s1"), 2: ("seeds", "ppo_s2")},
                                  ("swap4", "wind", "latency"),
@@ -91,9 +105,62 @@ result = {
                             {"train_phrasing": "Quadsim-LangNav-RGB-v0",
                              "heldout_phrasing": "Quadsim-LangNav-RGB-Heldout-v0"}, ("success", "wrong_landmark")),
 }
+for name, tag in (("ppo_lagrangian_warmup_v1", "safe_v1_s42"), ("ppo_lagrangian_budget_curriculum_v2", "safe_v2_s42")):
+    p_ = f"logs/eval/safe/Quadsim-Waypoint-SpeedCost-v0_{tag}.json"
+    e_ = ev(p_)
+    if e_:
+        result["safe"][name] = {"seed": 42, "success": metric(e_, "success"), "cost": metric(e_, "cost"),
+                                "source": p_}
 c = result["safe"]["ppo_lagrangian"]["cost"]
 if c:
     result["safe"]["seeds_within_budget"] = sum(v <= 0.1 for v in c["per_seed"].values() if v is not None)
+
+
+def _matrix(entry, conds, key="success"):
+    """(seeds, conditions) array of a suite_seeds entry, or None if a value is missing."""
+    cols = []
+    for cond in conds:
+        st = (entry.get(cond) or {}).get(key)
+        if not st or any(v is None for v in st["per_seed"].values()):
+            return None
+        cols.append(list(st["per_seed"].values()))
+    import numpy as np
+
+    return np.array(cols).T
+
+
+def _compare(name, x, y, what):
+    if x is None or y is None:
+        missing.append(f"comparison {name}")
+        return
+    p, lo, hi = bstats.probability_of_improvement(x, y, reps=5000)
+    ix, iy = bstats.stratified_bootstrap_ci(x, bstats.iqm, reps=5000), bstats.stratified_bootstrap_ci(y, bstats.iqm, reps=5000)
+    comparisons[name] = {"what": what, "p_improvement": p, "p_improvement_ci95": [lo, hi],
+                         "iqm_x": ix[0], "iqm_x_ci95": list(ix[1:]), "iqm_y": iy[0], "iqm_y_ci95": list(iy[1:]),
+                         "runs_x": int(x.shape[0]), "runs_y": int(y.shape[0]), "tasks": int(x.shape[1])}
+
+
+conds = ("random_tracks", "ellipse", "figure8", "wind")
+race = result["race"]
+comparisons = {}
+_compare("race_v1_vs_v0_all_conditions", _matrix(race["v1_both_directions"], conds), _matrix(race["v0_ccw_circuits"], conds),
+         "success over 4 conditions: training on both turning directions (v1) vs counter-clockwise only (v0)")
+_compare("race_v1_vs_v0_figure8", _matrix(race["v1_both_directions"], ("figure8",)), _matrix(race["v0_ccw_circuits"], ("figure8",)),
+         "figure-8 success: v1 vs v0")
+_compare("race_v1_terminal_vs_timeout_all_conditions", _matrix(race["v1_terminal_task_ends"], conds),
+         _matrix(race["v1_both_directions"], conds),
+         "success over 4 conditions: finishing as a terminal state vs as a bootstrapped time-out (both v1)")
+sym, rgb = result["langnav_symbolic"], result["langnav_rgb"]
+_compare("langnav_clip_vs_bow_heldout", _matrix(sym["langnav_sym_dagger2_clip"], ("heldout_phrasing",)),
+         _matrix(sym["langnav_sym_dagger2"], ("heldout_phrasing",)),
+         "held-out phrasing success after DAgger 2: frozen CLIP text tower vs bag of words")
+_compare("langnav_unknown_words_ignored_vs_averaged_heldout", _matrix(sym["langnav_sym_bc_v2"], ("heldout_phrasing",)),
+         _matrix(sym["langnav_sym_bc_v2_unkavg"], ("heldout_phrasing",)),
+         "held-out phrasing success of the same BC checkpoints: unknown words ignored vs averaged in")
+_compare("langnav_rgb_dagger1_vs_bc", _matrix(rgb["langnav_rgb_dagger1"], ("train_phrasing", "heldout_phrasing")),
+         _matrix(rgb["langnav_rgb_bc"], ("train_phrasing", "heldout_phrasing")),
+         "RGB LangNav success (both phrasings): one DAgger round vs BC")
+result["comparisons"] = comparisons
 result["missing"] = missing = list(dict.fromkeys(missing))
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w") as f:
@@ -124,4 +191,7 @@ for fam in ("langnav_symbolic", "langnav_rgb"):
         for ph in ("train_phrasing", "heldout_phrasing"):
             rows.append(line(f"{tag} {ph} success %", r[ph]["success"]))
 print("\n".join(rows))
+for k, v in result["comparisons"].items():
+    print(f"{k}: P(improvement) {v['p_improvement']:.2f} [{v['p_improvement_ci95'][0]:.2f}, {v['p_improvement_ci95'][1]:.2f}]"
+          f"; IQM {v['iqm_x']:.3f} vs {v['iqm_y']:.3f}")
 print(f"[multiseed] wrote {OUT}; missing: {missing}")

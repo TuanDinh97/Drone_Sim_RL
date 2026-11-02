@@ -15,6 +15,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "source", "quadsim"))
 from quadsim.benchmark import stats as bstats  # noqa: E402
 
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # paths are repo-relative
 OUT = "docs/results/framework/multiseed.json"
 missing = []
 
@@ -104,6 +105,10 @@ result = {
     "langnav_rgb": il_seeds(("langnav_rgb_bc", "langnav_rgb_dagger1", "langnav_rgb_dagger1_clip"),
                             {"train_phrasing": "Quadsim-LangNav-RGB-v0",
                              "heldout_phrasing": "Quadsim-LangNav-RGB-Heldout-v0"}, ("success", "wrong_landmark")),
+    # demonstrations re-collected after the camera re-render fix (no stale first frame), same protocol
+    "langnav_rgb_v2data": il_seeds(("langnav_rgb_bc_v2data", "langnav_rgb_dagger1_v2data"),
+                                   {"train_phrasing": "Quadsim-LangNav-RGB-v0",
+                                    "heldout_phrasing": "Quadsim-LangNav-RGB-Heldout-v0"}, ("success", "wrong_landmark")),
 }
 for name, tag in (("ppo_lagrangian_warmup_v1", "safe_v1_s42"), ("ppo_lagrangian_budget_curriculum_v2", "safe_v2_s42")):
     p_ = f"logs/eval/safe/Quadsim-Waypoint-SpeedCost-v0_{tag}.json"
@@ -160,6 +165,11 @@ _compare("langnav_unknown_words_ignored_vs_averaged_heldout", _matrix(sym["langn
 _compare("langnav_rgb_dagger1_vs_bc", _matrix(rgb["langnav_rgb_dagger1"], ("train_phrasing", "heldout_phrasing")),
          _matrix(rgb["langnav_rgb_bc"], ("train_phrasing", "heldout_phrasing")),
          "RGB LangNav success (both phrasings): one DAgger round vs BC")
+rgb2, both = result["langnav_rgb_v2data"], ("train_phrasing", "heldout_phrasing")
+for new, old in (("langnav_rgb_bc_v2data", "langnav_rgb_bc"), ("langnav_rgb_dagger1_v2data", "langnav_rgb_dagger1")):
+    _compare(f"{new}_vs_stale_first_frame", _matrix(rgb2[new], both), _matrix(rgb[old], both),
+             f"RGB LangNav success (both phrasings): {old} trained on demonstrations re-collected after the camera "
+             "re-render fix vs on the original ones (stale first frame)")
 result["comparisons"] = comparisons
 result["missing"] = missing = list(dict.fromkeys(missing))
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
@@ -186,7 +196,7 @@ for cond in ("swap4", "wind", "latency"):
     rows.append(line(f"swarm {cond} collision %", result["swarm"]["ppo"][cond]["agent_collision"]))
 for k in ("cost", "success"):
     rows.append(line(f"safe PPO-Lagrangian {k}", result["safe"]["ppo_lagrangian"][k], k == "success"))
-for fam in ("langnav_symbolic", "langnav_rgb"):
+for fam in ("langnav_symbolic", "langnav_rgb", "langnav_rgb_v2data"):
     for tag, r in result[fam].items():
         for ph in ("train_phrasing", "heldout_phrasing"):
             rows.append(line(f"{tag} {ph} success %", r[ph]["success"]))

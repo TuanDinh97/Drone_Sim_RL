@@ -9,6 +9,7 @@ import json
 import os
 import re
 
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # paths are repo-relative
 OUT = "docs/results/framework"
 os.makedirs(OUT, exist_ok=True)
 missing = []
@@ -90,12 +91,29 @@ for tag in ("expert", "langnav_sym_bc", "langnav_sym_bc_nolang", "langnav_sym_bc
             sym.setdefault(tag, {})[task] = ev(p)
 il["langnav_symbolic"] = sym
 rgb = {}
-for tag in ("expert", "langnav_rgb_bc", "langnav_rgb_dagger1", "langnav_rgb_dagger1_clip", "vla_color_servo"):
+for tag in ("expert", "langnav_rgb_bc", "langnav_rgb_dagger1", "langnav_rgb_dagger1_clip", "vla_color_servo",
+            "langnav_rgb_bc_v2data", "langnav_rgb_dagger1_v2data"):
     for task in ("Quadsim-LangNav-RGB-v0", "Quadsim-LangNav-RGB-Heldout-v0"):
         p = f"logs/eval/il/{task}_{tag}.json"
         if os.path.exists(p):
             rgb.setdefault(tag, {})[task] = ev(p)
 il["langnav_rgb"] = rgb
+# SmolVLA (LeRobot) fine-tuned on the re-collected RGB demonstrations, evaluated through the policy server
+vla = {}
+for tag in ("smolvla_v2data_h10", "smolvla_v2data_h50", "smolvla_v2data_h1", "smolvla_v2data_5k_h10",
+            "smolvla_v2data_noprompt_h10"):
+    for task in ("Quadsim-LangNav-RGB-v0", "Quadsim-LangNav-RGB-Heldout-v0"):
+        p = f"logs/eval/vla/{task}_{tag}.json"
+        if os.path.exists(p):
+            vla.setdefault(tag, {})[task] = ev(p)
+if vla:
+    srv = "logs/eval/vla/smolvla_v2data_server.json"
+    vla["server_metadata"] = json.load(open(srv)) if os.path.exists(srv) else None
+    lines = open("logs/phase_f.log").read().splitlines() if os.path.exists("logs/phase_f.log") else []
+    vla["training"] = {"probe": next((ln for ln in lines if "probe:" in ln), None),
+                       "final": next((ln for ln in reversed(lines) if "trained:" in ln), None),
+                       "log": "logs/lerobot/train_smolvla_langnav_v2.log"}
+    il["langnav_rgb_vla"] = vla
 il["datasets"] = {os.path.basename(p)[:-5]: json.load(open(p)) for p in sorted(glob.glob("datasets/il/*.h5.json"))}
 il["lerobot_exports"] = {p.split("/")[-2]: json.load(open(p))
                          for p in sorted(glob.glob("datasets/lerobot/*/quadsim_export.json"))}

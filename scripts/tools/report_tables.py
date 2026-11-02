@@ -8,6 +8,7 @@ import glob
 import json
 import os
 
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))  # paths are repo-relative
 R = "docs/results"
 OUT = "report/generated"
 
@@ -393,8 +394,21 @@ def framework():
         for tag, lab in (("expert", "scripted expert (privileged)"), ("langnav_rgb_bc", "BC, FiLM-CNN + instruction"),
                          ("langnav_rgb_dagger1", "+ DAgger round 1"),
                          ("langnav_rgb_dagger1_clip", "same data, frozen CLIP text encoder"),
-                         ("vla_color_servo", "VLA adapter: colour servo")):
+                         ("vla_color_servo", "VLA adapter: colour servo"),
+                         ("langnav_rgb_bc_v2data", "BC, demonstrations re-collected (camera fix)"),
+                         ("langnav_rgb_dagger1_v2data", "+ DAgger round 1, re-collected")):
             r = rgb.get(tag, {})
+            a, h = r.get("Quadsim-LangNav-RGB-v0"), r.get("Quadsim-LangNav-RGB-Heldout-v0")
+            if a or h:
+                rows.append(["langnav (RGB)", lab, _m(a, "success", True), _m(h, "success", True),
+                             _m(a, "wrong_landmark", True)])
+        vla = il.get("langnav_rgb_vla", {})
+        for tag, lab in (("smolvla_v2data_h10", "SmolVLA fine-tuned, 10 actions per chunk"),
+                         ("smolvla_v2data_h50", "SmolVLA fine-tuned, 50 actions per chunk"),
+                         ("smolvla_v2data_h1", "SmolVLA fine-tuned, re-planned every step"),
+                         ("smolvla_v2data_5k_h10", "SmolVLA after 5k of the 10k steps, 10 per chunk"),
+                         ("smolvla_v2data_noprompt_h10", "SmolVLA, empty instruction, 10 per chunk")):
+            r = vla.get(tag, {})
             a, h = r.get("Quadsim-LangNav-RGB-v0"), r.get("Quadsim-LangNav-RGB-Heldout-v0")
             if a or h:
                 rows.append(["langnav (RGB)", lab, _m(a, "success", True), _m(h, "success", True),
@@ -434,7 +448,11 @@ def framework():
                                                                      ("langnav_sym_dagger2_clip", "DAgger-2 + CLIP"))),
                                 ("langnav_rgb", "LangNav RGB", (("langnav_rgb_bc", "BC"),
                                                                 ("langnav_rgb_dagger1", "DAgger-1"),
-                                                                ("langnav_rgb_dagger1_clip", "DAgger-1 + CLIP")))):
+                                                                ("langnav_rgb_dagger1_clip", "DAgger-1 + CLIP"))),
+                                ("langnav_rgb_v2data", "LangNav RGB, re-collected data",
+                                 (("langnav_rgb_bc_v2data", "BC"), ("langnav_rgb_dagger1_v2data", "DAgger-1")))):
+            if fam not in ms:
+                continue
             for tag, lab in tags:
                 for ph, phl in (("train_phrasing", "train phr."), ("heldout_phrasing", "held-out phr.")):
                     rows.append(srow(f"{name}, {lab}, success [\\%], {phl}", ms[fam][tag][ph]["success"]))
@@ -450,7 +468,9 @@ def framework():
                   "race_v1_terminal_vs_timeout_all_conditions": "Race v1, finish terminal vs time-out, all 4 conditions",
                   "langnav_clip_vs_bow_heldout": "LangNav map, CLIP vs bag of words (held-out phr.)",
                   "langnav_unknown_words_ignored_vs_averaged_heldout": "LangNav map, unknown words ignored vs averaged",
-                  "langnav_rgb_dagger1_vs_bc": "LangNav RGB, DAgger-1 vs BC (both phrasings)"}
+                  "langnav_rgb_dagger1_vs_bc": "LangNav RGB, DAgger-1 vs BC (both phrasings)",
+                  "langnav_rgb_bc_v2data_vs_stale_first_frame": "LangNav RGB BC, re-collected vs stale-frame data",
+                  "langnav_rgb_dagger1_v2data_vs_stale_first_frame": "LangNav RGB DAgger-1, re-collected vs stale-frame data"}
         crow = []
         for k, lab in labels.items():
             v = cmp.get(k)

@@ -4,3 +4,6 @@ h5py
 pyyaml
 matplotlib
 pytest==8.3.5
+scipy
+websockets>=12
+msgpack==1.2.4

@@ -2,7 +2,8 @@
 
 import numpy as np
 import pytest
-from scipy import stats as sps
+
+sps = pytest.importorskip("scipy.stats")  # reference implementations
 
 from quadsim.benchmark import stats
 

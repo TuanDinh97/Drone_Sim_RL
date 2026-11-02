@@ -10,7 +10,8 @@ requires-python = ">=3.10"
 dependencies = ["torch>=2.7", "numpy<2", "h5py", "pyyaml"]
 
 [project.optional-dependencies]
-dev = ["pytest", "matplotlib"]
+dev = ["pytest", "matplotlib", "scipy"]
+remote = ["websockets>=12", "msgpack"]  # quadsim.il.remote (policy servers / clients)
 
 [tool.setuptools.packages.find]
 include = ["quadsim*"]

@@ -19,6 +19,7 @@ Dependencies (optional): ``websockets`` (>= 12) and ``msgpack``.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import threading
 import time
@@ -79,8 +80,10 @@ class PolicyClient:
         def _connect():  # in a daemon thread: the connection's receive thread inherits daemon=True, so an unclosed
             t0 = time.time()  # client never keeps the interpreter from exiting
             while True:
-                try:
-                    box["ws"] = connect(uri, compression=None, max_size=None, open_timeout=wait_s)
+                try:  # entered as a context manager: websockets >= 17 deprecates using connect() directly
+                    stack = contextlib.ExitStack()
+                    box["ws"] = stack.enter_context(connect(uri, compression=None, max_size=None, open_timeout=wait_s))
+                    box["stack"] = stack
                     return
                 except OSError as e:  # server not up yet
                     if time.time() - t0 > wait_s:
@@ -93,7 +96,7 @@ class PolicyClient:
         th.join()
         if "error" in box:
             raise box["error"]
-        self.ws = box["ws"]
+        self.ws, self._stack = box["ws"], box["stack"]
         self.metadata = unpackb(self.ws.recv())
 
     def infer(self, obs: dict) -> dict:
@@ -104,7 +107,7 @@ class PolicyClient:
         return unpackb(reply)
 
     def close(self):
-        self.ws.close()
+        self._stack.close()
 
     def __enter__(self):
         return self

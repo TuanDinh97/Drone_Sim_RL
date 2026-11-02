@@ -86,7 +86,7 @@ def run_controller(name, env):
         obs, _ = env.reset()  # runner construction resets the env through the wrapper
         act = lambda o: pol(o)  # noqa: E731
     else:
-        ctrl = BASELINES.get(name)(u)
+        pol, ctrl = None, BASELINES.get(name)(u)
         act = lambda o: ctrl()  # noqa: E731
     u.seed(args.seed)
     obs, _ = env.reset()
@@ -113,6 +113,10 @@ def run_controller(name, env):
     res = summarize(recs)
     res["_meta"] = {"episodes": int(counts.clamp(max=k).sum()), "episodes_per_env": k, "wall_s": time.time() - t0,
                     "steps": steps}
+    adapter = getattr(pol, "policy", None)
+    if getattr(adapter, "client", None) is not None:  # remote policy: record which model answered, and how
+        res["_meta"]["policy_server"] = adapter.client.metadata
+        res["_meta"]["action_horizon"] = getattr(adapter, "action_horizon", 1)
     return res
 
 

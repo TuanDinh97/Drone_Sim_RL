@@ -83,7 +83,8 @@ Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at 
 - Evaluations: never stop at a global episode count (drops the long episodes still running); `evaluate.py` keeps each
   env's first k episodes. Pass `--num_envs` explicitly for seeds/ablations (the hardware check depends on the moment).
 - Known modelling choice: reaching the goal / finishing (waypoint, nav, race, LangNav) is a *time-out* (bootstrapped)
-  in all published runs; `env.task_end_is_terminal=True` makes it terminal for new runs.
+  in all published runs; `env.task_end_is_terminal=True` makes it terminal for new runs. Race-v1 ablation (3 seeds):
+  terminal is worse (P(terminal > time-out) = 0.25; slower laps, more crashes) - keep the time-out for racing.
 - Long GPU queues: launch with `setsid nohup bash <script> > log 2>&1 < /dev/null &` - background tasks of a Claude
   session are killed when the session ends (session 5 lost three trainings that way); put scripts in
   `logs/jobs/` (the scratchpad in /tmp is wiped between sessions).

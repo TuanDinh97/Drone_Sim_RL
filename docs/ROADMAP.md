@@ -25,8 +25,8 @@ Ordered by dependency; each milestone has explicit acceptance criteria that are 
 | F6 | Review and corrections (session 5) | every reported defect reproduced, fixed and covered by a test that fails on the old code; all evaluate.py results re-measured with the corrected evaluator; regression differences explained; racing / swarm / safe RL / LangNav with 3 seeds | ✅ (see PROGRESS "Review and corrections") |
 
 ## Beyond the current scope (future work, prioritized)
-0. Framework follow-ups: return goal reaching / finishing as a terminal state (not a bootstrapped time-out) and
-   retrain waypoint, navigation and racing; re-collect the RGB demonstrations after the camera re-render fix; a PPO
+0. Framework follow-ups: terminal task ends for waypoint and navigation (on racing the 3-seed ablation favoured the
+   bootstrapped time-out of the published runs: P(terminal > time-out) = 0.25); re-collect the RGB demonstrations after the camera re-render fix; a PPO
    configuration with an image encoder for LangNav-RGB; multi-seed runs for SAC/TD3, the hexarotor and the plug-in
    tasks; a cost critic (PPO-Lag proper) and other constrained-RL algorithms - the reward-penalty form failed to
    recover from an unconstrained warm-up and lost one of three seeds (and the multiplier in checkpoints);

@@ -12,7 +12,8 @@ Numbers quoted below are the current (re-measured) values; `docs/PROGRESS.md` ho
 - GPU-native SAC / TD3 with asymmetric critics; evaluation-only BC and VLA algorithms.
 - Tasks: drone racing (`Quadsim-Race-v0/v1`), multi-agent swap (`Quadsim-Swarm-v0`), language-conditioned navigation
   with a map or an RGB camera (`Quadsim-LangNav-*`), constrained waypoint racing (`Quadsim-Waypoint-Safe-v0/v1/v2`),
-  hexarotor hover; option `env.task_end_is_terminal`.
+  hexarotor hover; option `env.task_end_is_terminal` (3-seed Race-v1 ablation: worse than the bootstrapped time-out
+  of the published runs, which is kept).
 - Imitation learning: episode-structured demonstrations with instructions, BC / DAgger (FiLM CNN, bag-of-words or a
   frozen CLIP text encoder), LeRobot v3.0 export verified with LeRobot's loader, dataset cards.
 - Remote policies over the openpi policy-server protocol (`quadsim.il.remote`, `scripts/il/serve_policy.py`).

@@ -221,7 +221,8 @@ See `docs/PROGRESS.md` (open issues, "Review and corrections") and the report's 
 no hardware flights (PX4 SITL only); real-vehicle parameters not identified (presets other than X500/Crazyflie are
 engineering approximations); racing, swarm, safe RL and the language tasks have 3 seeds, the other new results one;
 reaching the goal is returned as a time-out (bootstrapped) in the published runs - `env.task_end_is_terminal=True`
-makes it terminal; PPO-Lagrangian can lock into a slow policy when its multiplier grows before the task is learned
+makes it terminal (on racing that variant was worse over 3 seeds: 93 vs 96 % in distribution, 46 vs 73 % on the
+figure-8); PPO-Lagrangian can lock into a slow policy when its multiplier grows before the task is learned
 (1 of 3 seeds; `Quadsim-Waypoint-Safe-v1` adds a constraint warm-up); RGB policies lack texture/lighting
 randomization; no pretrained VLA was run (the adapter interface and LeRobot export are validated, the models are not);
 off-policy policies leave a large final yaw error on hover; autonomous exploration and adaptive-control tasks are not

@@ -58,6 +58,7 @@ seeds with `quadsim.benchmark.stats` (example: `scripts/tools/collect_multiseed.
 |---|---|---|---|
 | race, PPO v0 (counter-clockwise circuits) | 96.1 ± 1.5 % | ellipse 99.0 ± 0.7, figure-8 **4.1 ± 3.2**, wind 96.1 ± 0.5 % | 2000 iterations × 4096 envs |
 | race, PPO v1 (both turning directions) | 95.7 ± 1.0 % | ellipse 97.5 ± 0.5, figure-8 **73.2 ± 6.3**, wind 95.5 ± 0.2 % | P(v1 > v0) = 1.00 on the figure-8, 0.38 over all four conditions |
+| race, PPO v1, finish as a terminal state | 93.4 ± 2.7 % | ellipse 96.1 ± 2.3, figure-8 46.3 ± 26.5, wind 93.1 ± 2.5 % | P(terminal > time-out) = 0.25 over all four conditions; laps 3.0 vs 2.5 s |
 | race, gate-aligned cascade | 0.6 % | 0-0.6 % | 25 % crashes |
 | swarm, shared PPO (centralized critic) | 89.6 ± 2.4 % | wind 85.4 ± 7.0, latency 76.6 ± 3.9 % | 1.7 % agent collisions; 2.0 s |
 | swarm, tuned potential field | 100 % | 97.7 / 96.1 % | 6.9 s (3.4× slower) |

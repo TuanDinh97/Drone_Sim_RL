@@ -261,10 +261,11 @@ reaches $96.9\pm1.2$\,\% against $73.5\pm15.1$\,\% for the bag of words after tw
 \paragraph{Remote policies.} Vision-language-action models are usually evaluated behind a policy server in their own
 environment: openpi's server (used for $\pi_0$~\cite{black2024pi0}) answers observation dictionaries sent over a
 WebSocket with msgpack-encoded numpy arrays, and Isaac Lab-Arena and BEHAVIOR evaluate models through the same
-interface. quadsim implements this protocol on both sides: a client adapter that queries the server every control
-step (camera image as uint8 HWC or exact float, proprioception, the full deployable observation and the instruction;
-the first action of a returned chunk is executed) and a server for quadsim checkpoints and arbitrary
-\texttt{infer(obs)} functions. A behaviour-cloning policy evaluated through a separate server process reproduces the
+interface. quadsim implements this protocol on both sides: a client adapter that queries the server (camera image as
+uint8 HWC or exact float, proprioception, the full deployable observation and the instruction; the first $k$ actions
+of a returned chunk are executed open loop, as openpi's action-chunk broker, and a new episode starts with a fresh
+chunk) and servers for quadsim checkpoints, for any LeRobot policy trained on a quadsim export (with the policy's own
+pre- and post-processing) and for arbitrary \texttt{infer(obs)} functions. A behaviour-cloning policy evaluated through a separate server process reproduces the
 local closed-loop evaluation bit for bit (every metric of 500 LangNav episodes), and a server in the LeRobot
 environment (NumPy~2) exchanges arrays exactly with the simulator's client (NumPy~1.26), so models with incompatible
 dependencies can be benchmarked on the drone tasks unchanged.
@@ -285,3 +286,11 @@ races with $\approx$\SI{5.5}{s} of over-speed per course, its over-speed time ba
 acts, the multiplier saturates at its maximum and the task collapses. In this reward-penalty form a converged policy
 is not steered back to the constraint; enforcing it from the start works in two of three seeds, and a separate cost
 critic is the next step.
+
+\paragraph{Terminal task ends.} The goal-reaching tasks return a reached goal or a finished course as a time-out, so
+the learners bootstrap the value of the final state. The option \texttt{task\_end\_is\_terminal} makes these ends
+terminal. On Race-v1 (three seeds each, identical configuration and budget) the terminal variant is worse: success
+$93.4\pm2.7$ vs.\ $95.7\pm1.0$\,\% on random circuits and $46\pm26$ vs.\ $73\pm6$\,\% on the figure-8, a
+probability of improvement of 0.25 [0.06, 0.50] over the four conditions (\cref{tab:fw_compare}), with slower laps
+(3.0 vs.\ \SI{2.5}{s}) and more crashes (6.6 vs.\ 4.3\,\% in distribution). The bootstrapped value at the finish
+acts as an additional incentive to reach it early; the published formulation is kept.

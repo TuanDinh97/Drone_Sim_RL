@@ -734,8 +734,14 @@ Seeds 1-2 trained with the code of `7008d7d` (as seed 42), all evaluated with th
 
 ### Follow-up options added after the review
 - `env.task_end_is_terminal=True` (`db87a89`): ends decided by the task (goal reached, course finished, wrong
-  landmark) become terminal states instead of bootstrapped time-outs. Default off (published formulation); being
-  evaluated on Race-v1 with 3 seeds against the 3 published-formulation seeds.
+  landmark) become terminal states instead of bootstrapped time-outs. Default off (published formulation).
+  **Race-v1 ablation, 3 seeds each** (identical configuration, 2000 iterations x 4096 envs; benchmark tag
+  `terminal`): the terminal variant is *worse* - success random circuits 93.4 +- 2.7 vs 95.7 +- 1.0 %, ellipse
+  96.1 +- 2.3 vs 97.5 +- 0.5 %, figure-8 46.3 +- 26.5 vs 73.2 +- 6.3 % (seeds 43.0 / 21.6 / 74.2 %), wind 93.1 +- 2.5
+  vs 95.5 +- 0.2 %; P(terminal > time-out) = 0.25 [0.06, 0.50] over the four conditions, IQM 92.9 vs 95.6 %. It also
+  flies slower (lap 3.00 vs 2.47 s, mean speed 10.0 vs 11.9 m/s on random circuits) and crashes more (6.6 vs 4.3 %;
+  figure-8 53 vs 27 %) - consistent with the bootstrapped value at the finish acting as an extra incentive to reach
+  it early. The time-out formulation of the published runs is kept.
 - Constraint warm-up (`SafetyCfg.warmup_steps`, `Quadsim-Waypoint-Safe-v1`, `bad86ff`) and constraint budget
   curriculum (`cost_limit_start` / `anneal_steps`, `Quadsim-Waypoint-Safe-v2`, `25567aa`; 5 s → 0.1 s geometrically
   over 600 iterations after a 300-iteration warm-up), meant to fix the v0 seed that never learned the course.
@@ -752,7 +758,8 @@ Seeds 1-2 trained with the code of `7008d7d` (as seed 42), all evaluated with th
 - Reaching the goal / finishing (waypoint, navigation, racing, LangNav success and wrong pillar) is returned as a
   *time-out* in all published runs, so PPO and the off-policy learners bootstrap the value there instead of treating
   it as terminal (`env.task_end_is_terminal=True` changes this for new runs; the published policies are not
-  retrained).
+  retrained). On racing the terminal variant was tested with 3 seeds and is worse (above), so this is a modelling
+  choice backed by an ablation there; waypoint, navigation and LangNav were not re-run.
 - Hover and race policies were trained before the reset-frame and track-resampling fixes; they are evaluated with
   the corrected environments (a small train/eval difference, now consistent with the documented task definition).
 - RGB LangNav demonstrations were collected before the camera fix (first frame of each episode stale).

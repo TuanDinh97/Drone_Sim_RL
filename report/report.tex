@@ -572,7 +572,8 @@ reasonable default gains, not systematically tuned gains, so the reported margin
 \item \textbf{Framework scope.} The landing, hexarotor and off-policy results use one seed; presets other than the
 X500 and the Crazyflie (5-inch racer, hexarotor) are engineering approximations. In all published runs, reaching the
 goal or finishing the course is returned as a time-out (bootstrapped by the learners) rather than a terminal state;
-the option \texttt{task\_end\_is\_terminal} changes this for new runs. The
+the option \texttt{task\_end\_is\_terminal} changes this for new runs, and on racing the terminal variant was worse
+over three seeds (\cref{sec:tools}); waypoint and navigation were not re-run. The
 instructions come from eight training and three held-out templates over a small vocabulary; the default encoder is
 a bag-of-words model, the alternative a frozen pretrained CLIP text tower (no fine-tuning). No pretrained
 vision-language(-action) model was run or fine-tuned (the adapter interface and the LeRobot export are validated,
@@ -604,7 +605,7 @@ sim/real comparison.
 \item \textbf{Depth-based navigation transfer}: record real depth frames, extend the depth noise model or add
 image-space randomization, distill the state/range teacher into the depth student (DAgger) to reduce sample cost,
 then test in a real obstacle course.
-\item \textbf{Framework}: retrain the goal-reaching tasks with terminal task ends; multi-seed results for the
+\item \textbf{Framework}: terminal task ends for waypoints and navigation; multi-seed results for the
 off-policy algorithms and the remaining tasks; a cost critic for constrained RL;
 pretrained text/vision encoders and fine-tuning of an open VLA on the exported LeRobot data; texture and lighting
 randomization for RGB policies; exploration and adaptive-control benchmark tasks; recurrent policies for implicit

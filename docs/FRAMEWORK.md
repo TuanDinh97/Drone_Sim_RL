@@ -192,10 +192,13 @@ were not resumed.
   queried over the openpi policy-server protocol (WebSocket + msgpack-numpy; the protocol of openpi's
   `serve_policy.py`, also used by Isaac Lab-Arena): `--checkpoint quadsim.il.remote:make_adapter` with
   `QUADSIM_POLICY_SERVER=host:port`. Each step sends `observation/image` (uint8 HWC, or exact float CHW),
-  `observation/state`, `observation/policy` and `prompt`; the first action of a returned chunk is executed.
-  `scripts/il/serve_policy.py` serves quadsim BC checkpoints; `quadsim.il.remote.make_server` wraps any
-  `infer(obs) -> {"actions": ...}` function (needs only numpy, msgpack and websockets, e.g. in a LeRobot or openpi
-  environment). Verified: a remotely served policy reproduces the local evaluation bit for bit.
+  `observation/state`, `observation/policy` and `prompt`; the first `QUADSIM_REMOTE_HORIZON` actions of a returned
+  chunk are executed open loop (default 1: re-plan every step; a new episode always starts with a fresh chunk).
+  `scripts/il/serve_policy.py` serves quadsim BC checkpoints, `scripts/il/serve_lerobot_policy.py` any LeRobot policy
+  (SmolVLA, pi0, ACT, Diffusion Policy) trained on a quadsim export, with its own pre/post-processors;
+  `quadsim.il.remote.make_server` wraps any `infer(obs) -> {"actions": ...}` function (needs only numpy, msgpack and
+  websockets, e.g. in a LeRobot or openpi environment). Verified: a remotely served policy reproduces the local
+  evaluation bit for bit.
 * **New algorithms**: subclass `Algorithm` and register it (`examples/custom_algorithm.py`: Augmented Random Search
   on thousands of parallel environments).
 

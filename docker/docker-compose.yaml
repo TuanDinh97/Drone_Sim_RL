@@ -4,6 +4,8 @@
 #   docker compose -f docker/docker-compose.yaml run --rm train "python scripts/rl/train.py --task Quadsim-Hover-v0 --headless"
 #   xhost +local: && docker compose -f docker/docker-compose.yaml run --rm gui "python scripts/tools/view.py --task Quadsim-Track-v0 --controller geometric"
 # Persistent: ./logs (checkpoints, TensorBoard), ./datasets, ./outputs; Isaac Sim caches in named volumes.
+# The container runs as root (Isaac Sim image): files it writes to logs/datasets/outputs are owned by root
+# (`sudo chown -R $USER logs datasets outputs`); no bytecode is written into the mounted sources.
 
 x-gpu: &gpu
   resources:
@@ -43,6 +45,7 @@ services:
       - OMNI_KIT_ACCEPT_EULA=YES
       - ACCEPT_EULA=Y
       - PRIVACY_CONSENT=Y
+      - PYTHONDONTWRITEBYTECODE=1
     volumes: *volumes
     deploy: *gpu
     network_mode: host
@@ -69,6 +72,7 @@ services:
       - OMNI_KIT_ACCEPT_EULA=YES
       - ACCEPT_EULA=Y
       - PRIVACY_CONSENT=Y
+      - PYTHONDONTWRITEBYTECODE=1
       - DISPLAY=${DISPLAY:-:0}
     volumes:
       - ../logs:/workspace/quadsim/logs

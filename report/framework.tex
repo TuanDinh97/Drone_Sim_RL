@@ -294,3 +294,25 @@ $93.4\pm2.7$ vs.\ $95.7\pm1.0$\,\% on random circuits and $46\pm26$ vs.\ $73\pm6
 probability of improvement of 0.25 [0.06, 0.50] over the four conditions (\cref{tab:fw_compare}), with slower laps
 (3.0 vs.\ \SI{2.5}{s}) and more crashes (6.6 vs.\ 4.3\,\% in distribution). The bootstrapped value at the finish
 acts as an additional incentive to reach it early; the published formulation is kept.
+
+\paragraph{Re-collected RGB demonstrations.} After the camera fix the RGB demonstrations were collected again (the
+same 297\,675 transitions; only the first image of every episode differs) and BC and one DAgger round re-trained
+with three seeds: $80.2\pm6.1$ vs.\ $76.7\pm5.6$\,\% for BC on the training phrasings (probability of improvement
+0.67 [0.33, 1.00]) and $99.8$ vs.\ $100$\,\% after DAgger. The stale frame had no measurable effect.
+
+\paragraph{A pretrained VLA on the drone task.} SmolVLA~\cite{shukor2025smolvla} (450\,M parameters, a
+flow-matching action expert on a truncated SmolVLM2) was fine-tuned with LeRobot's recipe (frozen vision encoder;
+10\,k steps of 32 samples, 1.07 epochs, \SI{86}{min} on the RTX~5060) on the re-collected demonstrations and
+evaluated through the policy server with the BC protocol (\cref{tab:fw_il}). It flies to a pillar but picks the
+instructed one at chance level: 19\,\% success executing 10 actions per chunk (27\,\% with 50, 12\,\% re-planning
+every step), 45--66\,\% wrong pillar among four, against 80\,\% for the FiLM-CNN behaviour cloning trained from
+scratch on the same data. Once the vehicle moves, changing the colour word alters its actions by at most 0.03: it
+continues the motion in its own velocity estimate, the copycat shortcut of behaviour
+cloning~\cite{dehaan2019causal}. At the first frame its actions depend on the colour word through a fixed
+colour-to-direction prior rather than on where the colour is in the image (turn direction agrees with the expert in
+44\,\% of the episodes, chance 50\,\%). Training longer improves the flight but not the choice: from 5\,k to
+10\,k steps the crashes fall from 54 to 29\,\% while the share of pillar arrivals at the instructed pillar stays
+at 28--29\,\% (chance 25\,\%), and with an empty instruction the policy succeeds as often as with it (19.7 vs.\
+19.1\,\%). One fine-tuning run on $48\times64$ images is not a
+verdict on VLAs, but the benchmark separates flight competence from instruction grounding, and the toolchain
+(export, LeRobot fine-tuning, policy server, closed-loop evaluation) is in place for stronger models.

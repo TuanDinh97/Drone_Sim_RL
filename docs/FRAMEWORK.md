@@ -198,7 +198,9 @@ were not resumed.
   (SmolVLA, pi0, ACT, Diffusion Policy) trained on a quadsim export, with its own pre/post-processors;
   `quadsim.il.remote.make_server` wraps any `infer(obs) -> {"actions": ...}` function (needs only numpy, msgpack and
   websockets, e.g. in a LeRobot or openpi environment). Verified: a remotely served policy reproduces the local
-  evaluation bit for bit.
+  evaluation bit for bit; a SmolVLA fine-tuned with LeRobot on LangNav-RGB was benchmarked this way (it flies but
+  ignores the instruction - a negative baseline, `docs/PROGRESS.md`). Evaluation results of remote policies record
+  the server's metadata and the action horizon (`_meta`).
 * **New algorithms**: subclass `Algorithm` and register it (`examples/custom_algorithm.py`: Augmented Random Search
   on thousands of parallel environments).
 

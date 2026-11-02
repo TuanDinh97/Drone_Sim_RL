@@ -752,7 +752,8 @@ Seeds 1-2 trained with the code of `7008d7d` (as seed 42), all evaluated with th
   multiplier saturates at `lambda_max` = 100 and the course success collapses. In this reward-penalty form a
   converged policy is not steered back by the multiplier; enforcing the constraint from the start (v0) works in 2 of
   3 seeds. A cost critic (PPO-Lag proper) is the next step (ROADMAP).
-- RGB LangNav demonstrations re-collected after the camera re-render fix, BC / DAgger re-trained (seed 0).
+- RGB LangNav demonstrations re-collected after the camera re-render fix, BC / DAgger re-trained with 3 seeds:
+  no measurable difference (session 6, "RGB demonstrations re-collected after the camera fix").
 
 ### Known issues kept (documented, not fixed)
 - Reaching the goal / finishing (waypoint, navigation, racing, LangNav success and wrong pillar) is returned as a
@@ -762,7 +763,8 @@ Seeds 1-2 trained with the code of `7008d7d` (as seed 42), all evaluated with th
   choice backed by an ablation there; waypoint, navigation and LangNav were not re-run.
 - Hover and race policies were trained before the reset-frame and track-resampling fixes; they are evaluated with
   the corrected environments (a small train/eval difference, now consistent with the documented task definition).
-- RGB LangNav demonstrations were collected before the camera fix (first frame of each episode stale).
+- The published RGB LangNav policies were trained on demonstrations collected before the camera fix (first frame
+  of each episode stale); the re-collected set gives the same results within seed variation (session 6).
 - `Quadsim-LangNav-RGB-v0` has no PPO runner configuration with an image encoder (imitation learning only).
 - The Lagrange multiplier is not stored in checkpoints; swarm confidence intervals treat the 4 agents of a group as
   independent episodes (they are correlated), so they are too narrow.
@@ -811,6 +813,55 @@ VLA evaluation interface, also used by Isaac Lab-Arena and BEHAVIOR; Hugging Fac
 - Docker: the container runs as root and wrote root-owned `__pycache__` files into the mounted checkout
   (`PYTHONDONTWRITEBYTECODE=1` now; existing files handed back to the user).
 
+### RGB demonstrations re-collected after the camera fix ✅
+- `Quadsim-LangNav-RGB-v0`, 2048 expert episodes with the original seed: the same 297,675 transitions (the expert
+  is privileged; only the first image of every episode differs). BC and one DAgger round re-trained with 3 seeds
+  (protocol of the replication: same demonstrations, DAgger data collected once by the seed-0 learner).
+- BC 80.2 +- 6.1 / 77.6 +- 16.6 % (training / held-out phrasings) vs 76.7 +- 5.6 / 74.5 +- 11.3 % on the original
+  data, P(re-collected > original) = 0.67 [0.33, 1.00]; DAgger-1 99.8 +- 0.4 / 99.2 +- 1.4 vs 100 / 98.4 +- 2.7 %,
+  P = 0.44 [0.17, 0.67]. The stale first frame (0.7 % of the frames) had no measurable effect; the published RGB
+  results stand.
+- LeRobot export `datasets/lerobot/langnav_rgb_v2`: all 2048 episodes, `observation.state` without `last_action`
+  (the inputs of the BC baselines, `export_lerobot.py --drop`), verified with LeRobot's loader (exact state /
+  action / task, identical images); the dataset card no longer carries the stale-frame note.
+
+### A pretrained VLA fine-tuned on the drone task: SmolVLA (negative result) ✅
+- **Setup.** `lerobot/smolvla_base` (450 M parameters: SmolVLM2-500M truncated to 16 layers + a 100 M flow-matching
+  action expert, 50-step chunks) fine-tuned with LeRobot 0.4.4's recipe (frozen vision encoder, action expert and
+  state projection trained; `--rename_map` front -> camera1) on the re-collected RGB demonstrations above (the data
+  of the BC baseline): batch 32, 10,000 steps = 1.07 epochs (batch and steps chosen by a throughput probe for a
+  90-minute budget; learning-rate schedule rescaled by lerobot), 86 min on the RTX 5060 (6.3 GB), final loss 0.014
+  (`logs/jobs/phase_f.sh`). Served by `scripts/il/serve_lerobot_policy.py` (seeded noise) and evaluated with the BC
+  protocol (64 rendered environments, 320 episodes, evaluation seed 1234; server + simulator 7.2 GB).
+- **Results** (success / wrong pillar / crash, 95 % CI half-width ~ 4-5 points):
+
+  | Policy | Training phrasings | Held-out phrasings |
+  |---|---|---|
+  | BC, same demonstrations (mean of 3 seeds) | 80.2 / 0.1 / 19.7 % | 77.6 / 1.4 / 19.4 % |
+  | BC + 1 DAgger round (mean of 3 seeds) | 99.8 / 0.0 / 0.2 % | 99.2 / 0.4 / 0.4 % |
+  | SmolVLA, 10 actions per chunk | 19.1 / 50.3 / 29.4 % | 19.4 / 45.3 / 32.8 % |
+  | SmolVLA, 50 actions per chunk (its default) | 27.2 / 59.7 / 11.3 % | 22.2 / 65.9 / 8.7 % |
+  | SmolVLA, re-planned every step | - | 12.2 / 31.2 / 55.0 % (36 min) |
+
+- **Diagnosis.** SmolVLA learned to fly to *a* pillar but selects the instructed one at chance level (4 pillars).
+  Replacing the colour word changes its actions by at most 0.03 (actions in [-1, 1]) once the vehicle moves: it
+  continues the motion in its velocity estimate (the copycat shortcut of behaviour cloning). At the first frame
+  (velocity ~ 0) the actions do depend on the colour word, but through a fixed colour -> direction prior, not on
+  where that colour is in the image: the sign of the first yaw command agrees with the expert's in 44 % of 32
+  episodes (5 k-step checkpoint 38 %; chance 50 %). Executing longer chunks open loop trades reactivity for smoother
+  flight (crashes 55 -> 30 -> 9 % from 1 to 10 to 50 actions per chunk) without fixing the target choice.
+- **Closed-loop diagnostics** (training phrasings, 10 actions per chunk, `logs/jobs/phase_h.sh`): the
+  5,000-step checkpoint reaches 12.8 % (crash 54 %, wrong pillar 32 %); from 5 k to 10 k steps the flight improves
+  (crashes 54 -> 29 %) but the share of pillar arrivals at the instructed pillar stays at chance (29 -> 28 %;
+  chance 25 %). With an **empty instruction** (`serve_lerobot_policy.py --prompt ''`) the final checkpoint succeeds
+  as often as with it (19.7 vs 19.1 %, wrong pillar 59 %): in closed loop the policy does not use the instruction.
+- **Reading.** With the standard recipe, a frozen vision encoder looking at a 48x64 image upscaled to 512 px and one
+  epoch, the VLA does not ground the instruction, while the 0.27 M-parameter FiLM-CNN trained from scratch on the same
+  data does (0 % wrong pillar). This is one fine-tuning run, not a verdict on VLAs: higher camera resolution,
+  unfreezing the vision encoder (needs more than 8 GB or memory-saving optimizers), longer fine-tuning, re-weighting
+  the decision frames and DAgger with the VLA as executor are the next steps (ROADMAP). The pipeline itself
+  (export -> LeRobot fine-tuning -> policy server -> closed-loop benchmark) is verified end to end.
+
 ## Upstream issue found and patched (affects GUI / video)
 - Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the
   property → PhysX transform query before GPU buffers exist when a viewport renders → every RigidObject fails
@@ -828,8 +879,8 @@ VLA evaluation interface, also used by Isaac Lab-Arena and BEHAVIOR; Hugging Fac
 - Not done: hardware flights; real-vehicle system identification; depth/RGB policies in SITL (needs a rendered gz camera
   matched to the training camera); retraining the navigation policy with a randomized / PX4-identified velocity loop;
   tracking/waypoint policies retrained on v1 (task configs exist: `Quadsim-{Track,Waypoint}-v1`); multi-seed statistics
-  beyond hover; tuned baselines; RGB policy training with texture/lighting randomization (see `docs/ROADMAP.md`).
+  for tracking, waypoints, navigation, SAC/TD3 and the hexarotor; instruction grounding of the fine-tuned VLA; tuned baselines; RGB policy training with texture/lighting randomization (see `docs/ROADMAP.md`).
 - Open sim-to-sim gaps: waypoint course 25–35 % slower in SITL (cause not isolated); ~70 ms extra delay of PX4's velocity
   and attitude chain; SITL obstacles are virtual (no contact physics).
 - GUI and a 4096-env training run cannot share the 8 GB GPU.
-- Files created by the container in bind mounts are owned by root.
+- Files the container writes to the mounted `logs/`, `datasets/`, `outputs/` are owned by root (no bytecode any more).

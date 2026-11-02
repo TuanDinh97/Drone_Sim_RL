@@ -26,11 +26,14 @@ Ordered by dependency; each milestone has explicit acceptance criteria that are 
 
 ## Beyond the current scope (future work, prioritized)
 0. Framework follow-ups: terminal task ends for waypoint and navigation (on racing the 3-seed ablation favoured the
-   bootstrapped time-out of the published runs: P(terminal > time-out) = 0.25); re-collect the RGB demonstrations after the camera re-render fix; a PPO
-   configuration with an image encoder for LangNav-RGB; multi-seed runs for SAC/TD3, the hexarotor and the plug-in
+   bootstrapped time-out of the published runs: P(terminal > time-out) = 0.25); a PPO configuration with an image
+   encoder for LangNav-RGB; multi-seed runs for SAC/TD3, the hexarotor and the plug-in
    tasks; a cost critic (PPO-Lag proper) and other constrained-RL algorithms - the reward-penalty form failed to
    recover from an unconstrained warm-up and lost one of three seeds (and the multiplier in checkpoints);
-   fine-tuning an open VLA on the exported LeRobot data and evaluating it through the remote-policy interface;
+   VLA grounding on LangNav-RGB - SmolVLA fine-tuned with LeRobot's recipe (frozen vision encoder, one epoch,
+   48x64 images) picks the instructed pillar at chance level: higher camera resolution, unfreezing the vision
+   encoder, longer fine-tuning, re-weighting the first (decision) frames, DAgger with the VLA as executor, other
+   VLAs (pi0 / pi0.5 behind openpi's server);
    texture/lighting randomization for RGB; exploration and adaptive-control benchmark tasks; yaw-aware rewards for
    the off-policy learners.
 1. Real-flight system identification (thrust stand, k_f, k_m, τ; bifilar pendulum inertia) for the target vehicle; update presets.

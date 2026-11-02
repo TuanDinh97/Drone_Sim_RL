@@ -16,7 +16,9 @@ Numbers quoted below are the current (re-measured) values; `docs/PROGRESS.md` ho
   of the published runs, which is kept).
 - Imitation learning: episode-structured demonstrations with instructions, BC / DAgger (FiLM CNN, bag-of-words or a
   frozen CLIP text encoder), LeRobot v3.0 export verified with LeRobot's loader, dataset cards.
-- Remote policies over the openpi policy-server protocol (`quadsim.il.remote`, `scripts/il/serve_policy.py`).
+- Remote policies over the openpi policy-server protocol (`quadsim.il.remote`, `scripts/il/serve_policy.py`),
+  action chunks executed open loop (`QUADSIM_REMOTE_HORIZON`), LeRobot policies served with their own processors
+  (`scripts/il/serve_lerobot_policy.py`; SmolVLA fine-tuned and benchmarked on LangNav-RGB: a negative baseline).
 - Benchmark suites with in- / out-of-distribution conditions; aggregate statistics with stratified bootstrap
   intervals and probability of improvement (`quadsim.benchmark.stats`, rliable definitions).
 - Tools: regression evaluations, re-evaluation from result metadata, example checks, hardware-aware `num_envs`.

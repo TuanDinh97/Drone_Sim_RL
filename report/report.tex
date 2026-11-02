@@ -575,9 +575,9 @@ goal or finishing the course is returned as a time-out (bootstrapped by the lear
 the option \texttt{task\_end\_is\_terminal} changes this for new runs, and on racing the terminal variant was worse
 over three seeds (\cref{sec:tools}); waypoint and navigation were not re-run. The
 instructions come from eight training and three held-out templates over a small vocabulary; the default encoder is
-a bag-of-words model, the alternative a frozen pretrained CLIP text tower (no fine-tuning). No pretrained
-vision-language(-action) model was run or fine-tuned (the adapter interface and the LeRobot export are validated,
-external models are not). The off-policy policies leave a
+a bag-of-words model, the alternative a frozen pretrained CLIP text tower (no fine-tuning). One pretrained
+vision-language-action model was fine-tuned (SmolVLA, one run, one epoch, $48\times64$ images); it did not ground
+the instructions (\cref{sec:tools}). The off-policy policies leave a
 large final yaw error on hover. Autonomous exploration and explicit adaptive-control tasks are not implemented (observation histories are
 available as terms). The Lagrangian is the reward-penalty form without a cost critic; its multiplier is not stored
 in checkpoints, and it can lock a seed into a policy that never learns the task (a constraint warm-up is provided).
@@ -607,7 +607,8 @@ image-space randomization, distill the state/range teacher into the depth studen
 then test in a real obstacle course.
 \item \textbf{Framework}: terminal task ends for waypoints and navigation; multi-seed results for the
 off-policy algorithms and the remaining tasks; a cost critic for constrained RL;
-pretrained text/vision encoders and fine-tuning of an open VLA on the exported LeRobot data; texture and lighting
+VLA grounding on the language task (camera resolution, unfrozen vision encoder, longer fine-tuning, DAgger with the
+VLA as executor, other VLAs behind openpi's server); texture and lighting
 randomization for RGB policies; exploration and adaptive-control benchmark tasks; recurrent policies for implicit
 system identification; migration to Isaac Lab 3.x once stable.
 \end{enumerate}
@@ -659,6 +660,7 @@ methods. \emph{ICML}, 2018.
 reinforcement learning for humanoid control. arXiv, 2025.
 \bibitem{agarwal2021precipice} R.~Agarwal, M.~Schwarzer, P.~S.~Castro, A.~Courville, M.~G.~Bellemare. Deep reinforcement learning at the edge of the statistical precipice. \emph{NeurIPS}, 2021.
 \bibitem{black2024pi0} K.~Black et~al. $\pi_0$: a vision-language-action flow model for general robot control. \emph{arXiv:2410.24164}, 2024.
+\bibitem{shukor2025smolvla} M.~Shukor, D.~Aubakirova, F.~Capuano et~al. SmolVLA: a vision-language-action model for affordable and efficient robotics. \emph{arXiv:2506.01844}, 2025.
 \bibitem{stooke2020pid} A.~Stooke, J.~Achiam, P.~Abbeel. Responsive safety in reinforcement learning by PID Lagrangian
 methods. \emph{ICML}, 2020.
 \bibitem{yu2022mappo} C.~Yu, A.~Velu, E.~Vinitsky, J.~Gao, Y.~Wang, A.~Bayen, Y.~Wu. The surprising effectiveness of PPO in

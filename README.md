@@ -28,7 +28,7 @@ touching the simulation core, and evaluate them reproducibly against classical b
 | Evaluation | identical seeds and conditions for policies and classical baselines, 95 % CIs, **benchmark suites with in-distribution / OOD splits** and generalization gap, **multi-seed statistics** (IQM, stratified bootstrap CIs, probability of improvement; [protocol](docs/BENCHMARK.md)) | `BENCHMARKS.register(Suite(...))` |
 | Data | synchronized HDF5 recording, **episode-structured demonstrations with instructions**, **LeRobot v3.0 export (verified with LeRobot's loader) with a Hugging Face dataset card**, dataset inspection | — |
 | Deployment | ONNX/TorchScript export + interface contract, NumPy runtime, ROS 2 PX4 offboard bridge, PX4 v1.16 SITL pipeline | optional; nothing in training depends on PX4 / ROS 2 |
-| Resources | GPU-memory-aware `num_envs`, Docker image, 141 CPU unit tests, regression and example checks, re-evaluation tool | — |
+| Resources | GPU-memory-aware `num_envs`, Docker image, 154 CPU unit tests (GitHub Actions CI), regression and example checks, re-evaluation tool | — |
 
 ## Verified framework results (simulation, RTX 5060 8 GB)
 
@@ -39,13 +39,14 @@ touching the simulation core, and evaluate them reproducibly against classical b
 | Off-policy SAC / TD3 (new, asymmetric critics) vs the earlier skrl SAC on hover | **100 % / 99.9 %** vs 0 % success (TD3's first configuration: 0 %) | `docs/results/framework/offpolicy_hover.json` |
 | Hexarotor from the generic frame generator, PPO (CTBR / 6-D motor actions) vs cascade | **99.8 % / 100 %** (1.2 / 1.4 cm) vs 96.2 % | `docs/results/framework/vehicles_interfaces.json` |
 | Safe RL: waypoint racing with speed ≤ 2 m/s, budget 0.1 s/episode | PPO-Lagrangian over-speed **0.105 ± 0.023 s** (3 seeds: 0.081 / 0.126 / 0.108 s), course success 87.6 / **0** / 85.2 % (one seed never learned the course); unconstrained PPO 5.35 s, 99.4 % | `docs/results/framework/safe_rl.json`, `multiseed.json` |
-| Drone racing (2 laps, 7 gates, 5-inch racer), unseen random circuits, 3 seeds | PPO **96.1 ± 1.5 %**, 2.46 s per lap (11.9 m/s); fixed ellipse 99.0 %; **figure-8 4 ± 3 %** (trained on one turning direction) → **73 ± 6 %** when trained on both directions; gate-aligned cascade 0.6 % | `docs/results/framework/bench_race.json`, `multiseed.json` |
+| Drone racing (2 laps, 7 gates, 5-inch racer), unseen random circuits, 3 seeds | PPO **96.1 ± 1.5 %**, 2.46 s per lap (11.9 m/s); fixed ellipse 99.0 %; **figure-8 4 ± 3 %** (trained on one turning direction) → **73 ± 6 %** when trained on both directions; finishing as a terminal state instead of a bootstrapped time-out: 93 ± 3 %, figure-8 46 ± 26 %, slower laps (P(better) = 0.25); gate-aligned cascade 0.6 % | `docs/results/framework/bench_race.json`, `multiseed.json` |
 | Multi-agent swap (4 drones, shared policy, centralized critic), 3 seeds | PPO **89.6 ± 2.4 %** group success, 1.7 % collisions, 2.0 s; tuned potential field 100 %, 6.9 s; straight lines 36 %, 36 % collisions | `docs/results/framework/bench_swarm.json`, `multiseed.json` |
 | RL → BC distillation (hover) | BC student 99.9 %, 1.3 cm (teacher 99.9 %, 1.3 cm) | `docs/results/framework/imitation.json` |
 | Language-conditioned navigation (map + instruction), BC → DAgger, 3 seeds | 76 ± 6 % → **100 %** (expert 100 %); unseen phrasings 74 ± 15 % with a bag-of-words encoder (20 ± 9 % if unknown words are not ignored), **96.9 ± 1.2 %** with a frozen pretrained CLIP text tower; without the instruction 11 % | same, `multiseed.json` |
 | Behaviour cloning with the last action as input | 15.4 % (copycat failure) vs 81 % without it | same |
-| Vision-language BC (RGB camera + instruction, no map) → 1 DAgger round, 3 seeds | 77 ± 6 % → **100 %** (unseen phrasings 75 ± 11 % → 98 ± 3 %; with CLIP 99.6 %) | same, `multiseed.json` |
-| LeRobot v3.0 export, verified by reloading with lerobot 0.4.4 | map dataset 200 episodes / 26 722 frames, RGB dataset 300 episodes / 42 199 frames: state, action, task and images exact | `docs/results/framework/imitation.json` |
+| Vision-language BC (RGB camera + instruction, no map) → 1 DAgger round, 3 seeds | 77 ± 6 % → **100 %** (unseen phrasings 75 ± 11 % → 98 ± 3 %; with CLIP 99.6 %); demonstrations re-collected after the camera fix: 80 ± 6 % → 99.8 % (unseen 78 ± 17 % → 99.2 %), no measurable difference | same, `multiseed.json` |
+| Pretrained VLA: **SmolVLA** (450 M, LeRobot recipe, frozen vision encoder) fine-tuned on the same RGB demonstrations (10 k steps, 86 min), evaluated through the openpi-protocol server | 19 % / 19 % success (training / unseen phrasings, 10 actions per chunk; 27 / 22 % with 50) vs BC 80 / 78 %: it flies to a pillar but picks the instructed one at chance level (wrong pillar 45–66 %, 4 pillars) - a negative baseline, diagnosed in `docs/PROGRESS.md` | `docs/results/framework/imitation.json` |
+| LeRobot v3.0 export, verified by reloading with lerobot 0.4.4 | map dataset 200 episodes / 26 722 frames, RGB datasets 300 episodes / 42 199 frames and 2048 episodes / 297 675 frames (re-collected): state, action, task and images exact | `docs/results/framework/imitation.json` |
 | Extension examples (vehicle YAML / plugin, GNSS and 3-D LiDAR sensors, landing task, reward + curriculum, acceleration interface, ARS algorithm, VLA adapter) | **11/11** execute; trained plug-ins: acceleration interface 99.8 %, landing 94.1 % (first reward 0 %, fixed), ARS 46.5 % | `docs/results/framework/examples_check.json`, `vehicles_interfaces.json` |
 
 ## Verified platform results (simulation and PX4 SITL)
@@ -223,10 +224,10 @@ engineering approximations); racing, swarm, safe RL and the language tasks have 
 reaching the goal is returned as a time-out (bootstrapped) in the published runs - `env.task_end_is_terminal=True`
 makes it terminal (on racing that variant was worse over 3 seeds: 93 vs 96 % in distribution, 46 vs 73 % on the
 figure-8); PPO-Lagrangian can lock into a slow policy when its multiplier grows before the task is learned
-(1 of 3 seeds; `Quadsim-Waypoint-Safe-v1` adds a constraint warm-up); RGB policies lack texture/lighting
-randomization; no pretrained VLA was run (the adapter interface and LeRobot export are validated, the models are not);
-off-policy policies leave a large final yaw error on hover; autonomous exploration and adaptive-control tasks are not
-implemented (observation histories are available as terms).
+(1 of 3 seeds; a constraint warm-up, `Quadsim-Waypoint-Safe-v1`, and a budget curriculum, `-v2`, did not fix it);
+RGB policies lack texture/lighting randomization; the one pretrained VLA fine-tuned so far (SmolVLA, one run, one
+epoch, 48×64 images) does not ground the instructions; off-policy policies leave a large final yaw error on hover;
+autonomous exploration and adaptive-control tasks are not implemented (observation histories are available as terms).
 
 > **Review (session 5).** A code review found and fixed ~20 defects (`docs/PROGRESS.md`, "Review and corrections"),
 > among them a sampling bias of the evaluator: all evaluation numbers in this README are the re-measured values.

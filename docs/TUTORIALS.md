@@ -167,9 +167,39 @@ with make_server(infer, {"policy": "my_vla"}, port=8000) as server:
     server.serve_forever()
 ```
 
-`QUADSIM_REMOTE_BATCHED=1` sends the whole batch of environments per message (quadsim servers); without it every
-environment is a separate request, as openpi servers expect. Exported LeRobot datasets carry a dataset card
-(`README.md`, `scripts/il/dataset_card.py`) for the Hugging Face hub.
+`QUADSIM_REMOTE_BATCHED=1` sends the batch of environments per message (quadsim servers); without it every
+environment is a separate request, as openpi servers expect. `QUADSIM_REMOTE_HORIZON=k` executes the first k actions
+of every action chunk open loop before the next query (openpi's action-chunk broker; default 1 = re-plan every step).
+Exported LeRobot datasets carry a dataset card (`README.md`, `scripts/il/dataset_card.py`) for the Hugging Face hub.
+
+**Fine-tuning a LeRobot VLA (SmolVLA) and evaluating it in closed loop.** Any LeRobot policy (SmolVLA, pi0, ACT,
+Diffusion Policy, ...) trained on a quadsim export is served by `scripts/il/serve_lerobot_policy.py`, which rebuilds
+`observation.state` from the policy observation with the export's column selection and applies the policy's own
+pre/post-processors:
+
+```bash
+bash scripts/il/setup_lerobot_env.sh --policies       # LeRobot training / serving dependencies (separate venv)
+L=third_party/lerobot-venv/bin
+$L/python scripts/il/export_lerobot.py datasets/il/langnav_rgb_expert_v2.h5 --repo_id quadsim/langnav_rgb_v2 \
+    --out datasets/lerobot/langnav_rgb_v2 --drop last_action   # same inputs as the BC baselines
+$L/lerobot-train --policy.path=lerobot/smolvla_base --policy.device=cuda --policy.push_to_hub=false \
+    --dataset.repo_id=quadsim/langnav_rgb_v2 --dataset.root=datasets/lerobot/langnav_rgb_v2 \
+    '--rename_map={"observation.images.front": "observation.images.camera1"}' \
+    --batch_size=32 --steps=10000 --output_dir=logs/lerobot/smolvla_langnav_v2 --wandb.enable=false
+$L/python scripts/il/serve_lerobot_policy.py --dataset datasets/lerobot/langnav_rgb_v2 --max_batch 32 \
+    --policy logs/lerobot/smolvla_langnav_v2/checkpoints/last/pretrained_model --port 8000 &
+QUADSIM_REMOTE_BATCHED=1 QUADSIM_REMOTE_HORIZON=10 python scripts/rl/evaluate.py --headless --enable_cameras \
+    --task Quadsim-LangNav-RGB-Heldout-v0 --num_envs 64 --episodes 300 --controllers policy --algo vla \
+    --checkpoint quadsim.il.remote:make_adapter
+```
+
+`--rename_map` maps quadsim's camera to the first camera slot of `smolvla_base` (LeRobot's way of fine-tuning a
+pretrained policy on other camera names; the map is saved in the policy's pre-processor, so the server feeds the
+dataset's key). Flow-matching policies sample noise: the server seeds it (`--seed`) so that an evaluation is
+reproducible; `--prompt ''` replaces every instruction (language ablation). On the 8 GB RTX 5060 the training (batch
+32: 6.3 GB, 1.9 steps/s, 86 min for 10k steps) runs alone; the server (`--max_batch` bounds its memory) and a
+rendered evaluation with 64 environments fit together (7.2 GB). With this recipe SmolVLA learned to fly to a pillar
+but not to pick the instructed one (`docs/PROGRESS.md`, session 6) - a baseline to beat, not a solved task.
 
 ## 11. Multi-agent
 

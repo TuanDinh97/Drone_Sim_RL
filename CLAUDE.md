@@ -31,7 +31,11 @@ Session 6 (standards, VLA): remote policies over the openpi protocol (`quadsim.i
 closed loop bit-identical to local), rliable-style statistics (`quadsim.benchmark.stats`, comparisons in
 `multiseed.json`), `docs/BENCHMARK.md`, `CITATION.cff`, `LICENSE`, `CHANGELOG.md`, `CONTRIBUTING.md`, LeRobot dataset
 cards (`scripts/il/dataset_card.py`); PPO-Lagrangian warm-up / budget curriculum (Waypoint-Safe-v1/v2) both failed
-(documented); option `env.task_end_is_terminal` (Race-v1 3-seed ablation in `logs/benchmark_suites/race/terminal`).
+(documented); option `env.task_end_is_terminal` (Race-v1 3-seed ablation in `logs/benchmark_suites/race/terminal`:
+worse than the time-out, P = 0.25). Later in session 6: GitHub Actions CI (`.github/workflows/tests.yml`), fresh-install
+fix (packaging pin), RGB LangNav demonstrations re-collected (`*_v2data`, 3 seeds, no measurable change), LeRobot policy
+server (`scripts/il/serve_lerobot_policy.py`) + action horizon; **SmolVLA** fine-tuned on LangNav-RGB
+(`logs/lerobot/smolvla_langnav_v2`, jobs `logs/jobs/phase_{f,h}.sh`): 19 % success, instruction ignored (negative result).
 Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at the end of docs/PROGRESS.md.
 
 ## Environment (verified)
@@ -89,6 +93,11 @@ Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at 
   session are killed when the session ends (session 5 lost three trainings that way); put scripts in
   `logs/jobs/` (the scratchpad in /tmp is wiped between sessions).
 - The Lagrange multiplier is not checkpointed: a resumed safe-RL run restarts lambda and any budget curriculum.
+- LeRobot policies (`third_party/lerobot-venv`, `setup_lerobot_env.sh --policies`): keep huggingface-hub < 0.36 and
+  diffusers < 0.36 (a plain `pip install diffusers` pulled hub 2.x and broke transformers); `lerobot.policies` imports
+  every policy family. `HuggingFaceTB/SmolVLM2-500M-Video-Instruct` carries ~6 GB of ONNX files: download it with
+  `allow_patterns` (json, safetensors, tokenizer). smolvla_base expects cameras `camera1..3`: fine-tune with
+  `--rename_map`. GPU: SmolVLA training (batch 32) 6.3 GB -> alone; its server + a 64-env rendered evaluation 7.2 GB.
 
 ## Layout
 - `source/quadsim/quadsim/registry.py` – extension registries + plugin loader.

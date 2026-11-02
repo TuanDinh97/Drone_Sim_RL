@@ -22,6 +22,9 @@ the statistics in `quadsim.benchmark.stats`.
    seeds; across conditions: the IQM with its CI and, against a reference method, the probability of improvement
    P(X > Y) with its CI (Agarwal et al., NeurIPS 2021). With 3 seeds the intervals are wide; report them anyway.
    The generalization gap is `id - mean(ood)` of the primary metric.
+6. **Generative and chunked policies** (flow matching, diffusion, VLAs): seed the sampling noise (the policy
+   servers take `--seed`) and report the number of actions executed per predicted chunk (`QUADSIM_REMOTE_HORIZON`);
+   it changes the results (SmolVLA on LangNav-RGB: 55 / 30 / 9 % crashes with 1 / 10 / 50 actions per chunk).
 
 ## Suites
 
@@ -47,6 +50,12 @@ python scripts/benchmark/run.py --suite race --policy mine_s1=logs/<algo>/quadsi
 # an external VLA / IL model served over the openpi protocol (any Python environment or machine)
 QUADSIM_POLICY_SERVER=host:8000 python scripts/rl/evaluate.py --headless --task Quadsim-LangNav-RGB-v0 \
     --enable_cameras --num_envs 16 --controllers policy --algo vla --checkpoint quadsim.il.remote:make_adapter
+# a LeRobot policy (SmolVLA, pi0, ACT, ...) fine-tuned on a quadsim LeRobot export, served from the LeRobot venv
+third_party/lerobot-venv/bin/python scripts/il/serve_lerobot_policy.py --policy <run>/checkpoints/last/pretrained_model \
+    --dataset datasets/lerobot/langnav_rgb_v2 --max_batch 32 --seed 0 --port 8000 &
+QUADSIM_REMOTE_BATCHED=1 QUADSIM_REMOTE_HORIZON=10 python scripts/rl/evaluate.py --headless --enable_cameras \
+    --task Quadsim-LangNav-RGB-Heldout-v0 --num_envs 64 --episodes 300 --controllers policy --algo vla \
+    --checkpoint quadsim.il.remote:make_adapter
 ```
 
 `logs/benchmark_suites/<suite>/<tag>/summary.md` holds one table per metric and the generalization gap; aggregate
@@ -64,6 +73,8 @@ seeds with `quadsim.benchmark.stats` (example: `scripts/tools/collect_multiseed.
 | swarm, tuned potential field | 100 % | 97.7 / 96.1 % | 6.9 s (3.4× slower) |
 | langnav (map), BC + 2 DAgger rounds, bag of words | 100 % | held-out phrasings 73.5 ± 15.1 % | same data with a frozen CLIP text tower: 96.9 ± 1.2 % |
 | langnav (RGB, no map), BC + 1 DAgger round | 100 % | held-out phrasings 98.4 ± 2.7 % | BC alone 76.7 ± 5.6 % |
+| langnav (RGB), same on demonstrations re-collected after the camera fix | 99.8 ± 0.4 % | held-out 99.2 ± 1.4 % | BC alone 80.2 ± 6.1 / 77.6 ± 16.6 % |
+| langnav (RGB), SmolVLA fine-tuned on those demonstrations (1 run, 10 k steps) | 19.1 % (10 actions per chunk), 27.2 % (50) | held-out 19.4 / 22.2 % | wrong pillar 45-66 %: chance-level target choice |
 | waypoint-safe, PPO-Lagrangian (budget 0.1 s) | cost 0.105 ± 0.023 s | - | course success 87.6 / 0 / 85.2 % per seed |
 
 Single-seed reference results (hover algorithms, tracking, waypoints, navigation, vehicles) are in `README.md` and

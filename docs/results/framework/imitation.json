@@ -456,6 +456,55 @@
       }
     },
     "langnav_sym_bc_v2_unkavg": {
+      "Quadsim-LangNav-v0": {
+        "crash": {
+          "mean": 0.18,
+          "ci95": 0.0337092412535759,
+          "n": 500
+        },
+        "time_out": {
+          "mean": 0.82,
+          "ci95": 0.0337092412535759,
+          "n": 500
+        },
+        "episode_length_s": {
+          "mean": 3.2315999205112456,
+          "ci95": 0.09208335323463104,
+          "n": 500
+        },
+        "success": {
+          "mean": 0.81,
+          "ci95": 0.03442112880508762,
+          "n": 500
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 500
+        },
+        "pillar_collision": {
+          "mean": 0.18,
+          "ci95": 0.0337092412535759,
+          "n": 500
+        },
+        "time_to_success": {
+          "mean": 3.2792097965876263,
+          "ci95": 0.07958506808411654,
+          "n": 405
+        },
+        "layout_min_separation": {
+          "mean": 1.9362593286037446,
+          "ci95": 0.03216103226923356,
+          "n": 500
+        },
+        "target_collision": {
+          "mean": 0.18,
+          "ci95": 0.0337092412535759,
+          "n": 500
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-v0_langnav_sym_bc_v2_unkavg.json",
+        "_overrides": []
+      },
       "Quadsim-LangNav-Heldout-v0": {
         "crash": {
           "mean": 0.224,
@@ -1358,6 +1407,592 @@
         "_source": "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_vla_color_servo.json",
         "_overrides": []
       }
+    },
+    "langnav_rgb_bc_v2data": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.1625,
+          "ci95": 0.04048366480430669,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 0.8375,
+          "ci95": 0.04048366480430669,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 3.52087491825223,
+          "ci95": 0.11353666985550907,
+          "n": 320
+        },
+        "success": {
+          "mean": 0.8375,
+          "ci95": 0.04048366480430669,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.1625,
+          "ci95": 0.04048366480430669,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.2842536559745446,
+          "ci95": 0.11080060806317253,
+          "n": 268
+        },
+        "layout_min_separation": {
+          "mean": 1.91514387242496,
+          "ci95": 0.04066856926836183,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.1625,
+          "ci95": 0.04048366480430669,
+          "n": 320
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-v0_langnav_rgb_bc_v2data.json",
+        "_overrides": []
+      },
+      "Quadsim-LangNav-RGB-Heldout-v0": {
+        "crash": {
+          "mean": 0.065625,
+          "ci95": 0.027174151544203457,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 0.934375,
+          "ci95": 0.02717415154420346,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 3.6006874162703753,
+          "ci95": 0.10847740473252214,
+          "n": 320
+        },
+        "success": {
+          "mean": 0.909375,
+          "ci95": 0.03150331421958937,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.021875,
+          "ci95": 0.01605210309320039,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.065625,
+          "ci95": 0.027174151544203457,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.526391669646981,
+          "ci95": 0.10258803133845357,
+          "n": 291
+        },
+        "layout_min_separation": {
+          "mean": 1.945177075266838,
+          "ci95": 0.04185673260621997,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.053125,
+          "ci95": 0.024612545185045236,
+          "n": 320
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_langnav_rgb_bc_v2data.json",
+        "_overrides": []
+      }
+    },
+    "langnav_rgb_dagger1_v2data": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 2.9100624326616527,
+          "ci95": 0.061277180037393644,
+          "n": 320
+        },
+        "success": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 2.9100624326616527,
+          "ci95": 0.061277180037393644,
+          "n": 320
+        },
+        "layout_min_separation": {
+          "mean": 1.8979448169469832,
+          "ci95": 0.0394932030428991,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-v0_langnav_rgb_dagger1_v2data.json",
+        "_overrides": []
+      },
+      "Quadsim-LangNav-RGB-Heldout-v0": {
+        "crash": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 3.1187499299645425,
+          "ci95": 0.07324063876308426,
+          "n": 320
+        },
+        "success": {
+          "mean": 1.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.1187499299645425,
+          "ci95": 0.07324063876308426,
+          "n": 320
+        },
+        "layout_min_separation": {
+          "mean": 1.946356588229537,
+          "ci95": 0.04036787943394628,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.0,
+          "ci95": 0.0,
+          "n": 320
+        },
+        "_source": "logs/eval/il/Quadsim-LangNav-RGB-Heldout-v0_langnav_rgb_dagger1_v2data.json",
+        "_overrides": []
+      }
+    }
+  },
+  "langnav_rgb_vla": {
+    "smolvla_v2data_h10": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.29375,
+          "ci95": 0.04998375715793906,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 0.70625,
+          "ci95": 0.04998375715793906,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 4.7395623970776795,
+          "ci95": 0.19907133465604154,
+          "n": 320
+        },
+        "success": {
+          "mean": 0.190625,
+          "ci95": 0.0431047917306309,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.503125,
+          "ci95": 0.05486839439394874,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.15625,
+          "ci95": 0.039845349059743344,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.5196720400794606,
+          "ci95": 0.26912958108746426,
+          "n": 61
+        },
+        "layout_min_separation": {
+          "mean": 1.9899412110447883,
+          "ci95": 0.04117577640499256,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.0375,
+          "ci95": 0.0208485921132207,
+          "n": 320
+        },
+        "_source": "logs/eval/vla/Quadsim-LangNav-RGB-v0_smolvla_v2data_h10.json",
+        "_overrides": []
+      },
+      "Quadsim-LangNav-RGB-Heldout-v0": {
+        "crash": {
+          "mean": 0.328125,
+          "ci95": 0.05152578665901881,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 0.671875,
+          "ci95": 0.05152578665901881,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 4.784687389805913,
+          "ci95": 0.18973038025690053,
+          "n": 320
+        },
+        "success": {
+          "mean": 0.19375,
+          "ci95": 0.043372699093390164,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.453125,
+          "ci95": 0.05462780833222049,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.1875,
+          "ci95": 0.04283246322541014,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.5254837909052448,
+          "ci95": 0.18158997694018617,
+          "n": 62
+        },
+        "layout_min_separation": {
+          "mean": 1.951157657802105,
+          "ci95": 0.04169010771023655,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.04375,
+          "ci95": 0.02244582034805542,
+          "n": 320
+        },
+        "_source": "logs/eval/vla/Quadsim-LangNav-RGB-Heldout-v0_smolvla_v2data_h10.json",
+        "_overrides": []
+      }
+    },
+    "smolvla_v2data_h50": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.1125,
+          "ci95": 0.03467537543332453,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 0.8875,
+          "ci95": 0.03467537543332453,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 4.721187394112349,
+          "ci95": 0.20993217410926654,
+          "n": 320
+        },
+        "success": {
+          "mean": 0.271875,
+          "ci95": 0.04882568425717983,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.596875,
+          "ci95": 0.05382974100671049,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.04375,
+          "ci95": 0.02244582034805542,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.3331033553200204,
+          "ci95": 0.22498595188981102,
+          "n": 87
+        },
+        "layout_min_separation": {
+          "mean": 1.9461526807397604,
+          "ci95": 0.03866464669974721,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.00625,
+          "ci95": 0.008648470519100426,
+          "n": 320
+        },
+        "_source": "logs/eval/vla/Quadsim-LangNav-RGB-v0_smolvla_v2data_h50.json",
+        "_overrides": []
+      },
+      "Quadsim-LangNav-RGB-Heldout-v0": {
+        "crash": {
+          "mean": 0.0875,
+          "ci95": 0.031008531033655938,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 0.9125,
+          "ci95": 0.031008531033655938,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 4.776999886706472,
+          "ci95": 0.20824963407357291,
+          "n": 320
+        },
+        "success": {
+          "mean": 0.221875,
+          "ci95": 0.04559734958938734,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.659375,
+          "ci95": 0.052007410232041806,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.04375,
+          "ci95": 0.02244582034805542,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.385070347450149,
+          "ci95": 0.1891324164253569,
+          "n": 71
+        },
+        "layout_min_separation": {
+          "mean": 1.8944494571536779,
+          "ci95": 0.0396080562747293,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.003125,
+          "ci95": 0.0061249999999999985,
+          "n": 320
+        },
+        "_source": "logs/eval/vla/Quadsim-LangNav-RGB-Heldout-v0_smolvla_v2data_h50.json",
+        "_overrides": []
+      }
+    },
+    "smolvla_v2data_h1": {
+      "Quadsim-LangNav-RGB-Heldout-v0": {
+        "crash": {
+          "mean": 0.55,
+          "ci95": 0.05459442942405324,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 0.45,
+          "ci95": 0.054594429424053244,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 4.5956248857080935,
+          "ci95": 0.1920625910819232,
+          "n": 320
+        },
+        "success": {
+          "mean": 0.121875,
+          "ci95": 0.03590014601549929,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.3125,
+          "ci95": 0.05086535641041573,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.4375,
+          "ci95": 0.054439110675688615,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.7071794118636694,
+          "ci95": 0.2962178562201366,
+          "n": 39
+        },
+        "layout_min_separation": {
+          "mean": 1.940198165550828,
+          "ci95": 0.043041255661651096,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.109375,
+          "ci95": 0.03425052270040244,
+          "n": 320
+        },
+        "_source": "logs/eval/vla/Quadsim-LangNav-RGB-Heldout-v0_smolvla_v2data_h1.json",
+        "_overrides": []
+      }
+    },
+    "smolvla_v2data_5k_h10": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.540625,
+          "ci95": 0.054688054072428285,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 0.459375,
+          "ci95": 0.054688054072428285,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 4.644999898597598,
+          "ci95": 0.19824232186906227,
+          "n": 320
+        },
+        "success": {
+          "mean": 0.128125,
+          "ci95": 0.03667792697514892,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.31875,
+          "ci95": 0.05113745192154389,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.315625,
+          "ci95": 0.05100273855131253,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.2629267268064543,
+          "ci95": 0.2659468158533561,
+          "n": 41
+        },
+        "layout_min_separation": {
+          "mean": 1.967342048883438,
+          "ci95": 0.042708051060527386,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.0875,
+          "ci95": 0.031008531033655938,
+          "n": 320
+        },
+        "_source": "logs/eval/vla/Quadsim-LangNav-RGB-v0_smolvla_v2data_5k_h10.json",
+        "_overrides": []
+      }
+    },
+    "smolvla_v2data_noprompt_h10": {
+      "Quadsim-LangNav-RGB-v0": {
+        "crash": {
+          "mean": 0.209375,
+          "ci95": 0.04464865836691531,
+          "n": 320
+        },
+        "time_out": {
+          "mean": 0.790625,
+          "ci95": 0.04464865836691531,
+          "n": 320
+        },
+        "episode_length_s": {
+          "mean": 4.499062394723296,
+          "ci95": 0.1557509305097011,
+          "n": 320
+        },
+        "success": {
+          "mean": 0.196875,
+          "ci95": 0.04363626674533718,
+          "n": 320
+        },
+        "wrong_landmark": {
+          "mean": 0.59375,
+          "ci95": 0.05389633430111159,
+          "n": 320
+        },
+        "pillar_collision": {
+          "mean": 0.165625,
+          "ci95": 0.040794753849170605,
+          "n": 320
+        },
+        "time_to_success": {
+          "mean": 3.539047540180267,
+          "ci95": 0.23758053763535303,
+          "n": 63
+        },
+        "layout_min_separation": {
+          "mean": 1.9352465949952602,
+          "ci95": 0.04050714008198672,
+          "n": 320
+        },
+        "target_collision": {
+          "mean": 0.0375,
+          "ci95": 0.0208485921132207,
+          "n": 320
+        },
+        "_source": "logs/eval/vla/Quadsim-LangNav-RGB-v0_smolvla_v2data_noprompt_h10.json",
+        "_overrides": []
+      }
+    },
+    "server_metadata": {
+      "policy": "lerobot-smolvla",
+      "checkpoint": "/home/tuan/Desktop/drone_ws/.claude/worktrees/frosty-swartz-ab3133/logs/lerobot/smolvla_langnav_v2/checkpoints/last/pretrained_model",
+      "dataset": "/home/tuan/Desktop/drone_ws/.claude/worktrees/frosty-swartz-ab3133/datasets/lerobot/langnav_rgb_v2",
+      "action_dim": 4,
+      "chunk_size": 50,
+      "n_action_steps": 50,
+      "image_keys": [
+        "observation.images.front"
+      ],
+      "state_columns": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "seed": 0
+    },
+    "training": {
+      "probe": "[phase-f] 2026-11-02 10:31:44 probe: batch 32, 0.517 s/step -> 10000 steps (budget 5400 s)",
+      "final": "[phase-f] 2026-11-02 11:58:10 trained: step:10K smpl:320K ep:2K epch:1.07 loss:0.014",
+      "log": "logs/lerobot/train_smolvla_langnav_v2.log"
     }
   },
   "datasets": {
@@ -1408,6 +2043,30 @@
       ],
       "wall_s": 137.24634861946106
     },
+    "langnav_rgb_dagger1_v2.h5": {
+      "file": "datasets/il/langnav_rgb_dagger1_v2.h5",
+      "task": "Quadsim-LangNav-RGB-v0",
+      "expert": "langnav_expert",
+      "episodes": 1024,
+      "episodes_seen": 1024,
+      "transitions": 177974,
+      "mean_length": 173.802734375,
+      "success_rate": 0.849609375,
+      "distinct_instructions": 32,
+      "keys": [
+        "action",
+        "est/odom",
+        "image",
+        "obs/critic",
+        "obs/policy",
+        "reward",
+        "true/ang_vel_b",
+        "true/lin_vel_w",
+        "true/pos",
+        "true/quat"
+      ],
+      "wall_s": 142.96977376937866
+    },
     "langnav_rgb_expert.h5": {
       "file": "datasets/il/langnav_rgb_expert.h5",
       "task": "Quadsim-LangNav-RGB-v0",
@@ -1431,6 +2090,30 @@
         "true/quat"
       ],
       "wall_s": 211.65923881530762
+    },
+    "langnav_rgb_expert_v2.h5": {
+      "file": "datasets/il/langnav_rgb_expert_v2.h5",
+      "task": "Quadsim-LangNav-RGB-v0",
+      "expert": "langnav_expert",
+      "episodes": 2048,
+      "episodes_seen": 2048,
+      "transitions": 297675,
+      "mean_length": 145.34912109375,
+      "success_rate": 1.0,
+      "distinct_instructions": 32,
+      "keys": [
+        "action",
+        "est/odom",
+        "image",
+        "obs/critic",
+        "obs/policy",
+        "reward",
+        "true/ang_vel_b",
+        "true/lin_vel_w",
+        "true/pos",
+        "true/quat"
+      ],
+      "wall_s": 226.96570706367493
     },
     "langnav_sym_dagger1.h5": {
       "file": "datasets/il/langnav_sym_dagger1.h5",
@@ -1527,6 +2210,63 @@
       "images_identical": true,
       "tasks_match": true,
       "export_wall_s": 46.572265625,
+      "pass": true
+    },
+    "langnav_rgb_v2": {
+      "source": "/home/tuan/Desktop/drone_ws/.claude/worktrees/frosty-swartz-ab3133/datasets/il/langnav_rgb_expert_v2.h5",
+      "out": "/home/tuan/Desktop/drone_ws/.claude/worktrees/frosty-swartz-ab3133/datasets/lerobot/langnav_rgb_v2",
+      "repo_id": "quadsim/langnav_rgb_v2",
+      "lerobot_codebase_version": "v3.0",
+      "fps": 50,
+      "episodes": 2048,
+      "frames": 297675,
+      "expected_frames": 297675,
+      "features": [
+        "observation.state",
+        "action",
+        "observation.images.front",
+        "timestamp",
+        "frame_index",
+        "episode_index",
+        "index",
+        "task_index"
+      ],
+      "num_tasks": 32,
+      "max_abs_err_state_action": 0.0,
+      "images_identical": true,
+      "tasks_match": true,
+      "export_wall_s": 325.90670943260193,
+      "obs_layout": [
+        [
+          "state",
+          12
+        ],
+        [
+          "last_action",
+          4
+        ],
+        [
+          "tokens",
+          12
+        ]
+      ],
+      "dropped_blocks": [
+        "last_action"
+      ],
+      "state_columns": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
       "pass": true
     },
     "langnav_sym": {

@@ -83,7 +83,7 @@ hover & BC student, no last action & 100.0\,\% & -- & 1.32\,$\pm$\,0.04\\
 langnav (map) & scripted expert (privileged) & -- & 100.0\,\% & --\\
 langnav (map) & BC (with last action) & 15.4\,\% & 41.0\,\% & 0.2\,\%\\
 langnav (map) & BC, instruction removed & 10.8\,\% & 10.8\,\% & 10.0\,\%\\
-langnav (map) & BC, no last action, unknown words averaged in & -- & 30.8\,\% & --\\
+langnav (map) & BC, no last action, unknown words averaged in & 81.0\,\% & 30.8\,\% & 0.0\,\%\\
 langnav (map) & same policy, unknown words ignored & 81.0\,\% & 58.2\,\% & 0.0\,\%\\
 langnav (map) & + DAgger round 1 & 100.0\,\% & 50.8\,\% & 0.0\,\%\\
 langnav (map) & + DAgger round 2 & 100.0\,\% & 56.2\,\% & 0.0\,\%\\
@@ -93,6 +93,13 @@ langnav (RGB) & BC, FiLM-CNN + instruction & 82.8\,\% & 85.3\,\% & 0.0\,\%\\
 langnav (RGB) & + DAgger round 1 & 100.0\,\% & 100.0\,\% & 0.0\,\%\\
 langnav (RGB) & same data, frozen CLIP text encoder & 99.7\,\% & 99.1\,\% & 0.0\,\%\\
 langnav (RGB) & VLA adapter: colour servo & 6.6\,\% & 7.2\,\% & 0.0\,\%\\
+langnav (RGB) & BC, demonstrations re-collected (camera fix) & 83.8\,\% & 90.9\,\% & 0.0\,\%\\
+langnav (RGB) & + DAgger round 1, re-collected & 100.0\,\% & 100.0\,\% & 0.0\,\%\\
+langnav (RGB) & SmolVLA fine-tuned, 10 actions per chunk & 19.1\,\% & 19.4\,\% & 50.3\,\%\\
+langnav (RGB) & SmolVLA fine-tuned, 50 actions per chunk & 27.2\,\% & 22.2\,\% & 59.7\,\%\\
+langnav (RGB) & SmolVLA fine-tuned, re-planned every step & -- & 12.2\,\% & --\\
+langnav (RGB) & SmolVLA after 5k of the 10k steps, 10 per chunk & 12.8\,\% & -- & 31.9\,\%\\
+langnav (RGB) & SmolVLA, empty instruction, 10 per chunk & 19.7\,\% & -- & 59.4\,\%\\
 \bottomrule\end{tabular}\end{adjustbox}
 \end{table}
 
@@ -131,6 +138,10 @@ LangNav RGB, DAgger-1, success [\%], train phr. & 100.0 & 100.0 & 100.0 & 100.0\
 LangNav RGB, DAgger-1, success [\%], held-out phr. & 100.0 & 95.3 & 100.0 & 98.4\,$\pm$\,2.7 & [95.3, 100.0]\\
 LangNav RGB, DAgger-1 + CLIP, success [\%], train phr. & 99.7 & 100.0 & 99.7 & 99.8\,$\pm$\,0.2 & [99.7, 100.0]\\
 LangNav RGB, DAgger-1 + CLIP, success [\%], held-out phr. & 99.1 & 99.7 & 100.0 & 99.6\,$\pm$\,0.5 & [99.1, 100.0]\\
+LangNav RGB, re-collected data, BC, success [\%], train phr. & 83.8 & 83.8 & 73.1 & 80.2\,$\pm$\,6.1 & [73.1, 83.8]\\
+LangNav RGB, re-collected data, BC, success [\%], held-out phr. & 90.9 & 82.8 & 59.1 & 77.6\,$\pm$\,16.6 & [59.1, 90.9]\\
+LangNav RGB, re-collected data, DAgger-1, success [\%], train phr. & 100.0 & 100.0 & 99.4 & 99.8\,$\pm$\,0.4 & [99.4, 100.0]\\
+LangNav RGB, re-collected data, DAgger-1, success [\%], held-out phr. & 100.0 & 100.0 & 97.5 & 99.2\,$\pm$\,1.4 & [97.5, 100.0]\\
 \bottomrule\end{tabular}\end{adjustbox}
 \end{table}
 
@@ -143,6 +154,8 @@ Race v1, finish terminal vs time-out, all 4 conditions & 0.25 [0.06, 0.50] & 92.
 LangNav map, CLIP vs bag of words (held-out phr.) & 1.00 [1.00, 1.00] & 96.9 [95.6, 98.0] & 73.5 [56.2, 84.2]\\
 LangNav map, unknown words ignored vs averaged & 1.00 [1.00, 1.00] & 61.5 [58.2, 64.0] & 20.3 [14.4, 30.8]\\
 LangNav RGB, DAgger-1 vs BC (both phrasings) & 1.00 [1.00, 1.00] & 100.0 [97.7, 100.0] & 76.3 [69.6, 82.2]\\
+LangNav RGB BC, re-collected vs stale-frame data & 0.67 [0.33, 1.00] & 80.9 [69.6, 85.5] & 76.3 [69.6, 82.2]\\
+LangNav RGB DAgger-1, re-collected vs stale-frame data & 0.44 [0.17, 0.67] & 99.8 [98.8, 100.0] & 100.0 [97.7, 100.0]\\
 \bottomrule\end{tabular}\end{adjustbox}
 \end{table}
 

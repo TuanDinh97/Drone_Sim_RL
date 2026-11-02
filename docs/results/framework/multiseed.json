@@ -1598,6 +1598,148 @@
       }
     }
   },
+  "langnav_rgb_v2data": {
+    "langnav_rgb_bc_v2data": {
+      "train_phrasing": {
+        "success": {
+          "per_seed": {
+            "0": 0.8375,
+            "1": 0.8375,
+            "2": 0.73125
+          },
+          "n_seeds": 3,
+          "mean": 0.8020833333333334,
+          "std": 0.06134346610139777,
+          "min": 0.73125,
+          "max": 0.8375,
+          "mean_ci95_seeds": [
+            0.7312499999999998,
+            0.8375
+          ]
+        },
+        "wrong_landmark": {
+          "per_seed": {
+            "0": 0.0,
+            "1": 0.003125,
+            "2": 0.0
+          },
+          "n_seeds": 3,
+          "mean": 0.0010416666666666667,
+          "std": 0.0018042195912175809,
+          "min": 0.0,
+          "max": 0.003125,
+          "mean_ci95_seeds": [
+            0.0,
+            0.0031250000000000006
+          ]
+        }
+      },
+      "heldout_phrasing": {
+        "success": {
+          "per_seed": {
+            "0": 0.909375,
+            "1": 0.828125,
+            "2": 0.590625
+          },
+          "n_seeds": 3,
+          "mean": 0.7760416666666666,
+          "std": 0.165634826752508,
+          "min": 0.590625,
+          "max": 0.909375,
+          "mean_ci95_seeds": [
+            0.590625,
+            0.9093750000000002
+          ]
+        },
+        "wrong_landmark": {
+          "per_seed": {
+            "0": 0.021875,
+            "1": 0.015625,
+            "2": 0.003125
+          },
+          "n_seeds": 3,
+          "mean": 0.013541666666666667,
+          "std": 0.009547032697824667,
+          "min": 0.003125,
+          "max": 0.021875,
+          "mean_ci95_seeds": [
+            0.0031250000000000006,
+            0.021874999999999995
+          ]
+        }
+      }
+    },
+    "langnav_rgb_dagger1_v2data": {
+      "train_phrasing": {
+        "success": {
+          "per_seed": {
+            "0": 1.0,
+            "1": 1.0,
+            "2": 0.99375
+          },
+          "n_seeds": 3,
+          "mean": 0.9979166666666667,
+          "std": 0.0036084391824351483,
+          "min": 0.99375,
+          "max": 1.0,
+          "mean_ci95_seeds": [
+            0.99375,
+            1.0
+          ]
+        },
+        "wrong_landmark": {
+          "per_seed": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0
+          },
+          "n_seeds": 3,
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "mean_ci95_seeds": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "heldout_phrasing": {
+        "success": {
+          "per_seed": {
+            "0": 1.0,
+            "1": 1.0,
+            "2": 0.975
+          },
+          "n_seeds": 3,
+          "mean": 0.9916666666666667,
+          "std": 0.014433756729740658,
+          "min": 0.975,
+          "max": 1.0,
+          "mean_ci95_seeds": [
+            0.975,
+            1.0
+          ]
+        },
+        "wrong_landmark": {
+          "per_seed": {
+            "0": 0.0,
+            "1": 0.0,
+            "2": 0.0125
+          },
+          "n_seeds": 3,
+          "mean": 0.004166666666666667,
+          "std": 0.007216878364870323,
+          "min": 0.0,
+          "max": 0.0125,
+          "mean_ci95_seeds": [
+            0.0,
+            0.012500000000000002
+          ]
+        }
+      }
+    }
+  },
   "comparisons": {
     "race_v1_vs_v0_all_conditions": {
       "what": "success over 4 conditions: training on both turning directions (v1) vs counter-clockwise only (v0)",
@@ -1720,6 +1862,48 @@
       "iqm_y_ci95": [
         0.69609375,
         0.821875
+      ],
+      "runs_x": 3,
+      "runs_y": 3,
+      "tasks": 2
+    },
+    "langnav_rgb_bc_v2data_vs_stale_first_frame": {
+      "what": "RGB LangNav success (both phrasings): langnav_rgb_bc trained on demonstrations re-collected after the camera re-render fix vs on the original ones (stale first frame)",
+      "p_improvement": 0.6666666666666667,
+      "p_improvement_ci95": [
+        0.3333333333333333,
+        1.0
+      ],
+      "iqm_x": 0.80859375,
+      "iqm_x_ci95": [
+        0.69609375,
+        0.85546875
+      ],
+      "iqm_y": 0.76328125,
+      "iqm_y_ci95": [
+        0.69609375,
+        0.821875
+      ],
+      "runs_x": 3,
+      "runs_y": 3,
+      "tasks": 2
+    },
+    "langnav_rgb_dagger1_v2data_vs_stale_first_frame": {
+      "what": "RGB LangNav success (both phrasings): langnav_rgb_dagger1 trained on demonstrations re-collected after the camera re-render fix vs on the original ones (stale first frame)",
+      "p_improvement": 0.4444444444444444,
+      "p_improvement_ci95": [
+        0.16666666666666666,
+        0.6666666666666667
+      ],
+      "iqm_x": 0.9984375,
+      "iqm_x_ci95": [
+        0.9875,
+        1.0
+      ],
+      "iqm_y": 1.0,
+      "iqm_y_ci95": [
+        0.9765625,
+        1.0
       ],
       "runs_x": 3,
       "runs_y": 3,

@@ -7,7 +7,8 @@ pinned packages (it needs NumPy 2 / newer pyarrow):
     third_party/lerobot-venv/bin/python scripts/il/export_lerobot.py datasets/il/langnav_rgb_expert.h5 \
         --repo_id quadsim/langnav_rgb --out datasets/lerobot/langnav_rgb
 
-Mapping: ``observation.state`` = the policy observation without instruction-token blocks, ``observation.images.front``
+Mapping: ``observation.state`` = the policy observation without instruction-token blocks (and without the ``--drop``
+blocks; the selected columns are recorded in quadsim_export.json), ``observation.images.front``
 = onboard camera (HWC uint8; PNG frames or video with ``--videos``), ``action`` = normalized action, ``task`` = the
 natural-language instruction (or the task name). Writes <out>/quadsim_export.json with a ``pass`` flag after reloading
 the dataset with ``LeRobotDataset`` and comparing frames, and a dataset card <out>/README.md (scripts/il/dataset_card.py).
@@ -28,6 +29,8 @@ ap.add_argument("--repo_id", default="quadsim/demos")
 ap.add_argument("--out", required=True)
 ap.add_argument("--videos", action="store_true")
 ap.add_argument("--max_episodes", type=int, default=None)
+ap.add_argument("--drop", nargs="*", default=[],
+                help="observation blocks left out of observation.state (e.g. last_action, as the BC baselines)")
 ap.add_argument("--overwrite", action="store_true")
 args = ap.parse_args()
 
@@ -38,8 +41,11 @@ def main():
     f = h5py.File(args.demo_file, "r")
     layout = json.loads(f.attrs["obs_layout"])
     keep_cols, names, off = [], [], 0
+    unknown = set(args.drop) - {n for n, _ in layout}
+    if unknown:
+        raise SystemExit(f"--drop {sorted(unknown)}: not in the observation layout {[n for n, _ in layout]}")
     for n, d in layout:
-        if n != "tokens":
+        if n != "tokens" and n not in args.drop:
             keep_cols += list(range(off, off + d))
             names += [f"{n}_{i}" for i in range(d)]
         off += d
@@ -96,7 +102,9 @@ def main():
            "lerobot_codebase_version": CODEBASE_VERSION, "fps": fps, "episodes": rd.num_episodes,
            "frames": rd.num_frames, "expected_frames": int(ep_starts[-1]), "features": list(rd.features),
            "num_tasks": len(rd.meta.tasks), "max_abs_err_state_action": max(errs), "images_identical": img_ok,
-           "tasks_match": bool(task_ok), "export_wall_s": wall}
+           "tasks_match": bool(task_ok), "export_wall_s": wall,
+           # observation.state = policy observation[state_columns] (used by serve_lerobot_policy.py)
+           "obs_layout": layout, "dropped_blocks": list(args.drop), "state_columns": keep_cols}
     rep["pass"] = bool(rep["episodes"] == len(eps) and rep["frames"] == rep["expected_frames"]
                        and rep["max_abs_err_state_action"] < 1e-6 and img_ok and task_ok)
     with open(os.path.join(args.out, "quadsim_export.json"), "w") as fh:

@@ -33,7 +33,8 @@ def card(export_dir: str, demo_file: str | None = None) -> str:
         with h5py.File(demo_file, "r") as f:
             attrs = {k: (v.decode() if isinstance(v, bytes) else v) for k, v in f.attrs.items()}
     layout = json.loads(attrs["obs_layout"]) if "obs_layout" in attrs else []
-    state_blocks = ", ".join(f"`{n}` ({d})" for n, d in layout if n != "tokens")
+    dropped = set(rep.get("dropped_blocks", []))
+    state_blocks = ", ".join(f"`{n}` ({d})" for n, d in layout if n != "tokens" and n not in dropped)
     vehicle = json.loads(attrs["vehicle"])["name"] if "vehicle" in attrs else "x500"
     mode = str(attrs.get("control_mode", ""))
     images = "observation.images.front" in info.get("features", {})
@@ -78,8 +79,9 @@ def card(export_dir: str, demo_file: str | None = None) -> str:
         "",
         "## Features",
         "",
-        f"- `observation.state`: the deployable policy observation without the instruction-token block: {state_blocks} "
-        "(state estimate in the body frame, gyro, last action, task features; see quadsim's `obs_layout`).",
+        f"- `observation.state`: the deployable policy observation without the instruction-token block"
+        f"{''.join(f' and `{d}`' for d in sorted(dropped))}: {state_blocks} (state estimate in the body frame and gyro"
+        f"{'' if 'last_action' in dropped else ', previous action'}; see quadsim's `obs_layout`).",
         *([f"- `observation.images.front`: onboard RGB camera, {info['features']['observation.images.front']['shape']} "
            "(H, W, C), rendered with RTX (procedural scene, no texture/lighting randomization)."] if images else []),
         f"- `action`: {CONTROL.get(mode, 'normalized action of the quadsim action interface')}.",

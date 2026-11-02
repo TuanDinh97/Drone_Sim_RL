@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use quadsim in your research, please cite it using these metadata."
+title: "quadsim: a drone reinforcement-learning and imitation-learning research framework on Isaac Lab"
+type: software
+authors:
+  - given-names: Tuan
+    alias: TuanDinh97
+repository-code: "https://github.com/TuanDinh97/Drone_Sim_RL"
+license: BSD-3-Clause
+version: 0.2.0
+date-released: "2026-11-02"
+keywords:
+  - reinforcement learning
+  - imitation learning
+  - vision-language-action
+  - quadrotor
+  - drone
+  - Isaac Lab
+  - sim-to-real
+  - benchmark
+abstract: >-
+  quadsim is a modular, configuration-driven framework for drone reinforcement learning and imitation learning on
+  NVIDIA Isaac Lab: validated multirotor physics and sensor models, interchangeable control interfaces from motor
+  commands to position set-points, configurable observation / reward / constraint / curriculum terms, PPO, SAC, TD3
+  and PPO-Lagrangian, racing, multi-agent and language-conditioned tasks, demonstration recording with LeRobot export,
+  closed-loop evaluation of local or remote (openpi-protocol) vision-language-action policies, benchmark suites with
+  in- and out-of-distribution conditions, and a PX4 SITL deployment pipeline.

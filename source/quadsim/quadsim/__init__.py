@@ -9,4 +9,4 @@ Sub-packages
   deploy  policy export and runtime interfaces (ROS 2 / PX4)
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

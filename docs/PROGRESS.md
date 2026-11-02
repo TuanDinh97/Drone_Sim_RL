@@ -792,6 +792,17 @@ VLA evaluation interface, also used by Isaac Lab-Arena and BEHAVIOR; Hugging Fac
 - LeRobot exports get a Hugging Face dataset card (`scripts/il/dataset_card.py`, YAML front matter with
   `task_categories: robotics`, `tags: LeRobot`; features, provenance, verification, limitations); generated for the
   two existing exports.
+- Continuous integration: `.github/workflows/tests.yml` runs the CPU tests on GitHub Actions (Python 3.11, CPU-only
+  PyTorch 2.7.0, pins from `env/constraints.txt`). Mirrored first in a clean venv: **151 passed** (the CUDA case of
+  the warp ray-cast test is skipped without a GPU; 152 with it, also inside the Docker image).
+- The clean venv exposed two defects, fixed: (1) **fresh installs failed** - `env/constraints.txt` pinned
+  `packaging==23.0` (Isaac Sim 5.1's pin) while tensordict 0.10.0's `pyvers` requires packaging >= 25, so pip
+  reported `ResolutionImpossible` (the existing environment had been built incrementally and never hit it); the pin is
+  now restored at the end of `setup_env.sh`, the resolution was re-checked in the clean venv; (2) websockets 17
+  deprecates using `connect()` without a context manager - the client now enters it (tested with websockets 12.0
+  and 17.4, deprecation warnings as errors).
+- Docker: the container runs as root and wrote root-owned `__pycache__` files into the mounted checkout
+  (`PYTHONDONTWRITEBYTECODE=1` now; existing files handed back to the user).
 
 ## Upstream issue found and patched (affects GUI / video)
 - Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the

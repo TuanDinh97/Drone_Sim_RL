@@ -39,6 +39,9 @@ Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at 
 - Conda env **`quadsim`** (Python 3.11): `~/miniconda3/envs/quadsim/bin/python`. Do not use `env_isaaclab` (user's old, broken env).
 - Isaac Lab source: `third_party/IsaacLab` (tag v2.3.2, git-ignored, editable install). Rebuild everything with `bash scripts/setup_env.sh`.
 - Pins in `env/constraints.txt` (torch 2.7.0+cu128, warp 1.11.1, rsl-rl-lib 3.1.2, skrl 1.4.3, tensordict 0.10.0). `pip` extras try to upgrade torch to cu13 builds: always install with `-c env/constraints.txt`.
+  `packaging` is deliberately not in it: Isaac Sim's `packaging==23.0` and tensordict's `pyvers` (>= 25) are
+  unresolvable together; `setup_env.sh` restores 23.0 last. CI (`.github/workflows/tests.yml`) runs `tests/core`
+  with CPU torch; mirror it in a clean venv (`python -m venv`, not conda) before changing dependencies.
 - Always `export OMNI_KIT_ACCEPT_EULA=YES`. NVIDIA's asset CDN (Nucleus/S3) is effectively unreachable from this network
   (stock tasks hang >10 min loading USDs) → **all assets in this project are procedural**; never depend on Nucleus.
 

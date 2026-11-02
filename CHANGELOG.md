@@ -19,6 +19,7 @@ Numbers quoted below are the current (re-measured) values; `docs/PROGRESS.md` ho
 - Benchmark suites with in- / out-of-distribution conditions; aggregate statistics with stratified bootstrap
   intervals and probability of improvement (`quadsim.benchmark.stats`, rliable definitions).
 - Tools: regression evaluations, re-evaluation from result metadata, example checks, hardware-aware `num_envs`.
+- Continuous integration: GitHub Actions runs the CPU unit tests with CPU-only PyTorch (`.github/workflows/tests.yml`).
 
 ### Fixed (session-5 review; details in `docs/PROGRESS.md`, "Review and corrections")
 - `evaluate.py` stopped at a global episode count, which over-weights short episodes; every environment now
@@ -32,8 +33,17 @@ Numbers quoted below are the current (re-measured) values; `docs/PROGRESS.md` ho
   multiplier wind-up; silent reward-term overrides; degenerate race circuits; LangNav layout checks; `speed_limit`
   overrides; BC on tiny datasets.
 
+### Fixed (after the review)
+- Fresh installs: `env/constraints.txt` pinned `packaging==23.0`, which makes tensordict 0.10.0 unresolvable (its
+  `pyvers` requires packaging >= 25); `setup_env.sh` now restores Isaac Sim's pin after the RL stack.
+- Remote policy client: compatible with websockets 17 (connection used as a context manager); received arrays are
+  copied before conversion; batched servers may return action chunks.
+- Docker: no root-owned bytecode in the mounted sources.
+
 ### Changed
 - Racing, swarm, safe RL and LangNav results are reported over 3 seeds.
+- Optional dependency groups: `remote` (websockets, msgpack) and scipy in `dev`; the tests that need them are skipped
+  without them.
 
 ## 0.1.0 - 2026-11-01 - platform
 - Validated quadrotor physics (PhysX vs reference integrator 0.4 mm over 1.5 s), sensors (IMU, barometer, estimate,

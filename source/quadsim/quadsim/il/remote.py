@@ -163,7 +163,8 @@ class RemotePolicyAdapter:
                 obs[k["image"]] = img
             if pol is not None:
                 obs[k["policy"]] = pol
-            acts = np.asarray(self.client.infer(obs)[k["actions"]], dtype=np.float32)
+            acts = np.array(self.client.infer(obs)[k["actions"]], dtype=np.float32)
+            acts = acts[:, 0] if acts.ndim == 3 else acts  # (N, H, A) action chunks: first action of each
         else:
             rows = []
             for i in range(state.shape[0]):
@@ -172,7 +173,7 @@ class RemotePolicyAdapter:
                     obs[k["image"]] = img[i]
                 if pol is not None:
                     obs[k["policy"]] = pol[i]
-                a = np.asarray(self.client.infer(obs)[k["actions"]], dtype=np.float32)
+                a = np.array(self.client.infer(obs)[k["actions"]], dtype=np.float32)
                 rows.append(a[0] if a.ndim == 2 else a)  # action chunk: execute its first action, re-plan next step
             acts = np.stack(rows)
         return torch.as_tensor(acts, device=proprio.device).clamp(-1.0, 1.0)
@@ -212,12 +213,12 @@ def bc_policy_fn(checkpoint: str, device: str = "cpu"):
 
     @torch.no_grad()
     def policy_fn(obs: dict) -> dict:
-        o = torch.as_tensor(np.asarray(obs["observation/policy"]), dtype=torch.float32, device=device)
+        o = torch.as_tensor(np.array(obs["observation/policy"], dtype=np.float32), device=device)  # writable copy
         single = o.dim() == 1
         o = o[None] if single else o
         img = obs.get("observation/image")
         if img is not None:
-            img = torch.as_tensor(np.asarray(img), device=device)
+            img = torch.as_tensor(np.array(img), device=device)
             img = img[None] if single else img
             if img.dtype == torch.uint8:  # (N, H, W, 3) uint8 -> (N, 3, H, W) float
                 img = img.permute(0, 3, 1, 2).float() / 255.0

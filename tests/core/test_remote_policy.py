@@ -3,10 +3,12 @@
 import socket
 import threading
 
-import msgpack
 import numpy as np
 import pytest
 import torch
+
+msgpack = pytest.importorskip("msgpack")  # optional dependencies of quadsim.il.remote
+pytest.importorskip("websockets.sync.client")
 
 from quadsim.il.bc import BCPolicy
 from quadsim.il.remote import PolicyClient, RemotePolicyAdapter, bc_policy_fn, make_server, packb, unpackb
@@ -95,6 +97,14 @@ def test_adapter_executes_first_action_of_a_chunk():
                                                          torch.tensor([[0.5, -0.25, 9.0], [0.1, 0.2, 9.0]]))
     assert torch.allclose(out, torch.tensor([[0.5, -0.25], [0.1, 0.2]]))
     assert seen["image"].dtype == np.uint8 and seen["image"].shape == (4, 5, 3)  # openpi image convention: HWC uint8
+
+    def batched_chunk_policy(obs):  # (N, H, A): one chunk per observation
+        s = obs["observation/state"][:, :2]
+        return {"actions": np.stack([s, -s], axis=1)}
+
+    with _Server(batched_chunk_policy) as srv, PolicyClient("127.0.0.1", srv.port, wait_s=5) as client:
+        out = RemotePolicyAdapter(client, batched=True)(None, ["a", "b"], torch.tensor([[0.5, -0.25, 9.0], [0.1, 0.2, 9.0]]))
+    assert torch.allclose(out, torch.tensor([[0.5, -0.25], [0.1, 0.2]]))
 
 
 def test_unclosed_client_does_not_block_interpreter_exit():

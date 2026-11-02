@@ -1,0 +1,28 @@
+# CPU unit tests (tests/core): the pure PyTorch / NumPy parts of quadsim (dynamics, controllers, sensors, deployment,
+# registries, off-policy RL, imitation learning, statistics, remote policies). No simulator or GPU; the Isaac Lab
+# tasks are covered by the acceptance scripts in scripts/validation, run locally (docs/PROGRESS.md).
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  cpu-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"  # Isaac Sim 5.1's Python
+          cache: pip
+          cache-dependency-path: env/constraints.txt
+      - name: Install (CPU PyTorch; versions pinned in env/constraints.txt)
+        run: |
+          pip install torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -c env/constraints.txt -e "source/quadsim[dev,remote]" rsl-rl-lib tensordict warp-lang onnx onnxruntime
+      - name: Unit tests
+        run: python -m pytest tests/core -q

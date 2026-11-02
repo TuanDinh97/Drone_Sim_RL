@@ -9,6 +9,8 @@ quadsim is a research framework: contributions are welcome, and results must be 
   `python scripts/validation/compare_evals.py logs/eval/regress_review logs/eval/regress_<tag>`: every changed metric
   must be explained by the change. Run `python scripts/validation/examples_check.py` when touching extension points.
 - New behaviour comes with a unit test that fails without it (CPU-testable code must not import Isaac Lab).
+- Continuous integration runs the CPU tests on every push to `main` and every pull request
+  (`.github/workflows/tests.yml`, CPU-only PyTorch); the simulator checks above run locally.
 
 ## Adding components
 Vehicles, sensors, action interfaces, tasks, terms, algorithms, baselines and benchmark suites are registered by

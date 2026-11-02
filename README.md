@@ -1,5 +1,7 @@
 # Drone_Sim_RL — quadsim, a drone reinforcement-learning research framework on Isaac Lab
 
+[![tests](https://github.com/TuanDinh97/Drone_Sim_RL/actions/workflows/tests.yml/badge.svg)](https://github.com/TuanDinh97/Drone_Sim_RL/actions/workflows/tests.yml)
+
 `quadsim` is a modular, configuration-driven framework for developing, training, testing and comparing drone
 reinforcement-learning methods on **NVIDIA Isaac Lab v2.3.2 / Isaac Sim 5.1.0**, built around *verified physics*
 and *Sim-to-Real transfer*. Researchers define their own vehicles, sensors, control interfaces, tasks, rewards,

@@ -33,9 +33,9 @@ from quadsim.il.remote import make_server  # noqa: E402  (numpy / torch / msgpac
 
 
 def lerobot_policy_fn(policy_path: str, dataset_dir: str, device: str = "cuda", amp: bool = False,
-                      max_batch: int = 0):
+                      max_batch: int = 0, prompt: str | None = None):
     """``(policy_fn, metadata)`` for :func:`quadsim.il.remote.make_server`; ``max_batch`` > 0 splits large requests
-    (bounds the GPU memory of image models)."""
+    (bounds the GPU memory of image models); ``prompt`` replaces every instruction (language ablation)."""
     from lerobot.configs.policies import PreTrainedConfig
     from lerobot.policies.factory import get_policy_class, make_pre_post_processors
 
@@ -75,8 +75,8 @@ def lerobot_policy_fn(policy_path: str, dataset_dir: str, device: str = "cuda", 
             img = torch.from_numpy(np.array(obs["observation/image"]))
             img = (img[None] if single else img).permute(0, 3, 1, 2).float() / 255.0  # (N, 3, H, W) in [0, 1]
             batch.update({k: img for k in image_keys})
-        prompt = obs.get("prompt", "")
-        batch["task"] = [prompt] * len(state) if isinstance(prompt, str) else list(prompt)
+        task = obs.get("prompt", "") if prompt is None else prompt
+        batch["task"] = [task] * len(state) if isinstance(task, str) else list(task)
         n, step = len(state), max_batch if max_batch > 0 else len(state)
         a = torch.cat([infer({k: v[i: i + step] for k, v in batch.items()}) for i in range(0, n, step)]).numpy()
         return {"actions": a[0] if single else a}
@@ -85,7 +85,7 @@ def lerobot_policy_fn(policy_path: str, dataset_dir: str, device: str = "cuda", 
             "dataset": os.path.abspath(dataset_dir), "action_dim": int(cfg.output_features["action"].shape[0]),
             "chunk_size": int(getattr(cfg, "chunk_size", 1) or 1),
             "n_action_steps": int(getattr(cfg, "n_action_steps", 1) or 1), "image_keys": image_keys,
-            "state_columns": cols}
+            "state_columns": cols, "prompt_override": prompt}
     return policy_fn, meta
 
 
@@ -97,11 +97,12 @@ def main():
     ap.add_argument("--amp", action="store_true", help="CUDA autocast for inference")
     ap.add_argument("--max_batch", type=int, default=0, help="largest batch per forward pass (0: whole request)")
     ap.add_argument("--seed", type=int, default=0, help="seed of the sampling noise of generative policies")
+    ap.add_argument("--prompt", default=None, help="replace every instruction (e.g. '' to test language reliance)")
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8000)
     a = ap.parse_args()
     torch.manual_seed(a.seed)  # flow-matching / diffusion policies sample noise: reproducible request sequences
-    fn, meta = lerobot_policy_fn(a.policy, a.dataset, a.device, a.amp, a.max_batch)
+    fn, meta = lerobot_policy_fn(a.policy, a.dataset, a.device, a.amp, a.max_batch, a.prompt)
     meta["seed"] = a.seed
     print(f"[serve] {meta['policy']} on {a.device}, ws://{a.host}:{a.port}, metadata {json.dumps(meta)}", flush=True)
     make_server(fn, meta, a.host, a.port).serve_forever()

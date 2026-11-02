@@ -31,7 +31,10 @@ L="$ROOT/third_party/IsaacLab/source"
 "$PY" -m pip install -c "$C" -e "$L/isaaclab_rl[rsl_rl,skrl]"
 # re-assert pins (some extras try to pull newer torch / warp)
 "$PY" -m pip install -c "$C" torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
-"$PY" -m pip install -c "$C" warp-lang skrl tensordict packaging starlette pytest
+"$PY" -m pip install -c "$C" warp-lang skrl tensordict starlette pytest
 # this project
 "$PY" -m pip install -c "$C" -e "$ROOT/source/quadsim[dev]"
+# Isaac Sim pins packaging==23.0; tensordict's pyvers asks for >=25 but works with 23.0. Restored last, after
+# everything that resolves tensordict (pip reports the known conflict and installs it).
+"$PY" -m pip install packaging==23.0
 echo "[setup] done. Activate with: conda activate $ENV_NAME ; export OMNI_KIT_ACCEPT_EULA=YES"

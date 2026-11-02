@@ -7,6 +7,8 @@ Problems met while building and validating quadsim, with their fixes.
 | Symptom | Cause / fix |
 |---|---|
 | `pip install` upgrades torch to a cu13 build | always install with `-c env/constraints.txt` (torch 2.7.0+cu128, warp 1.11.1, rsl-rl-lib 3.1.2, ...) |
+| `ResolutionImpossible`: tensordict / `pyvers` vs `packaging==23.0` | Isaac Sim 5.1 pins `packaging==23.0`, tensordict 0.10.0's `pyvers` requires >= 25: never constrain packaging while installing the RL stack; `setup_env.sh` restores 23.0 last (pip prints the known conflict; both work with 23.0) |
+| Files under `source/`, `logs/`, `datasets/` owned by root after using Docker | the container runs as root; it no longer writes bytecode into the mounted sources, outputs remain root-owned: `sudo chown -R $USER logs datasets outputs` |
 | Stock Isaac Lab tasks hang > 10 min loading USDs | NVIDIA's Nucleus/S3 asset CDN unreachable; quadsim only uses procedural assets (`quadsim.isaac.spawn`) - never depend on Nucleus |
 | `ModuleNotFoundError: pxr` when importing `quadsim.tasks` / `isaaclab.utils` outside a simulator script | these need a running `SimulationApp`; the CPU tests only import `quadsim.core`, `quadsim.il`, `quadsim.rl.offpolicy`, `quadsim.utils` (term configs are plain dataclasses for this reason) |
 | LeRobot import fails with `pyarrow requires NumPy 2.0` | LeRobot lives in its own venv (`scripts/il/setup_lerobot_env.sh`) with NumPy 2; the simulator env stays on NumPy 1.26 |

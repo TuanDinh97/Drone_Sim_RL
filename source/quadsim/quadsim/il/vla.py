@@ -24,7 +24,8 @@ class VLAAdapter(Protocol):
 
     def __call__(self, images: torch.Tensor | None, instructions: list[str], proprio: torch.Tensor) -> torch.Tensor:
         """``images`` (N, C, H, W) float in [0, 1] (or None), ``proprio`` (N, P) deployable state observation without
-        task tokens; returns (N, A) actions in [-1, 1] for the environment's action interface."""
+        task tokens; returns (N, A) actions in [-1, 1] for the environment's action interface. An adapter with
+        ``wants_policy_obs = True`` also receives ``policy_obs=`` (N, D), the full deployable policy observation."""
         ...
 
 
@@ -65,7 +66,8 @@ class _VLAAlgorithm(Algorithm):
             if new.any() and hasattr(adapter, "reset"):
                 adapter.reset(new.nonzero().squeeze(-1))
             ins = getattr(u, "instructions", [""] * u.num_envs)
-            return adapter(obs.get("image"), ins, proprio_of(u, obs["policy"])).clamp(-1, 1)
+            extra = {"policy_obs": obs["policy"]} if getattr(adapter, "wants_policy_obs", False) else {}
+            return adapter(obs.get("image"), ins, proprio_of(u, obs["policy"]), **extra).clamp(-1, 1)
 
         act.policy = adapter
         return act

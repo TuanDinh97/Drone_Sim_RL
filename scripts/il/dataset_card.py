@@ -10,6 +10,9 @@ code version) and writes <dir>/README.md with the YAML front matter used on the 
 import argparse
 import json
 import os
+import subprocess
+
+CAMERA_FIX = "c3de0df"  # "Rendered cameras: an episode's first image shows its own scene" (session-5 review)
 
 CONTROL = {
     "velocity": "velocity set-point in the yaw-aligned body frame (x, y, z) normalized by max_velocity, plus yaw rate "
@@ -19,6 +22,29 @@ CONTROL = {
     "position": "position set-point in a box around position_center plus yaw rate, normalized to [-1, 1]",
     "motor": "per-rotor thrust normalized to [-1, 1] (0 .. max rotor thrust)",
 }
+
+
+def _has_camera_fix(commit: str) -> bool | None:
+    """Whether data collected at ``commit`` includes the camera re-render fix (None: unknown)."""
+    try:
+        r = subprocess.run(["git", "merge-base", "--is-ancestor", CAMERA_FIX, commit.split("-")[0]],
+                           cwd=os.path.dirname(os.path.abspath(__file__)), capture_output=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return {0: True, 1: False}.get(r.returncode)
+
+
+def stale_frame_note(images: bool, commit: str) -> str:
+    if not images:
+        return ""
+    fixed = _has_camera_fix(commit) if commit and commit != "unknown" else None
+    if fixed:
+        return ""
+    if fixed is False:
+        return (f" This dataset was collected before quadsim's camera re-render fix (commit `{CAMERA_FIX}`): the first "
+                "image of every episode still shows the previous episode's scene (about 1 of 145 frames).")
+    return (f" Datasets collected before quadsim's camera re-render fix (commit `{CAMERA_FIX}`) contain a stale first "
+            "image in every episode (about 1 of 145 frames).")
 
 
 def card(export_dir: str, demo_file: str | None = None) -> str:
@@ -100,10 +126,9 @@ def card(export_dir: str, demo_file: str | None = None) -> str:
         "## Intended use and limitations",
         "",
         "Training and evaluating imitation-learning / vision-language-action policies for drones in simulation; the "
-        "policies can be evaluated in closed loop in quadsim (`scripts/rl/evaluate.py --algo vla`, local adapters or "
-        "a remote policy server). The data are synthetic: procedural pillars, idealized rendering, a simulated "
-        "flight controller and sensor models; no real flight data. Datasets collected before quadsim's camera "
-        "re-render fix contain a stale first image in every episode (about 1 of 145 frames).",
+        "policies can be evaluated in closed loop in quadsim (`scripts/rl/evaluate.py --algo vla`; LeRobot policies "
+        "trained on this dataset through `scripts/il/serve_lerobot_policy.py`). The data are synthetic: procedural pillars, idealized rendering, a simulated "
+        "flight controller and sensor models; no real flight data." + stale_frame_note(images, attrs.get("git_commit", "")),
         "",
         "## Citation",
         "",

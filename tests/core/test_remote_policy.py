@@ -118,3 +118,29 @@ def test_unclosed_client_does_not_block_interpreter_exit():
             f"c = PolicyClient('127.0.0.1', {port}, wait_s=5); print('ok')")
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=30)
     assert r.returncode == 0 and "ok" in r.stdout, r.stderr
+
+
+@pytest.mark.parametrize("batched", [True, False])
+def test_action_horizon_executes_chunks_open_loop_and_resets(batched):
+    calls = []
+
+    def chunk_policy(obs):  # chunk[h] = (state_0 + 0.1 h, 0.1 * call number); batched or single observations
+        s = np.atleast_2d(obs["observation/state"])
+        calls.append(len(s))
+        h = 0.1 * np.arange(3, dtype=np.float32)[None, :, None]
+        a = np.concatenate([s[:, None, :1] + h, np.full((len(s), 3, 1), 0.1 * len(calls), np.float32)], -1)
+        return {"actions": a if obs["observation/state"].ndim == 2 else a[0]}
+
+    s1 = torch.tensor([[0.0, 9.0], [0.5, 9.0]])
+    s2 = torch.tensor([[0.2, 9.0], [0.7, 9.0]])
+    with _Server(chunk_policy) as srv, PolicyClient("127.0.0.1", srv.port, wait_s=5) as client:
+        ad = RemotePolicyAdapter(client, batched=batched, action_horizon=2)
+        a1 = ad(None, ["a", "b"], s1)  # both envs query: first action of their chunks
+        ad.reset(torch.tensor([1]))  # env 1 starts a new episode: fresh chunk
+        a2 = ad(None, ["a", "b"], s2)  # env 0 executes its second action open loop, env 1 queries
+        a3 = ad(None, ["a", "b"], s2)  # env 0 re-plans (horizon 2 reached), env 1 executes its second action
+    m = [1, 1, 2, 3] if batched else [1, 2, 3, 4]  # message that produced: env 0 / env 1 at call 1, env 1 at call 2, env 0 at call 3
+    assert torch.allclose(a1, torch.tensor([[0.0, 0.1 * m[0]], [0.5, 0.1 * m[1]]]))
+    assert torch.allclose(a2, torch.tensor([[0.1, 0.1 * m[0]], [0.7, 0.1 * m[2]]]))
+    assert torch.allclose(a3, torch.tensor([[0.2, 0.1 * m[3]], [0.8, 0.1 * m[2]]]))
+    assert calls == ([2, 1, 1] if batched else [1, 1, 1, 1])  # only environments without pending actions are queried

@@ -134,19 +134,26 @@ def make_server(policy_fn, metadata: dict | None = None, host: str = "0.0.0.0", 
 
 # ------------------------------------------------------------------------------------------------ evaluation adapter
 class RemotePolicyAdapter:
-    """:class:`~quadsim.il.vla.VLAAdapter` that queries a policy server. ``batched=True`` sends the whole batch of
-    environments in one message (quadsim's server); otherwise one message per environment (openpi servers)."""
+    """:class:`~quadsim.il.vla.VLAAdapter` that queries a policy server. ``batched=True`` sends the environments that
+    need actions in one message (quadsim's servers); otherwise one message per environment (openpi servers).
+
+    Action chunks (H, A) are executed like openpi's action-chunk broker: the first ``action_horizon`` actions of a
+    chunk are applied open loop before the environment queries the server again (1 = re-plan at every step); a new
+    episode always starts with a fresh chunk."""
 
     wants_policy_obs = True
 
     def __init__(self, client: PolicyClient, batched: bool = False, image_format: str = "uint8_hwc",
-                 keys: dict | None = None):
+                 keys: dict | None = None, action_horizon: int = 1):
         self.client, self.batched, self.image_format = client, batched, image_format
         self.keys = {"image": "observation/image", "state": "observation/state", "policy": "observation/policy",
                      "prompt": "prompt", "actions": "actions", **(keys or {})}
+        self.action_horizon = max(1, int(action_horizon))
+        self._plan = self._pos = self._left = None  # per environment: pending actions, next index, actions left
 
     def reset(self, env_ids):
-        pass  # the protocol has no reset; stateful servers track episodes themselves
+        if self._left is not None:
+            self._left[np.asarray(torch.as_tensor(env_ids).cpu()).reshape(-1)] = 0
 
     def _images(self, images):
         if images is None:
@@ -155,42 +162,60 @@ class RemotePolicyAdapter:
             return images.detach().float().cpu().numpy()
         return (images.clamp(0.0, 1.0) * 255.0).round().to(torch.uint8).permute(0, 2, 3, 1).cpu().numpy()
 
-    def __call__(self, images, instructions, proprio, policy_obs=None):
+    def _query(self, idx, img, state, pol, instructions) -> np.ndarray:
+        """Action chunks (len(idx), H, A) for the environments ``idx``."""
         k = self.keys
+        if self.batched:
+            obs = {k["state"]: state[idx], k["prompt"]: [instructions[i] for i in idx]}
+            if img is not None:
+                obs[k["image"]] = img[idx]
+            if pol is not None:
+                obs[k["policy"]] = pol[idx]
+            a = np.array(self.client.infer(obs)[k["actions"]], dtype=np.float32)
+            return a if a.ndim == 3 else a[:, None]
+        rows = []
+        for i in idx:
+            obs = {k["state"]: state[i], k["prompt"]: instructions[i]}
+            if img is not None:
+                obs[k["image"]] = img[i]
+            if pol is not None:
+                obs[k["policy"]] = pol[i]
+            a = np.array(self.client.infer(obs)[k["actions"]], dtype=np.float32)
+            rows.append(a if a.ndim == 2 else a[None])
+        h = min(r.shape[0] for r in rows)
+        return np.stack([r[:h] for r in rows])
+
+    def __call__(self, images, instructions, proprio, policy_obs=None):
         img = self._images(images)
         state = proprio.detach().float().cpu().numpy()
         pol = None if policy_obs is None else policy_obs.detach().float().cpu().numpy()
-        if self.batched:
-            obs = {k["state"]: state, k["prompt"]: list(instructions)}
-            if img is not None:
-                obs[k["image"]] = img
-            if pol is not None:
-                obs[k["policy"]] = pol
-            acts = np.array(self.client.infer(obs)[k["actions"]], dtype=np.float32)
-            acts = acts[:, 0] if acts.ndim == 3 else acts  # (N, H, A) action chunks: first action of each
-        else:
-            rows = []
-            for i in range(state.shape[0]):
-                obs = {k["state"]: state[i], k["prompt"]: instructions[i]}
-                if img is not None:
-                    obs[k["image"]] = img[i]
-                if pol is not None:
-                    obs[k["policy"]] = pol[i]
-                a = np.array(self.client.infer(obs)[k["actions"]], dtype=np.float32)
-                rows.append(a[0] if a.ndim == 2 else a)  # action chunk: execute its first action, re-plan next step
-            acts = np.stack(rows)
+        n = state.shape[0]
+        if self._left is None or self._left.shape[0] != n:
+            self._left, self._pos, self._plan = np.zeros(n, np.int64), np.zeros(n, np.int64), None
+        idx = np.nonzero(self._left == 0)[0]
+        if idx.size:
+            chunk = self._query(idx, img, state, pol, instructions)[:, : self.action_horizon]
+            if self._plan is None or self._plan.shape[2] != chunk.shape[2]:
+                self._plan = np.zeros((n, self.action_horizon, chunk.shape[2]), np.float32)
+            self._plan[idx, : chunk.shape[1]] = chunk
+            self._left[idx], self._pos[idx] = chunk.shape[1], 0
+        acts = self._plan[np.arange(n), self._pos]
+        self._pos += 1
+        self._left -= 1
         return torch.as_tensor(acts, device=proprio.device).clamp(-1.0, 1.0)
 
 
 def make_adapter(env):
     """Factory for ``evaluate.py --algo vla --checkpoint quadsim.il.remote:make_adapter``. Configuration through
     environment variables: ``QUADSIM_POLICY_SERVER`` (host:port, default localhost:8000), ``QUADSIM_REMOTE_BATCHED``
-    (1 = one message per batch), ``QUADSIM_REMOTE_IMAGE`` (uint8_hwc | float_chw)."""
+    (1 = one message per batch), ``QUADSIM_REMOTE_IMAGE`` (uint8_hwc | float_chw), ``QUADSIM_REMOTE_HORIZON``
+    (actions executed per chunk, default 1)."""
     host, _, port = os.environ.get("QUADSIM_POLICY_SERVER", "localhost:8000").rpartition(":")
     client = PolicyClient(host or "localhost", int(port))
     print(f"[remote] connected to {host}:{port}, server metadata: {client.metadata}", flush=True)
     return RemotePolicyAdapter(client, batched=os.environ.get("QUADSIM_REMOTE_BATCHED", "0") == "1",
-                               image_format=os.environ.get("QUADSIM_REMOTE_IMAGE", "uint8_hwc"))
+                               image_format=os.environ.get("QUADSIM_REMOTE_IMAGE", "uint8_hwc"),
+                               action_horizon=int(os.environ.get("QUADSIM_REMOTE_HORIZON", "1")))
 
 
 # ------------------------------------------------------------------------------------------------ serving quadsim BC

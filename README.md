@@ -181,6 +181,9 @@ python scripts/rl/evaluate.py --headless --task Quadsim-LangNav-v0 --controllers
 bash scripts/il/setup_lerobot_env.sh && third_party/lerobot-venv/bin/python scripts/il/export_lerobot.py \
        datasets/il/langnav_sym_expert.h5 --repo_id quadsim/langnav --out datasets/lerobot/langnav
 ```
+VLA / LeRobot models are fine-tuned on these exports in their own environment and evaluated in closed loop through the
+openpi-protocol policy server (`scripts/il/serve_lerobot_policy.py`, `quadsim.il.remote`; recipe with SmolVLA in
+`docs/TUTORIALS.md` §10).
 PX4 SITL (optional; native ROS 2 Jazzy + Gazebo Harmonic, see `docs/SIM2REAL.md`):
 ```bash
 bash ros2/px4_sitl/setup_px4_sitl.sh
@@ -198,13 +201,13 @@ source/quadsim/quadsim/
   tasks/         QuadrotorEnv + configurable terms (base/), mdp.py term library, baselines, tasks: hover, tracking,
                  waypoint, navigation, racing, swarm (multi-agent), langnav (language), PPO configs
   rl/            algorithms (PPO, SAC/TD3), off-policy learner, networks, policy I/O, CLI overrides
-  il/            demonstrations (HDF5), language encoders, BC / DAgger (FiLM CNN), VLA adapter
+  il/            demonstrations (HDF5), language encoders, BC / DAgger (FiLM CNN), VLA adapter, remote policies
   benchmark/     benchmark suites (in-distribution / OOD)
   data/          synchronized HDF5 recorder
   deploy/        export + contract, NumPy runtime, PX4 offboard core, closed-loop metrics, virtual sensors
   utils/         hardware detection, resource-aware defaults
 examples/        runnable extension examples + vehicle files
-scripts/         rl/ (train, evaluate, export), benchmark/, il/ (collect, BC, export to LeRobot, inspect),
+scripts/         rl/ (train, evaluate, export), benchmark/, il/ (collect, BC, export to LeRobot, serve policies, inspect),
                  validation/ (milestone, regression and example checks), data/, tools/, sitl/
 tests/core/      unit tests (no Isaac Sim needed)
 ros2/            PX4 offboard bridge + reproducible PX4 SITL setup (optional)

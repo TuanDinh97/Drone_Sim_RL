@@ -10,7 +10,7 @@ pinned packages (it needs NumPy 2 / newer pyarrow):
 Mapping: ``observation.state`` = the policy observation without instruction-token blocks, ``observation.images.front``
 = onboard camera (HWC uint8; PNG frames or video with ``--videos``), ``action`` = normalized action, ``task`` = the
 natural-language instruction (or the task name). Writes <out>/quadsim_export.json with a ``pass`` flag after reloading
-the dataset with ``LeRobotDataset`` and comparing frames.
+the dataset with ``LeRobotDataset`` and comparing frames, and a dataset card <out>/README.md (scripts/il/dataset_card.py).
 """
 
 import argparse
@@ -102,6 +102,12 @@ def main():
     with open(os.path.join(args.out, "quadsim_export.json"), "w") as fh:
         json.dump(rep, fh, indent=2)
     print(json.dumps(rep, indent=2))
+    import sys
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from dataset_card import write_card
+
+    print(f"[export] dataset card {write_card(args.out, args.demo_file)}")
 
 
 if __name__ == "__main__":

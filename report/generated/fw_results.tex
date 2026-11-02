@@ -96,36 +96,48 @@ langnav (RGB) & VLA adapter: colour servo & 6.6\,\% & 7.2\,\% & 0.0\,\%\\
 \bottomrule\end{tabular}\end{adjustbox}
 \end{table}
 
-\begin{table}[!htbp]\centering\small\caption{Multi-seed replication: the published single-seed runs (seed 42; BC seed 0) and two more seeds with identical configurations; mean $\pm$ sample std over seeds. BC seeds vary initialization and train/validation split on the same demonstrations. Source: \texttt{multiseed.json}.}\label{tab:fw_multiseed}
-\begin{adjustbox}{max width=\linewidth}\begin{tabular}{lcccc}\toprule
-Result & Seed 42 / 0 & Seed 1 & Seed 2 & Mean $\pm$ std\\\midrule
-Race-v0, success [\%], random tracks & 94.4 & 97.2 & 96.8 & 96.1\,$\pm$\,1.5\\
-Race-v0, success [\%], ellipse & 99.6 & 99.2 & 98.2 & 99.0\,$\pm$\,0.7\\
-Race-v0, success [\%], figure8 & 5.4 & 6.4 & 0.4 & 4.1\,$\pm$\,3.2\\
-Race-v0, success [\%], wind & 95.8 & 95.8 & 96.6 & 96.1\,$\pm$\,0.5\\
-Race-v1 (both directions), success [\%], random tracks & 94.8 & 96.8 & 95.6 & 95.7\,$\pm$\,1.0\\
-Race-v1 (both directions), success [\%], ellipse & 98.0 & 97.2 & 97.2 & 97.5\,$\pm$\,0.5\\
-Race-v1 (both directions), success [\%], figure8 & 73.8 & 66.6 & 79.2 & 73.2\,$\pm$\,6.3\\
-Race-v1 (both directions), success [\%], wind & 95.4 & 95.4 & 95.8 & 95.5\,$\pm$\,0.2\\
-Swarm, success [\%], swap4 & 87.5 & 89.1 & 92.2 & 89.6\,$\pm$\,2.4\\
-Swarm, success [\%], wind & 89.8 & 77.3 & 89.1 & 85.4\,$\pm$\,7.0\\
-Swarm, success [\%], latency & 80.5 & 76.6 & 72.7 & 76.6\,$\pm$\,3.9\\
-Swarm, agent collisions [\%], swap4 & 0.4 & 4.3 & 0.4 & 1.7\,$\pm$\,2.3\\
-PPO-Lagrangian, episode cost [s] (budget 0.1) & 0.081 & 0.126 & 0.108 & 0.105\,$\pm$\,0.023\\
-PPO-Lagrangian, success [\%] & 87.6 & 0.0 & 85.2 & 57.6\,$\pm$\,49.9\\
-LangNav map, BC, unknown words averaged, success [\%], held-out phr. & 30.8 & 15.6 & 14.4 & 20.3\,$\pm$\,9.1\\
-LangNav map, BC, success [\%], train phr. & 81.0 & 68.8 & 78.0 & 75.9\,$\pm$\,6.4\\
-LangNav map, BC, success [\%], held-out phr. & 58.2 & 64.0 & 62.4 & 61.5\,$\pm$\,3.0\\
-LangNav map, DAgger-2, success [\%], train phr. & 100.0 & 100.0 & 100.0 & 100.0\,$\pm$\,0.0\\
-LangNav map, DAgger-2, success [\%], held-out phr. & 56.2 & 84.2 & 80.0 & 73.5\,$\pm$\,15.1\\
-LangNav map, DAgger-2 + CLIP, success [\%], train phr. & 100.0 & 100.0 & 100.0 & 100.0\,$\pm$\,0.0\\
-LangNav map, DAgger-2 + CLIP, success [\%], held-out phr. & 97.0 & 95.6 & 98.0 & 96.9\,$\pm$\,1.2\\
-LangNav RGB, BC, success [\%], train phr. & 82.8 & 75.3 & 71.9 & 76.7\,$\pm$\,5.6\\
-LangNav RGB, BC, success [\%], held-out phr. & 85.3 & 75.3 & 62.8 & 74.5\,$\pm$\,11.3\\
-LangNav RGB, DAgger-1, success [\%], train phr. & 100.0 & 100.0 & 100.0 & 100.0\,$\pm$\,0.0\\
-LangNav RGB, DAgger-1, success [\%], held-out phr. & 100.0 & 95.3 & 100.0 & 98.4\,$\pm$\,2.7\\
-LangNav RGB, DAgger-1 + CLIP, success [\%], train phr. & 99.7 & 100.0 & 99.7 & 99.8\,$\pm$\,0.2\\
-LangNav RGB, DAgger-1 + CLIP, success [\%], held-out phr. & 99.1 & 99.7 & 100.0 & 99.6\,$\pm$\,0.5\\
+\begin{table}[!htbp]\centering\small\caption{Multi-seed replication: the published single-seed runs (seed 42; BC seed 0) and two more seeds with identical configurations; mean $\pm$ sample std over seeds and a stratified bootstrap 95\,\% CI of the mean over seeds. BC seeds vary initialization and train/validation split on the same demonstrations. Source: \texttt{multiseed.json}.}\label{tab:fw_multiseed}
+\begin{adjustbox}{max width=\linewidth}\begin{tabular}{lccccc}\toprule
+Result & Seed 42 / 0 & Seed 1 & Seed 2 & Mean $\pm$ std & 95\,\% CI\\\midrule
+Race-v0, success [\%], random tracks & 94.4 & 97.2 & 96.8 & 96.1\,$\pm$\,1.5 & [94.4, 97.2]\\
+Race-v0, success [\%], ellipse & 99.6 & 99.2 & 98.2 & 99.0\,$\pm$\,0.7 & [98.2, 99.6]\\
+Race-v0, success [\%], figure8 & 5.4 & 6.4 & 0.4 & 4.1\,$\pm$\,3.2 & [0.4, 6.4]\\
+Race-v0, success [\%], wind & 95.8 & 95.8 & 96.6 & 96.1\,$\pm$\,0.5 & [95.8, 96.6]\\
+Race-v1 (both directions), success [\%], random tracks & 94.8 & 96.8 & 95.6 & 95.7\,$\pm$\,1.0 & [94.8, 96.8]\\
+Race-v1 (both directions), success [\%], ellipse & 98.0 & 97.2 & 97.2 & 97.5\,$\pm$\,0.5 & [97.2, 98.0]\\
+Race-v1 (both directions), success [\%], figure8 & 73.8 & 66.6 & 79.2 & 73.2\,$\pm$\,6.3 & [66.6, 79.2]\\
+Race-v1 (both directions), success [\%], wind & 95.4 & 95.4 & 95.8 & 95.5\,$\pm$\,0.2 & [95.4, 95.8]\\
+Swarm, success [\%], swap4 & 87.5 & 89.1 & 92.2 & 89.6\,$\pm$\,2.4 & [87.5, 92.2]\\
+Swarm, success [\%], wind & 89.8 & 77.3 & 89.1 & 85.4\,$\pm$\,7.0 & [77.3, 89.8]\\
+Swarm, success [\%], latency & 80.5 & 76.6 & 72.7 & 76.6\,$\pm$\,3.9 & [72.7, 80.5]\\
+Swarm, agent collisions [\%], swap4 & 0.4 & 4.3 & 0.4 & 1.7\,$\pm$\,2.3 & [0.4, 4.3]\\
+PPO-Lagrangian, episode cost [s] (budget 0.1) & 0.081 & 0.126 & 0.108 & 0.105\,$\pm$\,0.023 & [0.081, 0.126]\\
+PPO-Lagrangian, success [\%] & 87.6 & 0.0 & 85.2 & 57.6\,$\pm$\,49.9 & [0.0, 87.6]\\
+LangNav map, BC, unknown words averaged, success [\%], train phr. & 81.0 & 68.8 & 78.0 & 75.9\,$\pm$\,6.4 & [68.8, 81.0]\\
+LangNav map, BC, unknown words averaged, success [\%], held-out phr. & 30.8 & 15.6 & 14.4 & 20.3\,$\pm$\,9.1 & [14.4, 30.8]\\
+LangNav map, BC, success [\%], train phr. & 81.0 & 68.8 & 78.0 & 75.9\,$\pm$\,6.4 & [68.8, 81.0]\\
+LangNav map, BC, success [\%], held-out phr. & 58.2 & 64.0 & 62.4 & 61.5\,$\pm$\,3.0 & [58.2, 64.0]\\
+LangNav map, DAgger-2, success [\%], train phr. & 100.0 & 100.0 & 100.0 & 100.0\,$\pm$\,0.0 & [100.0, 100.0]\\
+LangNav map, DAgger-2, success [\%], held-out phr. & 56.2 & 84.2 & 80.0 & 73.5\,$\pm$\,15.1 & [56.2, 84.2]\\
+LangNav map, DAgger-2 + CLIP, success [\%], train phr. & 100.0 & 100.0 & 100.0 & 100.0\,$\pm$\,0.0 & [100.0, 100.0]\\
+LangNav map, DAgger-2 + CLIP, success [\%], held-out phr. & 97.0 & 95.6 & 98.0 & 96.9\,$\pm$\,1.2 & [95.6, 98.0]\\
+LangNav RGB, BC, success [\%], train phr. & 82.8 & 75.3 & 71.9 & 76.7\,$\pm$\,5.6 & [71.9, 82.8]\\
+LangNav RGB, BC, success [\%], held-out phr. & 85.3 & 75.3 & 62.8 & 74.5\,$\pm$\,11.3 & [62.8, 85.3]\\
+LangNav RGB, DAgger-1, success [\%], train phr. & 100.0 & 100.0 & 100.0 & 100.0\,$\pm$\,0.0 & [100.0, 100.0]\\
+LangNav RGB, DAgger-1, success [\%], held-out phr. & 100.0 & 95.3 & 100.0 & 98.4\,$\pm$\,2.7 & [95.3, 100.0]\\
+LangNav RGB, DAgger-1 + CLIP, success [\%], train phr. & 99.7 & 100.0 & 99.7 & 99.8\,$\pm$\,0.2 & [99.7, 100.0]\\
+LangNav RGB, DAgger-1 + CLIP, success [\%], held-out phr. & 99.1 & 99.7 & 100.0 & 99.6\,$\pm$\,0.5 & [99.1, 100.0]\\
+\bottomrule\end{tabular}\end{adjustbox}
+\end{table}
+
+\begin{table}[!htbp]\centering\small\caption{Comparisons over seeds (Agarwal et al.~\cite{agarwal2021precipice}): probability that a random seed of X beats a random seed of Y on a random condition, and the interquartile mean of the success rate [\%], each with a stratified bootstrap 95\,\% CI. Source: \texttt{multiseed.json} (\texttt{comparisons}).}\label{tab:fw_compare}
+\begin{adjustbox}{max width=\linewidth}\begin{tabular}{lccc}\toprule
+Comparison X vs Y & P(X $>$ Y) & IQM X & IQM Y\\\midrule
+Race v1 vs v0, figure-8 & 1.00 [1.00, 1.00] & 73.2 [66.6, 79.2] & 4.1 [0.4, 6.4]\\
+Race v1 vs v0, all 4 conditions & 0.38 [0.25, 0.53] & 95.6 [95.2, 96.2] & 96.1 [95.2, 96.7]\\
+LangNav map, CLIP vs bag of words (held-out phr.) & 1.00 [1.00, 1.00] & 96.9 [95.6, 98.0] & 73.5 [56.2, 84.2]\\
+LangNav map, unknown words ignored vs averaged & 1.00 [1.00, 1.00] & 61.5 [58.2, 64.0] & 20.3 [14.4, 30.8]\\
+LangNav RGB, DAgger-1 vs BC (both phrasings) & 1.00 [1.00, 1.00] & 100.0 [97.7, 100.0] & 76.3 [69.6, 82.2]\\
 \bottomrule\end{tabular}\end{adjustbox}
 \end{table}
 

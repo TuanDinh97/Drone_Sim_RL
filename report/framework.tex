@@ -256,3 +256,32 @@ around its budget ($0.105\pm0.023$\,s for a 0.1\,s budget), but one of three see
 its multiplier grew while the policy was still learning the task. Ignoring unknown words in the bag-of-words encoder
 raises held-out-phrasing success from $20\pm9$ to $62\pm3$\,\% on the same checkpoints, and a frozen CLIP text tower
 reaches $96.9\pm1.2$\,\% against $73.5\pm15.1$\,\% for the bag of words after two DAgger rounds.
+
+\subsection{Tools for VLA research and rigorous reporting}\label{sec:tools}
+\paragraph{Remote policies.} Vision-language-action models are usually evaluated behind a policy server in their own
+environment: openpi's server (used for $\pi_0$~\cite{black2024pi0}) answers observation dictionaries sent over a
+WebSocket with msgpack-encoded numpy arrays, and Isaac Lab-Arena and BEHAVIOR evaluate models through the same
+interface. quadsim implements this protocol on both sides: a client adapter that queries the server every control
+step (camera image as uint8 HWC or exact float, proprioception, the full deployable observation and the instruction;
+the first action of a returned chunk is executed) and a server for quadsim checkpoints and arbitrary
+\texttt{infer(obs)} functions. A behaviour-cloning policy evaluated through a separate server process reproduces the
+local closed-loop evaluation bit for bit (every metric of 500 LangNav episodes), and a server in the LeRobot
+environment (NumPy~2) exchanges arrays exactly with the simulator's client (NumPy~1.26), so models with incompatible
+dependencies can be benchmarked on the drone tasks unchanged.
+
+\paragraph{Statistics and datasets.} Multi-seed results are aggregated with the metrics recommended by Agarwal et
+al.~\cite{agarwal2021precipice} (interquartile mean, stratified bootstrap confidence intervals over seeds, probability of
+improvement; \cref{tab:fw_compare}). They make one nuance explicit that the means hide: training the racing policy on
+both turning directions wins on the figure-8 with probability 1.00 but only 0.38 over all four conditions, because
+it loses 0.4--1.5 points on the others. Exported LeRobot datasets carry a Hugging Face dataset card (features,
+provenance, verification, limitations), and the repository provides a benchmark protocol, a citation file, a licence
+file, a changelog and contribution rules.
+
+\paragraph{Constraint warm-up and budget curriculum.} To address the PPO-Lagrangian seed that never learned the course,
+two variants were trained (seed 42): a 300-iteration unconstrained warm-up, and the same warm-up followed by a budget
+that shrinks geometrically from 5 to \SI{0.1}{s} over 600 iterations. Both failed (course success 2.0 and 1.2\,\%,
+over-speed 1.26 and \SI{1.22}{s} per course, against 87.6\,\% and \SI{0.081}{s} without them): the warm-up policy
+races with $\approx$\SI{5.5}{s} of over-speed per course, its over-speed time barely decreases once the constraint
+acts, the multiplier saturates at its maximum and the task collapses. In this reward-penalty form a converged policy
+is not steered back to the constraint; enforcing it from the start works in two of three seeds, and a separate cost
+critic is the next step.

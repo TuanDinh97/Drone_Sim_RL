@@ -188,6 +188,14 @@ were not resumed.
   embeddings are cached in the checkpoint and computed on the fly for unseen instructions at evaluation time.
 * **VLA adapters** (`quadsim.il.vla`): any external model wrapped as `(images, instructions, proprio) -> actions`
   is evaluated with `evaluate.py --algo vla --checkpoint module:factory`.
+* **Remote policies** (`quadsim.il.remote`): a model running in another process, Python environment or machine is
+  queried over the openpi policy-server protocol (WebSocket + msgpack-numpy; the protocol of openpi's
+  `serve_policy.py`, also used by Isaac Lab-Arena): `--checkpoint quadsim.il.remote:make_adapter` with
+  `QUADSIM_POLICY_SERVER=host:port`. Each step sends `observation/image` (uint8 HWC, or exact float CHW),
+  `observation/state`, `observation/policy` and `prompt`; the first action of a returned chunk is executed.
+  `scripts/il/serve_policy.py` serves quadsim BC checkpoints; `quadsim.il.remote.make_server` wraps any
+  `infer(obs) -> {"actions": ...}` function (needs only numpy, msgpack and websockets, e.g. in a LeRobot or openpi
+  environment). Verified: a remotely served policy reproduces the local evaluation bit for bit.
 * **New algorithms**: subclass `Algorithm` and register it (`examples/custom_algorithm.py`: Augmented Random Search
   on thousands of parallel environments).
 
@@ -201,6 +209,9 @@ episodes still running at that moment (the long ones) and bias rates toward outc
 simulator process, every controller with the same seed, a table per metric, and the generalization gap
 (id − mean ood) of the primary metric. Training performance (`id`) and generalization (`ood`: perturbed
 dynamics, wind, sensor noise, latency, unseen layouts or phrasings) are always reported separately.
+Across seeds, `quadsim.benchmark.stats` gives the aggregate metrics recommended by Agarwal et al. (NeurIPS 2021, the
+`rliable` definitions, numpy only): interquartile mean, stratified bootstrap confidence intervals and the probability
+of improvement between two methods. The full protocol and reference results: [`BENCHMARK.md`](BENCHMARK.md).
 
 ## Imitation learning and VLA data
 

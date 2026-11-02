@@ -736,8 +736,16 @@ Seeds 1-2 trained with the code of `7008d7d` (as seed 42), all evaluated with th
 - `env.task_end_is_terminal=True` (`db87a89`): ends decided by the task (goal reached, course finished, wrong
   landmark) become terminal states instead of bootstrapped time-outs. Default off (published formulation); being
   evaluated on Race-v1 with 3 seeds against the 3 published-formulation seeds.
-- `SafetyCfg.warmup_steps` and `Quadsim-Waypoint-Safe-v1` (`bad86ff`): the multiplier is held at 0 for the first 300
-  iterations so the policy learns the course first; being trained with 3 seeds for comparison with v0.
+- Constraint warm-up (`SafetyCfg.warmup_steps`, `Quadsim-Waypoint-Safe-v1`, `bad86ff`) and constraint budget
+  curriculum (`cost_limit_start` / `anneal_steps`, `Quadsim-Waypoint-Safe-v2`, `25567aa`; 5 s → 0.1 s geometrically
+  over 600 iterations after a 300-iteration warm-up), meant to fix the v0 seed that never learned the course.
+  **Both failed** (seed 42; seeds 1-2 not trained once the failure mode was clear): v1 success 2.0 %, over-speed
+  1.26 s per course; v2 success 1.2 %, 1.22 s (v0 seed 42: 87.6 %, 0.081 s). Mechanism, from the training logs:
+  during the warm-up the policy learns to race (99-100 % success, ~5.5-6 s over the limit per course); once the
+  constraint acts, its over-speed time barely moves (v2: 5.4 → 4.3 s while the budget fell from 5 to 0.19 s), the
+  multiplier saturates at `lambda_max` = 100 and the course success collapses. In this reward-penalty form a
+  converged policy is not steered back by the multiplier; enforcing the constraint from the start (v0) works in 2 of
+  3 seeds. A cost critic (PPO-Lag proper) is the next step (ROADMAP).
 - RGB LangNav demonstrations re-collected after the camera re-render fix, BC / DAgger re-trained (seed 0).
 
 ### Known issues kept (documented, not fixed)
@@ -751,6 +759,39 @@ Seeds 1-2 trained with the code of `7008d7d` (as seed 42), all evaluated with th
 - `Quadsim-LangNav-RGB-v0` has no PPO runner configuration with an image encoder (imitation learning only).
 - The Lagrange multiplier is not stored in checkpoints; swarm confidence intervals treat the 4 agents of a group as
   independent episodes (they are correlated), so they are too narrow.
+
+## Research standards and VLA interoperability (2026-11-02, session 6)
+Goal: make the framework as rigorous and as useful as possible for drone RL / IL / VLA research, following current
+community practice (researched: Agarwal et al. 2021 / `rliable` for reporting; openpi's policy server as the de-facto
+VLA evaluation interface, also used by Isaac Lab-Arena and BEHAVIOR; Hugging Face / LeRobot dataset cards).
+
+### Remote policies over the openpi protocol ✅
+- `quadsim.il.remote`: WebSocket + msgpack client and server, wire-compatible with openpi's `serve_policy.py` (numpy
+  arrays as `{__ndarray__, data, dtype, shape}`, metadata on connect, traceback string on server error);
+  `RemotePolicyAdapter` for `evaluate.py --algo vla --checkpoint quadsim.il.remote:make_adapter`
+  (`QUADSIM_POLICY_SERVER=host:port`; batched or one request per environment; uint8 HWC images as openpi or the exact
+  float CHW image; action chunks → first action); `scripts/il/serve_policy.py` serves quadsim BC checkpoints.
+- Verification: closed-loop LangNav evaluation of a BC policy through a separate server process is **bit-identical**
+  to the local evaluation (every metric mean, 500 episodes); a server in the LeRobot venv (NumPy 2.2.6) and the
+  quadsim client (NumPy 1.26.0) exchange float32 arrays exactly; 5 CPU tests (wire format, round trip, errors,
+  chunked actions, exact BC serving, an unclosed client cannot block interpreter exit - the first version hung
+  pytest because the websocket receive thread was not a daemon).
+- Optional dependencies: `websockets` (already installed), `msgpack` (pinned in `env/constraints.txt`).
+
+### Statistics for multi-seed results ✅
+- `quadsim.benchmark.stats`: IQM, stratified bootstrap CIs, probability of improvement (Mann-Whitney, ties 1/2),
+  optimality gap, with the `rliable` definitions, numpy only; tests against `scipy` (`trim_mean`, `mannwhitneyu`).
+- `multiseed.json` now carries a bootstrap 95 % CI of every mean over seeds and the key comparisons; report table
+  `tab:fw_compare`. New finding: Race-v1 is not uniformly better than v0 - P(v1 > v0) = 1.00 [1.00, 1.00] on the
+  figure-8 but 0.38 [0.25, 0.53] over all four conditions (v1 is 0.4-1.5 points lower on the others): it trades a
+  little in-distribution performance for a large generalization gain.
+
+### Repository standards ✅
+- `docs/BENCHMARK.md` (evaluation protocol, suites with success definitions, reporting rules, reference results),
+  `CITATION.cff`, `LICENSE` (BSD-3-Clause, as declared in the README), `CHANGELOG.md`, `CONTRIBUTING.md`; version 0.2.0.
+- LeRobot exports get a Hugging Face dataset card (`scripts/il/dataset_card.py`, YAML front matter with
+  `task_categories: robotics`, `tags: LeRobot`; features, provenance, verification, limitations); generated for the
+  two existing exports.
 
 ## Upstream issue found and patched (affects GUI / video)
 - Isaac Lab v2.3.2 `WrenchComposer.__init__` calls `hasattr(asset.data, "body_link_pos_w")`, which evaluates the

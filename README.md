@@ -9,6 +9,8 @@ touching the simulation core, and evaluate them reproducibly against classical b
 > Status and every number quoted here come from executed tests — see [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Architecture: [`docs/FRAMEWORK.md`](docs/FRAMEWORK.md) · Tutorials: [`docs/TUTORIALS.md`](docs/TUTORIALS.md) ·
 > Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) · Sim-to-real: [`docs/SIM2REAL.md`](docs/SIM2REAL.md) ·
+> Benchmark protocol: [`docs/BENCHMARK.md`](docs/BENCHMARK.md) · Changes: [`CHANGELOG.md`](CHANGELOG.md) ·
+> Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md) · Cite: [`CITATION.cff`](CITATION.cff) ·
 > Report: [`report/report.pdf`](report/report.pdf). Hardware used: Ubuntu 24.04, RTX 5060 **8 GB**, i5-14600KF.
 > Nothing has been flown on a real vehicle yet.
 
@@ -20,9 +22,9 @@ touching the simulation core, and evaluate them reproducibly against classical b
 | Control interfaces | motor-level, collective thrust + body rates, attitude, velocity, position (PX4-like onboard loops at 200 Hz) | `ACTION_INTERFACES.register` (example: acceleration commands) |
 | Sensors | IMU, barometer, state estimate (EKF2-calibrated profile), depth (ray-cast / RTX), RGB / RGB-D, range ring, 3-D LiDAR term, rangefinder, all with noise / bias / latency / rate | observation terms with `noise_std`, `period_steps`, `delay_steps`, `history` |
 | Tasks | hover, tracking, waypoints, obstacle navigation (range / depth / RGB / RGB-D), **drone racing**, **multi-agent swap**, **language-conditioned navigation**, constrained waypoint racing | subclass `QuadrotorEnv` (example: precision landing) or add reward / termination / cost / event / curriculum terms |
-| Algorithms | PPO (rsl_rl, asymmetric, CNN), **SAC / TD3** (GPU-native, asymmetric), **PPO-Lagrangian** (any algorithm), **BC / DAgger**, **VLA adapters** | `ALGORITHMS.register` (example: Augmented Random Search) |
-| Evaluation | identical seeds and conditions for policies and classical baselines, 95 % CIs, **benchmark suites with in-distribution / OOD splits** and generalization gap | `BENCHMARKS.register(Suite(...))` |
-| Data | synchronized HDF5 recording, **episode-structured demonstrations with instructions**, **LeRobot v3.0 export (verified with LeRobot's loader)**, dataset inspection | — |
+| Algorithms | PPO (rsl_rl, asymmetric, CNN), **SAC / TD3** (GPU-native, asymmetric), **PPO-Lagrangian** (any algorithm), **BC / DAgger**, **VLA adapters**, **remote policies over the openpi protocol** (models in their own environment or machine) | `ALGORITHMS.register` (example: Augmented Random Search) |
+| Evaluation | identical seeds and conditions for policies and classical baselines, 95 % CIs, **benchmark suites with in-distribution / OOD splits** and generalization gap, **multi-seed statistics** (IQM, stratified bootstrap CIs, probability of improvement; [protocol](docs/BENCHMARK.md)) | `BENCHMARKS.register(Suite(...))` |
+| Data | synchronized HDF5 recording, **episode-structured demonstrations with instructions**, **LeRobot v3.0 export (verified with LeRobot's loader) with a Hugging Face dataset card**, dataset inspection | — |
 | Deployment | ONNX/TorchScript export + interface contract, NumPy runtime, ROS 2 PX4 offboard bridge, PX4 v1.16 SITL pipeline | optional; nothing in training depends on PX4 / ROS 2 |
 | Resources | GPU-memory-aware `num_envs`, Docker image, 141 CPU unit tests, regression and example checks, re-evaluation tool | — |
 

@@ -27,6 +27,11 @@ over-weights short episodes - it now takes the first ceil(episodes/num_envs) epi
 published evaluate.py number was re-measured (`scripts/validation/reevaluate.py`; originals in
 `logs/_pre_review_eval_backup/`). Racing, swarm, safe RL and LangNav now have 3 seeds (`scripts/rl/multiseed.sh`,
 `docs/results/framework/multiseed.json`). The regression reference after the review is `logs/eval/regress_review`.
+Session 6 (standards, VLA): remote policies over the openpi protocol (`quadsim.il.remote`, `scripts/il/serve_policy.py`;
+closed loop bit-identical to local), rliable-style statistics (`quadsim.benchmark.stats`, comparisons in
+`multiseed.json`), `docs/BENCHMARK.md`, `CITATION.cff`, `LICENSE`, `CHANGELOG.md`, `CONTRIBUTING.md`, LeRobot dataset
+cards (`scripts/il/dataset_card.py`); PPO-Lagrangian warm-up / budget curriculum (Waypoint-Safe-v1/v2) both failed
+(documented); option `env.task_end_is_terminal` (Race-v1 3-seed ablation in `logs/benchmark_suites/race/terminal`).
 Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at the end of docs/PROGRESS.md.
 
 ## Environment (verified)
@@ -74,8 +79,12 @@ Next steps: docs/ROADMAP.md ("Beyond the current scope") and the open issues at 
 - Non-simulator GPU jobs count against the 8 GB too: RGB behaviour cloning (`train_bc.py --images`) holds ~2 GB.
 - Evaluations: never stop at a global episode count (drops the long episodes still running); `evaluate.py` keeps each
   env's first k episodes. Pass `--num_envs` explicitly for seeds/ablations (the hardware check depends on the moment).
-- Known modelling choice, not fixed: reaching the goal / finishing (waypoint, nav, race, LangNav) is a *time-out*
-  (bootstrapped by PPO and the off-policy learners), not a termination; changing it requires retraining those tasks.
+- Known modelling choice: reaching the goal / finishing (waypoint, nav, race, LangNav) is a *time-out* (bootstrapped)
+  in all published runs; `env.task_end_is_terminal=True` makes it terminal for new runs.
+- Long GPU queues: launch with `setsid nohup bash <script> > log 2>&1 < /dev/null &` - background tasks of a Claude
+  session are killed when the session ends (session 5 lost three trainings that way); put scripts in
+  `logs/jobs/` (the scratchpad in /tmp is wiped between sessions).
+- The Lagrange multiplier is not checkpointed: a resumed safe-RL run restarts lambda and any budget curriculum.
 
 ## Layout
 - `source/quadsim/quadsim/registry.py` – extension registries + plugin loader.

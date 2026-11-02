@@ -143,6 +143,34 @@ python scripts/rl/evaluate.py --headless --enable_cameras --task Quadsim-LangNav
     --controllers policy --algo vla --checkpoint examples/vla_color_servo.py:make_adapter
 ```
 
+Models that need their own environment (e.g. a VLA fine-tuned with LeRobot or openpi on the exported data) run behind
+a policy server speaking the openpi protocol - openpi's own `scripts/serve_policy.py`, or a few lines around
+`quadsim.il.remote.make_server` - and quadsim queries it every step:
+
+```bash
+# server side (any environment with numpy, msgpack, websockets; here a quadsim BC checkpoint)
+python scripts/il/serve_policy.py --checkpoint logs/il/ln_rgb_bc/model.pt --port 8000
+# simulator side
+QUADSIM_POLICY_SERVER=localhost:8000 QUADSIM_REMOTE_BATCHED=1 python scripts/rl/evaluate.py --headless \
+    --enable_cameras --task Quadsim-LangNav-RGB-v0 --num_envs 64 --controllers policy --algo vla \
+    --checkpoint quadsim.il.remote:make_adapter
+```
+
+```python
+# a custom server around your model (numpy arrays in, numpy arrays out)
+from quadsim.il.remote import make_server
+
+def infer(obs):  # obs["observation/image"] (H, W, 3) uint8, obs["observation/state"], obs["prompt"]
+    return {"actions": my_model(obs)}  # (4,) or an action chunk (horizon, 4), normalized to [-1, 1]
+
+with make_server(infer, {"policy": "my_vla"}, port=8000) as server:
+    server.serve_forever()
+```
+
+`QUADSIM_REMOTE_BATCHED=1` sends the whole batch of environments per message (quadsim servers); without it every
+environment is a separate request, as openpi servers expect. Exported LeRobot datasets carry a dataset card
+(`README.md`, `scripts/il/dataset_card.py`) for the Hugging Face hub.
+
 ## 11. Multi-agent
 
 `Quadsim-Swarm-v0`: groups of 4 agents (`env.agents_per_group`) share a frame and resets; one shared policy,

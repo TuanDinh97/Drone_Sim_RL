@@ -28,9 +28,11 @@ Ordered by dependency; each milestone has explicit acceptance criteria that are 
 0. Framework follow-ups: return goal reaching / finishing as a terminal state (not a bootstrapped time-out) and
    retrain waypoint, navigation and racing; re-collect the RGB demonstrations after the camera re-render fix; a PPO
    configuration with an image encoder for LangNav-RGB; multi-seed runs for SAC/TD3, the hexarotor and the plug-in
-   tasks; a cost critic and other constrained-RL algorithms (and the multiplier in checkpoints); fine-tuning an open
-   VLA on the exported LeRobot data; texture/lighting randomization for RGB; exploration and adaptive-control
-   benchmark tasks; yaw-aware rewards for the off-policy learners.
+   tasks; a cost critic (PPO-Lag proper) and other constrained-RL algorithms - the reward-penalty form failed to
+   recover from an unconstrained warm-up and lost one of three seeds (and the multiplier in checkpoints);
+   fine-tuning an open VLA on the exported LeRobot data and evaluating it through the remote-policy interface;
+   texture/lighting randomization for RGB; exploration and adaptive-control benchmark tasks; yaw-aware rewards for
+   the off-policy learners.
 1. Real-flight system identification (thrust stand, k_f, k_m, τ; bifilar pendulum inertia) for the target vehicle; update presets.
 2. PX4 SITL/HITL loop: run exported policy as an offboard ROS 2 node against PX4 SITL (gz x500) to cross-check dynamics.
    **SITL done** for hover, tracking, waypoint and range-navigation policies (docs/PROGRESS.md, sessions 2–3), incl.
